@@ -1,9 +1,4 @@
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
-
-import * as path from 'path';
+import { inspect } from 'util';
 import { workspace, ExtensionContext } from 'vscode';
 
 import {
@@ -16,40 +11,36 @@ import {
 let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
-	// The server is implemented in node
-	const serverModule = context.asAbsolutePath(
-		path.join('server', 'out', 'server.js')
-	);
+	console.log("activating imandrax lsp");
 
 	// If the extension is launched in debug mode then the debug server options are used
 	// Otherwise the run options are used
+	const executable = { command: "imandrax_lsp", args: ["--check-on-save=true"] /* transport: TransportKind.stdio */ };
+	const executableDebug = { ...executable, args: [...executable.args, "--debug-lsp", "--debug-file=/tmp/lsp.log"] };
 	const serverOptions: ServerOptions = {
-		run: { module: serverModule, transport: TransportKind.ipc },
-		debug: {
-			module: serverModule,
-			transport: TransportKind.ipc,
-		}
+		run: executable,
+		debug: executableDebug
 	};
 
 	// Options to control the language client
 	const clientOptions: LanguageClientOptions = {
 		// Register the server for plain text documents
-		documentSelector: [{ scheme: 'file', language: 'plaintext' }],
+		documentSelector: [{ scheme: 'file', language: 'imandrax' }],
 		synchronize: {
-			// Notify the server about file changes to '.clientrc files contained in the workspace
-			fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
+			fileEvents: workspace.createFileSystemWatcher('**/*.iml')
 		}
 	};
 
 	// Create the language client and start the client.
 	client = new LanguageClient(
-		'languageServerExample',
-		'Language Server Example',
+		'imandrax_lsp',
+		'ImandraX LSP',
 		serverOptions,
 		clientOptions
 	);
 
 	// Start the client. This will also launch the server
+	console.log(`starting client`);
 	client.start();
 }
 
@@ -57,5 +48,8 @@ export function deactivate(): Thenable<void> | undefined {
 	if (!client) {
 		return undefined;
 	}
-	return client.stop();
+	console.log("deactivating imandrax lsp");
+	const c = client;
+	client = null;
+	return c.stop();
 }

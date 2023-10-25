@@ -1,7 +1,7 @@
 {
   "name": "imandrax-lsp",
   "description": "Server for ImandraX",
-  "author": "Imandra",
+  "author": "Imandra Inc",
   "license": "MIT",
   "version": "1.0.0",
   "repository": {
@@ -12,16 +12,13 @@
   "engines": {
     "vscode": "^1.75.0"
   },
-  "activationEvents": [
-    "onLanguage:plaintext"
-  ],
   "main": "./src/out/extension",
   "contributes": {
     "configuration": {
       "type": "object",
-      "title": "Example configuration",
+      "title": "ImandraX configuration",
       "properties": {
-        "languageServerExample.trace.server": {
+        "imandrax.trace.server": {
           "scope": "window",
           "type": "string",
           "enum": [
@@ -33,7 +30,26 @@
           "description": "Traces the communication between VS Code and the language server."
         }
       }
-    }
+    },
+    "grammars": [
+      {
+        "language": "imandrax",
+        "scopeName": "source.imandrax",
+        "path": "./syntaxes/imandrax.json"
+      }
+    ],
+    "languages": [
+      {
+        "id": "imandrax",
+        "aliases": [
+          "ImandraX"
+        ],
+        "extensions": [
+          ".iml"
+        ],
+        "configuration": "./languages/imandrax.json"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

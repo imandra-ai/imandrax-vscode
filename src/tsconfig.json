@@ -4,9 +4,10 @@
 		"target": "es2020",
 		"lib": ["es2020"],
 		"outDir": "out",
-		"rootDir": "src",
-		"sourceMap": true
+		"rootDir": ".",
+		"sourceMap": true,
+		"composite": true
 	},
-	"include": ["src"],
+	"include": ["."],
 	"exclude": ["node_modules", ".vscode-test"]
 }
