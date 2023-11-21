@@ -31,6 +31,15 @@
           ],
           "default": "off",
           "description": "Traces the communication between VS Code and the language server."
+        },
+        "imandrax.lsp.arguments": {
+          "scope": "window",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Additional commandline arguments for the ImandraX language server"
         }
       }
     },

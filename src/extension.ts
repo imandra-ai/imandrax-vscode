@@ -13,10 +13,13 @@ let client: LanguageClient;
 export function activate(context: ExtensionContext) {
 	console.log("activating imandrax lsp");
 
+	const config = workspace.getConfiguration('imandrax');
+	const server_args = config.lsp.arguments;
+
 	// If the extension is launched in debug mode then the debug server options are used
 	// Otherwise the run options are used
 	const executable = { command: "imandrax_lsp", args: ["--check-on-save=true"] /* transport: TransportKind.stdio */ };
-	const executableDebug = { ...executable, args: [...executable.args, "--debug-lsp", "--debug-file=/tmp/lsp.log"] };
+	const executableDebug = { ...executable, args: [...executable.args].concat(server_args) };
 	const serverOptions: ServerOptions = {
 		run: executable,
 		debug: executableDebug
