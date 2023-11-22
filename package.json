@@ -48,7 +48,7 @@
           "scope": "window",
           "type": "object",
           "default": {},
-          "description": "Additional commandline arguments for the ImandraX language server"
+          "description": "Additional environment variables for the ImandraX language server"
         }
       }
     },
