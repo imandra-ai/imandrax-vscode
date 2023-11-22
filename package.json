@@ -13,7 +13,8 @@
     "vscode": "^1.75.0"
   },
   "activationEvents": [
-    "onLanguage:imandrax"
+    "onLanguage:imandrax",
+    "onCommand:imandrax.restart_lsp_server"
   ],
   "main": "./out/main",
   "contributes": {
@@ -31,6 +32,23 @@
           ],
           "default": "off",
           "description": "Traces the communication between VS Code and the language server."
+        },
+        "imandrax.lsp.arguments": {
+          "scope": "window",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "--check-on-save=true"
+          ],
+          "description": "Additional commandline arguments for the ImandraX language server"
+        },
+        "imandrax.lsp.environment": {
+          "scope": "window",
+          "type": "object",
+          "default": {},
+          "description": "Additional environment variables for the ImandraX language server"
         }
       }
     },
@@ -51,6 +69,12 @@
           ".iml"
         ],
         "configuration": "./languages/imandrax.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "imandrax.restart_language_server",
+        "title": "ImandraX: Restart language server"
       }
     ]
   },
