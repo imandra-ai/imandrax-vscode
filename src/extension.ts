@@ -1,5 +1,5 @@
 import { inspect } from 'util';
-import { workspace, ExtensionContext } from 'vscode';
+import { workspace, ExtensionContext, commands } from 'vscode';
 
 import {
 	LanguageClient,
@@ -13,17 +13,18 @@ let client: LanguageClient;
 export function activate(context: ExtensionContext) {
 	console.log("activating imandrax lsp");
 
+	// Register commands
+	const command = 'imandrax.restart_language_server';
+	const commandHandler = () => { restart(); };
+	context.subscriptions.push(commands.registerCommand(command, commandHandler));
+
+	// Start language server
 	const config = workspace.getConfiguration('imandrax');
 	const server_args = config.lsp.arguments;
+	const server_env = config.lsp.environment;
 
-	// If the extension is launched in debug mode then the debug server options are used
-	// Otherwise the run options are used
-	const executable = { command: "imandrax_lsp", args: ["--check-on-save=true"] /* transport: TransportKind.stdio */ };
-	const executableDebug = { ...executable, args: [...executable.args].concat(server_args) };
-	const serverOptions: ServerOptions = {
-		run: executable,
-		debug: executableDebug
-	};
+	const executable_options = { command: "imandrax_lsp", args: server_args, env: server_env /* transport: TransportKind.stdio */ };
+	const serverOptions: ServerOptions = executable_options;
 
 	// Options to control the language client
 	const clientOptions: LanguageClientOptions = {
@@ -47,11 +48,20 @@ export function activate(context: ExtensionContext) {
 	client.start();
 }
 
+export function restart(): Thenable<void> | undefined {
+	if (!client) {
+		return undefined;
+	}
+	console.log("restarting imandrax lsp server");
+	return client.restart();
+}
+
+
 export function deactivate(): Thenable<void> | undefined {
 	if (!client) {
 		return undefined;
 	}
-	console.log("deactivating imandrax lsp");
+	console.log("deactivating imandrax lsp server");
 	const c = client;
 	client = null;
 	return c.stop();
