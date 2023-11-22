@@ -22,3 +22,18 @@ that `imandrax_lsp` handles (for now).
 - Select `Launch Client` from the drop down (if it is not already).
 - Press ▷ to run the launch config (F5).
 - Open some .iml files.
+
+## Debug settings
+
+Add this to your `.vscode/settings.json`:
+
+```
+ "imandrax.lsp.arguments": [
+    "--check-on-save=true",
+    "--debug-lsp",
+    "--debug-file=/tmp/lsp.log"
+  ],
+  "imandrax.lsp.environment": {
+    "OCAMLRUNPARAM": "b"
+  }
+```
