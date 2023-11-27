@@ -730,7 +730,7 @@
 				{
 					"comment": "reserved ocaml keyword",
 					"name": "keyword.other.ocaml",
-					"match": "\\b(eval|theorem|instance|verify|axiom|and|as|assert|begin|class|constraint|do|done|downto|else|end|exception|external|for|fun|function|functor|if|in|include|inherit|initializer|lazy|let|match|method|module|mutable|new|nonrec|object|of|open|private|rec|sig|struct|then|to|try|type|val|virtual|when|while|with)\\b(?!')"
+					"match": "\\b(eval|theorem|lemma|instance|verify|axiom|and|as|assert|begin|class|constraint|do|done|downto|else|end|exception|external|for|fun|function|functor|if|in|include|inherit|initializer|lazy|let|match|method|module|mutable|new|nonrec|object|of|open|private|rec|sig|struct|then|to|try|type|val|virtual|when|while|with)\\b(?!')"
 				}
 			]
 		},
