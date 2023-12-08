@@ -20,10 +20,11 @@ export function activate(context: ExtensionContext) {
 
 	// Start language server
 	const config = workspace.getConfiguration('imandrax');
+	const binary = config.lsp.binary;
 	const server_args = config.lsp.arguments;
 	const server_env = config.lsp.environment;
 
-	const executable_options = { command: "imandrax_lsp", args: server_args, env: server_env /* transport: TransportKind.stdio */ };
+	const executable_options = { command: binary, args: server_args, env: server_env /* transport: TransportKind.stdio */ };
 	const serverOptions: ServerOptions = executable_options;
 
 	// Options to control the language client

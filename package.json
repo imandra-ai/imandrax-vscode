@@ -33,6 +33,12 @@
           "default": "off",
           "description": "Traces the communication between VS Code and the language server."
         },
+        "imandrax.lsp.binary": {
+          "scope": "window",
+          "type": "string",
+          "default": "imandrax-lsp",
+          "description": "Path to the ImandraX LSP server binary"
+        },
         "imandrax.lsp.arguments": {
           "scope": "window",
           "type": "array",
