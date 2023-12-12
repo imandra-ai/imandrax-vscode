@@ -24,8 +24,7 @@ export function activate(context: ExtensionContext) {
 	const server_args = config.lsp.arguments;
 	const server_env = config.lsp.environment;
 
-	const executable_options = { command: binary, args: server_args, env: server_env /* transport: TransportKind.stdio */ };
-	const serverOptions: ServerOptions = executable_options;
+	const serverOptions: Executable = { command: binary, args: server_args, options: { env: server_env } /* transport: TransportKind.stdio */ };
 
 	// Options to control the language client
 	const clientOptions: LanguageClientOptions = {
