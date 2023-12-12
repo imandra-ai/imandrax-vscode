@@ -2,6 +2,8 @@ import { inspect } from 'util';
 import { workspace, ExtensionContext, commands } from 'vscode';
 
 import {
+	Executable,
+	ExecutableOptions,
 	LanguageClient,
 	LanguageClientOptions,
 	ServerOptions,
@@ -24,7 +26,10 @@ export function activate(context: ExtensionContext) {
 	const server_args = config.lsp.arguments;
 	const server_env = config.lsp.environment;
 
-	const serverOptions: Executable = { command: binary, args: server_args, options: { env: server_env } /* transport: TransportKind.stdio */ };
+	const system_env = process.env;
+	const merged_env = Object.assign(system_env, server_env);
+
+	const serverOptions: Executable = { command: binary, args: server_args, options: { env: merged_env } /* transport: TransportKind.stdio */ };
 
 	// Options to control the language client
 	const clientOptions: LanguageClientOptions = {
