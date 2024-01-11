@@ -11,7 +11,7 @@ import {
 
 const MAX_RESTARTS: number = 10;
 
-let numRestarts: number = 0;
+let numManualRestarts: number = 0;
 let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
@@ -37,6 +37,10 @@ export function activate(context: ExtensionContext) {
 	const clientOptions: LanguageClientOptions = {
 		// Register the server for plain text documents
 		documentSelector: [{ scheme: 'file', language: 'imandrax' }],
+		stdioEncoding: 'utf-8',
+		connectionOptions: {
+			maxRestartCount: MAX_RESTARTS,
+		},
 		synchronize: {
 			fileEvents: workspace.createFileSystemWatcher('**/*.iml')
 		}
@@ -61,24 +65,13 @@ async function sleep(time_s: number) {
 }
 
 export function restart(): Thenable<void> | undefined {
-	numRestarts += 1;
+	numManualRestarts += 1;
 	if (!client) {
 		return undefined;
 	}
 
-	if (numRestarts >= MAX_RESTARTS) {
-		console.log(`restarted ${numRestarts} times, giving up.`);
-		return undefined;
-	}
-	console.log(`restarting imandrax lsp server (attempt ${numRestarts} of ${MAX_RESTARTS})`);
-
-	// sleep before restarting
-	const fut: Promise<void> = (async () => {
-		await sleep(2);
-		await client.restart();
-	})();
-
-	return fut;
+	console.log(`restarting imandrax lsp server (attempt ${numManualRestarts})`);
+	return client.restart();
 }
 
 
@@ -89,6 +82,5 @@ export function deactivate(): Thenable<void> | undefined {
 	console.log("deactivating imandrax lsp server");
 	const c = client;
 	client = null;
-	numRestarts = 0;
 	return c.stop();
 }
