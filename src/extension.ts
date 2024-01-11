@@ -1,4 +1,4 @@
-import { inspect } from 'util';
+import { time } from 'console';
 import { workspace, ExtensionContext, commands } from 'vscode';
 
 import {
@@ -7,9 +7,11 @@ import {
 	LanguageClient,
 	LanguageClientOptions,
 	ServerOptions,
-	TransportKind
 } from 'vscode-languageclient/node';
 
+const MAX_RESTARTS: number = 10;
+
+let numRestarts: number = 0;
 let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
@@ -53,12 +55,30 @@ export function activate(context: ExtensionContext) {
 	client.start();
 }
 
+// Sleep for the number of seconds
+async function sleep(time_s: number) {
+	return new Promise(resolve => setTimeout(resolve, time_s * 1000));
+}
+
 export function restart(): Thenable<void> | undefined {
+	numRestarts += 1;
 	if (!client) {
 		return undefined;
 	}
-	console.log("restarting imandrax lsp server");
-	return client.restart();
+
+	if (numRestarts >= MAX_RESTARTS) {
+		console.log(`restarted ${numRestarts} times, giving up.`);
+		return undefined;
+	}
+	console.log(`restarting imandrax lsp server (attempt ${numRestarts} of ${MAX_RESTARTS})`);
+
+	// sleep before restarting
+	const fut: Promise<void> = (async () => {
+		await sleep(2);
+		await client.restart();
+	})();
+
+	return fut;
 }
 
 
@@ -69,5 +89,6 @@ export function deactivate(): Thenable<void> | undefined {
 	console.log("deactivating imandrax lsp server");
 	const c = client;
 	client = null;
+	numRestarts = 0;
 	return c.stop();
 }
