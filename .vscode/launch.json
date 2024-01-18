@@ -12,7 +12,7 @@
 			"outFiles": ["${workspaceRoot}/src/out/**/*.js"],
 			"preLaunchTask": {
 				"type": "npm",
-				"script": "esbuild-watch"
+				"script": "esbuild"
 			}
 		}
 	]

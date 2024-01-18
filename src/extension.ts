@@ -1,4 +1,4 @@
-import { inspect } from 'util';
+import { time } from 'console';
 import { workspace, ExtensionContext, commands } from 'vscode';
 
 import {
@@ -7,9 +7,11 @@ import {
 	LanguageClient,
 	LanguageClientOptions,
 	ServerOptions,
-	TransportKind
 } from 'vscode-languageclient/node';
 
+const MAX_RESTARTS: number = 10;
+
+let numManualRestarts: number = 0;
 let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
@@ -35,6 +37,10 @@ export function activate(context: ExtensionContext) {
 	const clientOptions: LanguageClientOptions = {
 		// Register the server for plain text documents
 		documentSelector: [{ scheme: 'file', language: 'imandrax' }],
+		stdioEncoding: 'utf-8',
+		connectionOptions: {
+			maxRestartCount: MAX_RESTARTS,
+		},
 		synchronize: {
 			fileEvents: workspace.createFileSystemWatcher('**/*.iml')
 		}
@@ -53,11 +59,18 @@ export function activate(context: ExtensionContext) {
 	client.start();
 }
 
+// Sleep for the number of seconds
+async function sleep(time_s: number) {
+	return new Promise(resolve => setTimeout(resolve, time_s * 1000));
+}
+
 export function restart(): Thenable<void> | undefined {
+	numManualRestarts += 1;
 	if (!client) {
 		return undefined;
 	}
-	console.log("restarting imandrax lsp server");
+
+	console.log(`restarting imandrax lsp server (attempt ${numManualRestarts})`);
 	return client.restart();
 }
 
