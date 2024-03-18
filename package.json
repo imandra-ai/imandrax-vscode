@@ -3,7 +3,7 @@
   "description": "Server for ImandraX",
   "author": "Imandra Inc",
   "license": "MIT",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
@@ -13,7 +13,6 @@
     "vscode": "^1.75.0"
   },
   "activationEvents": [
-    "onLanguage:imandrax",
     "onCommand:imandrax.restart_lsp_server"
   ],
   "main": "./out/main",
@@ -81,6 +80,10 @@
       {
         "command": "imandrax.restart_language_server",
         "title": "ImandraX: Restart language server"
+      },
+      {
+        "command": "imandrax.check_all",
+        "title": "ImandraX: Check all proof obligations in current file"
       }
     ]
   },
