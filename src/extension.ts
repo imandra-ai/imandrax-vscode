@@ -1,5 +1,5 @@
 import { time } from 'console';
-import { workspace, ExtensionContext, commands } from 'vscode';
+import { workspace, window, ExtensionContext, commands, CancellationTokenSource } from 'vscode';
 
 import {
 	Executable,
@@ -21,6 +21,10 @@ export function activate(context: ExtensionContext) {
 	const command = 'imandrax.restart_language_server';
 	const commandHandler = () => { restart(); };
 	context.subscriptions.push(commands.registerCommand(command, commandHandler));
+
+	const check_all_cmd = 'imandrax.check_all';
+	const check_all_handler = () => { check_all(); };
+	context.subscriptions.push(commands.registerCommand(check_all_cmd, check_all_handler));
 
 	// Start language server
 	const config = workspace.getConfiguration('imandrax');
@@ -83,4 +87,12 @@ export function deactivate(): Thenable<void> | undefined {
 	const c = client;
 	client = null;
 	return c.stop();
+}
+
+export function check_all(): Thenable<void> | undefined {
+	if (!client) {
+		return undefined;
+	}
+	const file_uri = window.activeTextEditor.document.uri;
+	client.sendRequest("workspace/executeCommand", { "command": "check-all", "arguments": [file_uri.toString()] });
 }
