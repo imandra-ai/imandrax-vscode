@@ -1,11 +1,11 @@
 # Imandrax LSP plugin
 
-You need `imandrax_lsp` in your path.
+You need `imandrax-lsp` in your path.
 
 ## Functionality
 
 This works for `.iml` files, with basic syntax coloring, and the few methods
-that `imandrax_lsp` handles (for now).
+that `imandrax-lsp` handles (for now).
 
 ## TODO
 
@@ -29,7 +29,6 @@ Add this to your `.vscode/settings.json`:
 
 ```
  "imandrax.lsp.arguments": [
-    "--check-on-save=true",
     "--debug-lsp",
     "--debug-file=/tmp/lsp.log"
   ],
