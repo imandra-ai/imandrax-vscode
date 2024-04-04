@@ -41,3 +41,4 @@ jobs:
         name: "ImandraX"
         body: "The latest release of the ImandraX VSCode extension"
         tag: latest
+        allowUpdates: true
