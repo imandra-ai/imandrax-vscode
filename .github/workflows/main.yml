@@ -34,6 +34,7 @@ jobs:
     needs: build
     # if: github.ref == 'refs/heads/main'
     steps:
+    - run: pwd
     - run: ls -lah
     - uses: ncipollo/release-action@v1
       with:
