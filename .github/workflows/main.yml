@@ -40,4 +40,4 @@ jobs:
         artifacts: "imandrax-vscode/*.vsix"
         name: "ImandraX"
         body: "The latest release of the ImandraX VSCode extension"
-        tag: ${{ github.ref }}
+        tag: latest
