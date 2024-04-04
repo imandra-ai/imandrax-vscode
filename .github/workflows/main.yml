@@ -36,6 +36,7 @@ jobs:
     steps:
     - run: pwd
     - run: ls -lah
+    - run: ls -lah ..
     - uses: ncipollo/release-action@v1
       with:
         artifacts: "imandrax-*.vsix"
