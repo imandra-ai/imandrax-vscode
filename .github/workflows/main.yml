@@ -32,9 +32,11 @@ jobs:
     permissions:
       contents: write
     needs: build
+    # if: github.ref == 'refs/heads/main'
     steps:
     - uses: actions/checkout@v3
     - uses: ncipollo/release-action@v1
       with:
         artifacts: "*.vsix"
         body: "The latest release of the ImandraX VSCode extension"
+        tag: imandrax-vscode-${{ github.ref }}
