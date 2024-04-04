@@ -42,10 +42,6 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           merge-multiple: true
-      - run: pwd
-      - run: ls -lah
-      - run: ls -lah ..
-      - run: unzip artifacts.zip
       - uses: ncipollo/release-action@v1
         with:
           artifacts: "imandrax-*.vsix"
