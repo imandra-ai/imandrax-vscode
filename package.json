@@ -3,7 +3,7 @@
   "description": "Server for ImandraX",
   "author": "Imandra Inc",
   "license": "MIT",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "repository": {
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
@@ -84,6 +84,10 @@
       {
         "command": "imandrax.check_all",
         "title": "ImandraX: Check all proof obligations in current file"
+      },
+      {
+        "command": "imandrax.browse",
+        "title": "ImandraX: Browse tasks"
       }
     ]
   },

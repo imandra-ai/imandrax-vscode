@@ -1,0 +1,36 @@
+name: ImandraX VSCode Extension CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: 'Setup node'
+        uses: actions/setup-node@v4
+
+      - name: 'Install vsce'
+        run: npm install -g @vscode/vsce
+
+      - name: 'Build extension'
+        run: vsce package
+
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v3
+    - uses: ncipollo/release-action@v1
+      with:
+        artifacts: "*.vsix"
+        body: "The latest release of the ImandraX VSCode extension"

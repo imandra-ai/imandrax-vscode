@@ -1,5 +1,4 @@
-import { time } from 'console';
-import { workspace, window, ExtensionContext, commands, CancellationTokenSource } from 'vscode';
+import { workspace, window, ExtensionContext, commands, CancellationTokenSource, env, Uri } from 'vscode';
 
 import {
 	Executable,
@@ -7,6 +6,7 @@ import {
 	LanguageClient,
 	LanguageClientOptions,
 	ServerOptions,
+	VersionedTextDocumentIdentifier,
 } from 'vscode-languageclient/node';
 
 const MAX_RESTARTS: number = 10;
@@ -18,13 +18,17 @@ export function activate(context: ExtensionContext) {
 	console.log("activating imandrax lsp");
 
 	// Register commands
-	const command = 'imandrax.restart_language_server';
-	const commandHandler = () => { restart(); };
-	context.subscriptions.push(commands.registerCommand(command, commandHandler));
+	const restart_cmd = 'imandrax.restart_language_server';
+	const restart_handler = () => { restart(); };
+	context.subscriptions.push(commands.registerCommand(restart_cmd, restart_handler));
 
 	const check_all_cmd = 'imandrax.check_all';
 	const check_all_handler = () => { check_all(); };
 	context.subscriptions.push(commands.registerCommand(check_all_cmd, check_all_handler));
+
+	const browse_cmd = 'imandrax.browse';
+	const browse_handler = (uri) => { browse(uri); };
+	context.subscriptions.push(commands.registerCommand(browse_cmd, browse_handler));
 
 	// Start language server
 	const config = workspace.getConfiguration('imandrax');
@@ -95,4 +99,8 @@ export function check_all(): Thenable<void> | undefined {
 	}
 	const file_uri = window.activeTextEditor.document.uri;
 	client.sendRequest("workspace/executeCommand", { "command": "check-all", "arguments": [file_uri.toString()] });
+}
+
+export function browse(uri : string): Thenable<boolean> | undefined {
+	return env.openExternal(uri as any);
 }
