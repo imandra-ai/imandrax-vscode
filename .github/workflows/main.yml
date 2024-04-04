@@ -39,17 +39,17 @@ jobs:
     needs: build
     # if: github.ref == 'refs/heads/main'
     steps:
-    - run: pwd
-    - run: ls -lah
-    - run: ls -lah ..
-    - uses: actions/download-artifact@v3
-      with:
-        name: artifacts.zip
-    - run: unzip artifacts.zip
-    - uses: ncipollo/release-action@v1
-      with:
-        artifacts: "imandrax-*.vsix"
-        name: "ImandraX"
-        body: "The latest release of the ImandraX VSCode extension"
-        tag: latest
-        allowUpdates: true
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - run: pwd
+      - run: ls -lah
+      - run: ls -lah ..
+      - run: unzip artifacts.zip
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "imandrax-*.vsix"
+          name: "ImandraX VSIX"
+          body: "The latest release of the ImandraX VSCode extension"
+          tag: latest
+          allowUpdates: true
