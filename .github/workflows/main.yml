@@ -18,6 +18,9 @@ jobs:
       - name: 'Setup node'
         uses: actions/setup-node@v4
 
+      - name: 'Install esbuild'
+        run: npm install esbuild
+
       - name: 'Install vsce'
         run: npm install -g @vscode/vsce
 
@@ -28,6 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    needs: build
     steps:
     - uses: actions/checkout@v3
     - uses: ncipollo/release-action@v1
