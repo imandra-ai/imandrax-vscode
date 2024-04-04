@@ -18,14 +18,14 @@ jobs:
       - name: 'Setup node'
         uses: actions/setup-node@v4
 
-      - name: 'Install esbuild'
-        run: npm install esbuild
-
       - name: 'Install vsce'
         run: npm install -g @vscode/vsce
 
+      - name: 'Install esbuild'
+        run: npm install esbuild
+
       - name: 'Build extension'
-        run: vsce package
+        run: npm install; vsce package
 
   publish:
     runs-on: ubuntu-latest
