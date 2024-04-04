@@ -1,7 +1,9 @@
 {
-  "name": "imandrax-lsp",
-  "description": "Server for ImandraX",
+  "name": "imandrax",
+  "displayName": "ImandraX",
+  "description": "The ImandraX VSCode Extension",
   "author": "Imandra Inc",
+  "publisher": "Imandra Inc",
   "license": "MIT",
   "version": "0.0.3",
   "repository": {
