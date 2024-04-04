@@ -38,5 +38,5 @@ jobs:
     - uses: ncipollo/release-action@v1
       with:
         artifacts: "imandrax-vscode/*.vsix"
+        name: "ImandraX"
         body: "The latest release of the ImandraX VSCode extension"
-        tag: imandrax-vscode-${{ github.ref }}
