@@ -5,7 +5,7 @@
   "author": "Imandra Inc",
   "publisher": "Imandra Inc",
   "license": "MIT",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "repository": {
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
@@ -37,8 +37,8 @@
         "imandrax.lsp.binary": {
           "scope": "window",
           "type": "string",
-          "default": "imandrax-lsp",
-          "description": "Path to the ImandraX LSP server binary"
+          "default": "imandrax-cli",
+          "description": "Path to the ImandraX LSP CLI binary"
         },
         "imandrax.lsp.arguments": {
           "scope": "window",
@@ -47,7 +47,9 @@
             "type": "string"
           },
           "default": [
-            "--check-on-save=true"
+            "lsp",
+            "--check-on-save=true",
+            "--unicode=true"
           ],
           "description": "Additional commandline arguments for the ImandraX language server"
         },
