@@ -21,16 +21,32 @@ jobs:
       - name: 'Install vsce'
         run: npm install -g @vscode/vsce
 
+      - name: 'Install esbuild'
+        run: npm install esbuild
+
       - name: 'Build extension'
-        run: vsce package
+        run: npm install; vsce package
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artifacts.zip
+          path: imandrax-*.vsix
 
   publish:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    needs: build
+    if: github.ref == 'refs/heads/main'
     steps:
-    - uses: actions/checkout@v3
-    - uses: ncipollo/release-action@v1
-      with:
-        artifacts: "*.vsix"
-        body: "The latest release of the ImandraX VSCode extension"
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "imandrax-*.vsix"
+          name: "ImandraX VSIX"
+          body: "The latest release of the ImandraX VSCode extension"
+          tag: latest
+          allowUpdates: true
+          removeArtifacts: true
