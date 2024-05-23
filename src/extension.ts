@@ -7,12 +7,14 @@ import {
 	LanguageClientOptions,
 	ServerOptions,
 	VersionedTextDocumentIdentifier,
+	State,
 } from 'vscode-languageclient/node';
 
 const MAX_RESTARTS: number = 10;
 
 let numManualRestarts: number = 0;
 let client: LanguageClient;
+let showFullIDs: boolean = false;
 
 export function activate(context: ExtensionContext) {
 	console.log("activating imandrax lsp");
@@ -30,6 +32,10 @@ export function activate(context: ExtensionContext) {
 	const browse_handler = (uri) => { browse(uri); };
 	context.subscriptions.push(commands.registerCommand(browse_cmd, browse_handler));
 
+	const toggle_full_ids_cmd = 'imandrax.toggle_full_ids';
+	const toggle_full_ids_handler = (uri) => { toggle_full_ids(); };
+	context.subscriptions.push(commands.registerCommand(toggle_full_ids_cmd, toggle_full_ids_handler));
+
 	// Start language server
 	const config = workspace.getConfiguration('imandrax');
 	const binary = config.lsp.binary;
@@ -39,7 +45,7 @@ export function activate(context: ExtensionContext) {
 	const system_env = process.env;
 	const merged_env = Object.assign(system_env, server_env);
 
-	const serverOptions: Executable = { command: binary, args: server_args, options: { env: merged_env } /* transport: TransportKind.stdio */ };
+	const serverOptions: Executable = { command: binary, args: server_args, options: { env: merged_env } };
 
 	// Options to control the language client
 	const clientOptions: LanguageClientOptions = {
@@ -79,9 +85,8 @@ export function restart(): Thenable<void> | undefined {
 	}
 
 	console.log(`restarting imandrax lsp server (attempt ${numManualRestarts})`);
-	return client.restart();
+	return (client.state == State.Stopped) ? client.start() : client.restart();
 }
-
 
 export function deactivate(): Thenable<void> | undefined {
 	if (!client) {
@@ -101,6 +106,11 @@ export function check_all(): Thenable<void> | undefined {
 	client.sendRequest("workspace/executeCommand", { "command": "check-all", "arguments": [file_uri.toString()] });
 }
 
-export function browse(uri : string): Thenable<boolean> | undefined {
+export function browse(uri: string): Thenable<boolean> | undefined {
 	return env.openExternal(uri as any);
+}
+
+export function toggle_full_ids(): Thenable<void> | undefined {
+	showFullIDs = !showFullIDs;
+	return client.sendNotification("workspace/didChangeConfiguration", {"settings": {"show-full-ids": showFullIDs}});
 }
