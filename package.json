@@ -92,6 +92,10 @@
       {
         "command": "imandrax.browse",
         "title": "ImandraX: Browse tasks"
+      },
+      {
+        "command": "imandrax.toggle_full_ids",
+        "title": "ImandraX: Toggle full IDs"
       }
     ]
   },
