@@ -96,7 +96,16 @@
       {
         "command": "imandrax.toggle_full_ids",
         "title": "ImandraX: Toggle full IDs"
-      }
+      },
+      {
+				"command": "imandrax.create_terminal",
+				"title": "ImandraX: Create Terminal"
+			}
+      ,
+      {
+				"command": "imandrax.terminal_eval_selection",
+				"title": "ImandraX: Evaluate selection in terminal"
+			}
     ]
   },
   "scripts": {

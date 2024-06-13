@@ -1,4 +1,4 @@
-import { workspace, window, ExtensionContext, commands, CancellationTokenSource, env, Uri } from 'vscode';
+import { workspace, window, ExtensionContext, commands, CancellationTokenSource, env, Uri, TerminalOptions, Range , WorkspaceConfiguration} from 'vscode';
 
 import {
 	Executable,
@@ -15,6 +15,8 @@ const MAX_RESTARTS: number = 10;
 let numManualRestarts: number = 0;
 let client: LanguageClient;
 let showFullIDs: boolean = false;
+let next_terminal_id = 0;
+let config : WorkspaceConfiguration;
 
 export function activate(context: ExtensionContext) {
 	console.log("activating imandrax lsp");
@@ -36,8 +38,17 @@ export function activate(context: ExtensionContext) {
 	const toggle_full_ids_handler = (uri) => { toggle_full_ids(); };
 	context.subscriptions.push(commands.registerCommand(toggle_full_ids_cmd, toggle_full_ids_handler));
 
+	const create_terminal_cmd = 'imandrax.create_terminal';
+	const create_terminal_handler = (uri) => { create_terminal(); };
+	context.subscriptions.push(commands.registerCommand(create_terminal_cmd, create_terminal_handler));
+
+	const terminal_eval_selection_cmd = 'imandrax.terminal_eval_selection';
+	const terminal_eval_selection_handler = (uri) => { terminal_eval_selection(); };
+	context.subscriptions.push(commands.registerCommand(terminal_eval_selection_cmd, terminal_eval_selection_handler));
+
+
 	// Start language server
-	const config = workspace.getConfiguration('imandrax');
+	config = workspace.getConfiguration('imandrax');
 	const binary = config.lsp.binary;
 	const server_args = config.lsp.arguments;
 	const server_env = config.lsp.environment;
@@ -112,5 +123,36 @@ export function browse(uri: string): Thenable<boolean> | undefined {
 
 export function toggle_full_ids(): Thenable<void> | undefined {
 	showFullIDs = !showFullIDs;
-	return client.sendNotification("workspace/didChangeConfiguration", {"settings": {"show-full-ids": showFullIDs}});
+	return client.sendNotification("workspace/didChangeConfiguration", { "settings": { "show-full-ids": showFullIDs } });
+}
+
+function create_terminal() {
+	let name = `ImandraX`;
+	if (next_terminal_id++ > 0)
+		name += ` #${next_terminal_id}`;
+
+	const cwd = workspace.workspaceFolders == undefined || workspace.workspaceFolders.length == 0 ? undefined : workspace.workspaceFolders[0].uri;
+	const options: TerminalOptions = { name: name, shellPath: config.lsp.binary, shellArgs: ['repl'], cwd: cwd };
+	const t = window.createTerminal(options);
+	t.show();
+}
+
+function ensureTerminalExists(): boolean {
+	if (window.terminals.length === 0) {
+		window.showErrorMessage('No active terminals');
+		return false;
+	}
+	return true;
+}
+
+function terminal_eval_selection(): boolean {
+	const editor = window.activeTextEditor;
+	const selection = editor.selection;
+	if (selection && !selection.isEmpty) {
+		const selectionRange = new Range(selection.start.line, selection.start.character, selection.end.line, selection.end.character);
+		const highlighted = editor.document.getText(selectionRange);
+		if (window.activeTerminal != undefined)
+			window.activeTerminal.sendText(highlighted);
+	}
+	return true;
 }
