@@ -46,7 +46,7 @@ export function activate(context: ExtensionContext) {
 	const terminal_eval_selection_handler = () => { terminal_eval_selection(); };
 	context.subscriptions.push(commands.registerCommand(terminal_eval_selection_cmd, terminal_eval_selection_handler));
 
-	
+
 	// Start language server
 	config = workspace.getConfiguration("imandrax");
 	const binary = config.lsp.binary;
@@ -131,10 +131,10 @@ export function toggle_full_ids(): Thenable<void> | undefined {
 function create_terminal() {
 	let name = "ImandraX";
 	if (next_terminal_id++ > 0)
-		name += " #${next_terminal_id}";
+		name += ` #${next_terminal_id}`;
 
 	const cwd = workspace.workspaceFolders == undefined || workspace.workspaceFolders.length == 0 ? undefined : workspace.workspaceFolders[0].uri;
-	const options: TerminalOptions = { name: name, shellPath: config.lsp.binary, shellArgs: ["repl"], cwd: cwd };
+	const options: TerminalOptions = { name: name, shellPath: config.lsp.binary, shellArgs: ["repl", "--db=false"], cwd: cwd };
 	const t = window.createTerminal(options);
 	t.show();
 	return t;
@@ -162,11 +162,16 @@ function terminal_eval_selection(): boolean {
 function interact_model(params) {
 	// const uri = params["uri"];
 	const models = params["models"];
+
 	const t = findTerminal();
 	let i = 0;
+
 	models.forEach(m => {
-		t.sendText(m + " in m" + (i++).toString() + ";;");
+		m = m.replace("module M", "module M" + (i++).toString());
+		t.sendText(m + ";;\n");
 	});
+
+	t.show();
 
 	return true;
 }
