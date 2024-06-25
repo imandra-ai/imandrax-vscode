@@ -1,13 +1,22 @@
-import { workspace, window, ExtensionContext, commands, env, Uri, Terminal, TerminalOptions, Range, WorkspaceConfiguration, languages } from "vscode";
+import Path from 'path';
+
+import {
+	workspace,
+	window,
+	ExtensionContext,
+	commands,
+	env,
+	Uri,
+	TerminalOptions,
+	Range
+} from "vscode";
 
 import {
 	Executable,
-	ExecutableOptions,
 	LanguageClient,
 	LanguageClientOptions,
 	ServerOptions,
-	VersionedTextDocumentIdentifier,
-	State,
+	State
 } from "vscode-languageclient/node";
 
 const MAX_RESTARTS: number = 10;
@@ -39,7 +48,7 @@ export function activate(context: ExtensionContext) {
 	context.subscriptions.push(commands.registerCommand(toggle_full_ids_cmd, toggle_full_ids_handler));
 
 	const create_terminal_cmd = "imandrax.create_terminal";
-	const create_terminal_handler = () => { create_terminal(); };
+	const create_terminal_handler = () => { create_terminal(undefined); };
 	context.subscriptions.push(commands.registerCommand(create_terminal_cmd, create_terminal_handler));
 
 	const terminal_eval_selection_cmd = "imandrax.terminal_eval_selection";
@@ -127,24 +136,19 @@ export function toggle_full_ids(): Thenable<void> | undefined {
 	return client.sendNotification("workspace/didChangeConfiguration", { "settings": { "show-full-ids": showFullIDs } });
 }
 
-function create_terminal() {
+function create_terminal(cwd) {
 	const config = workspace.getConfiguration("imandrax");
 
 	let name = "ImandraX";
 	if (next_terminal_id++ > 0)
 		name += ` #${next_terminal_id}`;
 
-	const cwd = workspace.workspaceFolders == undefined || workspace.workspaceFolders.length == 0 ? undefined : workspace.workspaceFolders[0].uri;
+	if (cwd == undefined && workspace != undefined && workspace.workspaceFolders != undefined)
+		cwd = workspace.workspaceFolders[0].uri.path;
+
 	const options: TerminalOptions = { name: name, shellPath: config.terminal.binary, shellArgs: config.terminal.arguments, cwd: cwd };
 	const t = window.createTerminal(options);
 	t.show();
-	return t;
-}
-
-function findTerminal(): Terminal {
-	let t = window.terminals.find((t, i, obj) => t.name.startsWith("ImandraX"));
-	if (t == undefined)
-		t = create_terminal();
 	return t;
 }
 
@@ -163,15 +167,34 @@ function terminal_eval_selection(): boolean {
 function interact_model(params) {
 	const config = workspace.getConfiguration("imandrax");
 
-	// const uri = params["uri"];
+	const uri = Uri.parse(params["uri"]);
 	const models = params["models"];
 
-	const t = findTerminal();
+	const wsf = workspace.getWorkspaceFolder(uri);
 
-	models.forEach(m => {
+	let cwd;
+	let filename;
+
+	if (wsf == undefined) {
+		cwd = Path.dirname(uri.path);
+		filename = Path.basename(uri.path);
+	} else {
+		cwd = wsf.uri.path;
+		const rel = Path.relative(wsf.uri.path, Path.dirname(uri.path));
+		filename = Path.join(rel, Path.basename(uri.path));
+	}
+
+	let file_mod_name = Path.basename(uri.path, Path.extname(uri.path));
+	file_mod_name = file_mod_name.charAt(0).toUpperCase() + file_mod_name.slice(1);
+
+	const t = create_terminal(cwd);
+
+	models.forEach(async model_mod_name => {
 		if (config.terminal.freshModelModules)
-			m = m.replace("module M", "module M" + (model_count++).toString());
-		t.sendText(m + ";;\n");
+			model_mod_name = model_mod_name.replace("module M", "module M" + (model_count++).toString());
+		t.sendText(`[@@@import ${file_mod_name}, "${filename}"];;\n`);
+		t.sendText(`open ${file_mod_name};;\n`);
+		t.sendText(model_mod_name + ";;\n");
 	});
 
 	t.show();
