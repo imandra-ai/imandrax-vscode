@@ -169,10 +169,8 @@ function interact_model(params) {
 	const t = findTerminal();
 
 	models.forEach(m => {
-		console.log(`config.terminal.freshModelModules = ${config.terminal.freshModelModules}`);
 		if (config.terminal.freshModelModules)
 			m = m.replace("module M", "module M" + (model_count++).toString());
-		console.log(`m = ${m}`);
 		t.sendText(m + ";;\n");
 	});
 
