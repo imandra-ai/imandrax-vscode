@@ -39,14 +39,21 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/main'
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: 'Extract version number'
+        run: |
+          grep version package.json | cut -d ':' -f 2 | sed 's/[", ]//g' > version.txt
+          echo "VERSION="`cat version.txt` >> $GITHUB_ENV
       - uses: actions/download-artifact@v4
         with:
           merge-multiple: true
       - uses: ncipollo/release-action@v1
         with:
           artifacts: "imandrax-*.vsix"
-          name: "ImandraX VSIX"
+          name: "ImandraX VSIX ${{ env.VERSION }}"
           body: "The latest release of the ImandraX VSCode extension"
-          tag: latest
+          tag: ver-${{ env.VERSION }}
           allowUpdates: true
           removeArtifacts: true
+          makeLatest: true
