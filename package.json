@@ -80,7 +80,7 @@
         "imandrax.terminal.freshModelModules": {
           "scope": "window",
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Use fresh model module names (e.g. M42) for interactive models (otherwise overwrite module M)"
         }
       }
