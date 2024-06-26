@@ -5,7 +5,7 @@
   "author": "Imandra Inc",
   "publisher": "imandra",
   "license": "MIT",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "repository": {
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
@@ -128,6 +128,10 @@
       {
         "command": "imandrax.terminal_eval_selection",
         "title": "ImandraX: Evaluate selection in terminal"
+      },
+      {
+        "command": "imandrax.clear_cache",
+        "title": "ImandraX: Clear cache"
       }
     ]
   },
