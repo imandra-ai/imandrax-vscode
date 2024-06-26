@@ -3,9 +3,9 @@
   "displayName": "ImandraX",
   "description": "The ImandraX VSCode Extension",
   "author": "Imandra Inc",
-  "publisher": "Imandra Inc",
+  "publisher": "imandra",
   "license": "MIT",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "repository": {
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
@@ -58,6 +58,30 @@
           "type": "object",
           "default": {},
           "description": "Additional environment variables for the ImandraX language server"
+        },
+        "imandrax.terminal.binary": {
+          "scope": "window",
+          "type": "string",
+          "default": "imandrax-cli",
+          "description": "Path to the ImandraX interactive terminal binary"
+        },
+        "imandrax.terminal.arguments": {
+          "scope": "window",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "repl",
+            "--db=false"
+          ],
+          "description": "Additional commandline arguments for the ImandraX interactive terminal binary"
+        },
+        "imandrax.terminal.freshModelModules": {
+          "scope": "window",
+          "type": "boolean",
+          "default": false,
+          "description": "Use fresh model module names (e.g. M42) for interactive models (otherwise overwrite module M)"
         }
       }
     },
@@ -96,6 +120,14 @@
       {
         "command": "imandrax.toggle_full_ids",
         "title": "ImandraX: Toggle full IDs"
+      },
+      {
+        "command": "imandrax.create_terminal",
+        "title": "ImandraX: Create Terminal"
+      },
+      {
+        "command": "imandrax.terminal_eval_selection",
+        "title": "ImandraX: Evaluate selection in terminal"
       }
     ]
   },
@@ -118,7 +150,6 @@
     "esbuild": "^0.19.5",
     "eslint": "^8.35.0",
     "mocha": "^9.2.1",
-    "typescript": "^5.2.2",
-    "vsce": "^2.15.0"
+    "typescript": "^5.2.2"
   }
 }

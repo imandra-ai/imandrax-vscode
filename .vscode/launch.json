@@ -8,8 +8,8 @@
 			"request": "launch",
 			"name": "Launch Client",
 			"runtimeExecutable": "${execPath}",
-			"args": ["--extensionDevelopmentPath=${workspaceRoot}"],
-			"outFiles": ["${workspaceRoot}/src/out/**/*.js"],
+			"args": ["--extensionDevelopmentPath=${workspaceRoot}", "--disable-extensions"],
+			"outFiles": ["${workspaceRoot}/src/out/**/*.js", "${workspaceRoot}/out/**/*.js"],
 			"preLaunchTask": {
 				"type": "npm",
 				"script": "esbuild"
