@@ -54,6 +54,6 @@ jobs:
           name: "ImandraX VSIX ${{ env.VERSION }}"
           body: "The latest release of the ImandraX VSCode extension"
           tag: ver-${{ env.VERSION }}
-          allowUpdates: true
+          allowUpdates: false
           removeArtifacts: true
           makeLatest: true
