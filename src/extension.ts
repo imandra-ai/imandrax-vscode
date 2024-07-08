@@ -8,7 +8,8 @@ import {
 	env,
 	Uri,
 	TerminalOptions,
-	Range
+	Range,
+	TextDocumentContentProvider
 } from "vscode";
 
 import {
@@ -58,6 +59,24 @@ export function activate(context: ExtensionContext) {
 	const clear_cache_cmd = "imandrax.clear_cache";
 	const clear_cache_handler = () => { clear_cache(); };
 	context.subscriptions.push(commands.registerCommand(clear_cache_cmd, clear_cache_handler));
+
+	const open_vfs_file_cmd = "imandrax.open_vfs_file";
+	const open_vfs_file_handler = async () => {
+		const what = await window.showInputBox({ placeHolder: 'file name?' });
+		if (what) {
+			const uri = Uri.parse(what);
+			const doc = await workspace.openTextDocument(uri);
+			await window.showTextDocument(doc, { preview: false });
+		}
+	};
+	context.subscriptions.push(commands.registerCommand(open_vfs_file_cmd, open_vfs_file_handler));
+
+	const vfs_provider = new (class implements TextDocumentContentProvider {
+		async provideTextDocumentContent(uri: Uri): Promise<string> {
+			return await client.sendRequest<string>("$imandrax/req-vfs-file", { "uri": uri } );
+		}
+	})();
+	context.subscriptions.push(workspace.registerTextDocumentContentProvider("imandrax-vfs", vfs_provider));
 
 	// Start language server
 	const config = workspace.getConfiguration("imandrax");

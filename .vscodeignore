@@ -17,3 +17,5 @@ src/node_modules/**
 !src/node_modules/vscode-languageserver-types/**
 !src/node_modules/{minimatch,brace-expansion,concat-map,balanced-match}/**
 !src/node_modules/{semver,lru-cache,yallist}/**
+tmp
+_opam
