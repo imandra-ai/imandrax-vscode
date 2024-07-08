@@ -55,6 +55,10 @@ export function activate(context: ExtensionContext) {
 	const terminal_eval_selection_handler = () => { terminal_eval_selection(); };
 	context.subscriptions.push(commands.registerCommand(terminal_eval_selection_cmd, terminal_eval_selection_handler));
 
+	const clear_cache_cmd = "imandrax.clear_cache";
+	const clear_cache_handler = () => { clear_cache(); };
+	context.subscriptions.push(commands.registerCommand(clear_cache_cmd, clear_cache_handler));
+
 	// Start language server
 	const config = workspace.getConfiguration("imandrax");
 	const binary = config.lsp.binary;
@@ -198,6 +202,9 @@ function interact_model(params) {
 	});
 
 	t.show();
+}
 
+function clear_cache() {
+	client.sendRequest("workspace/executeCommand", { "command": "clear-cache", "arguments": [] });
 	return true;
 }
