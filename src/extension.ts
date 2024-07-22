@@ -23,14 +23,12 @@ import {
 const MAX_RESTARTS: number = 10;
 
 let numManualRestarts: number = 0;
-let client: LanguageClient;
+let client: LanguageClient = undefined;
 let showFullIDs: boolean = false;
 let next_terminal_id = 0;
 let model_count = 0;
 
 export function activate(context: ExtensionContext) {
-	console.log("activating imandrax lsp");
-
 	// Register commands
 	const restart_cmd = "imandrax.restart_language_server";
 	const restart_handler = () => { restart(); };
@@ -78,6 +76,10 @@ export function activate(context: ExtensionContext) {
 	})();
 	context.subscriptions.push(workspace.registerTextDocumentContentProvider("imandrax-vfs", vfs_provider));
 
+	restart(true);
+}
+
+export async function start() {
 	// Start language server
 	const config = workspace.getConfiguration("imandrax");
 	const binary = config.lsp.binary;
@@ -112,8 +114,7 @@ export function activate(context: ExtensionContext) {
 
 	client.onRequest("$imandrax/interact-model", (params) => { interact_model(params); });
 
-	// Start the client. This will also launch the server
-	console.log("starting client");
+	// Start the client. This will also launch the server.
 	client.start();
 }
 
@@ -122,21 +123,22 @@ async function sleep(time_s: number) {
 	return new Promise(resolve => setTimeout(resolve, time_s * 1000));
 }
 
-export function restart(): Thenable<void> | undefined {
-	numManualRestarts += 1;
-	if (!client) {
-		return undefined;
+export function restart(initial: boolean = false): Thenable<void> | undefined {
+	if (initial)
+		console.log("Starting ImandraX LSP server");
+	else {
+		numManualRestarts += 1;
+		console.log(`Restarting Imandrax LSP server (attempt ${numManualRestarts})`);
+		client.stop();
 	}
-
-	console.log(`restarting imandrax lsp server (attempt ${numManualRestarts})`);
-	return (client.state == State.Stopped) ? client.start() : client.restart();
+	return start();
 }
 
 export function deactivate(): Thenable<void> | undefined {
 	if (!client) {
 		return undefined;
 	}
-	console.log("deactivating imandrax lsp server");
+	console.log("Deactivating ImandraX LSP server");
 	const c = client;
 	client = null;
 	return c.stop();
