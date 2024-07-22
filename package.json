@@ -82,6 +82,12 @@
           "type": "boolean",
           "default": false,
           "description": "Use fresh model module names (e.g. M42) for interactive models (otherwise overwrite module M)"
+        },
+        "imandrax.useSimpleBrowser": {
+          "scope": "window",
+          "type": "boolean",
+          "default": true,
+          "description": "Use the built-in Simple Browser to open links (otherwise the system default browser)"
         }
       }
     },

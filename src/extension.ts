@@ -151,7 +151,11 @@ export function check_all(): Thenable<void> | undefined {
 }
 
 export function browse(uri: string): Thenable<boolean> | undefined {
-	return env.openExternal(uri as any);
+	const config = workspace.getConfiguration("imandrax");
+	if (config.useSimpleBrowser)
+		return commands.executeCommand("simpleBrowser.api.open", uri);
+	else
+		return env.openExternal(uri as any);
 }
 
 export function toggle_full_ids(): Thenable<void> | undefined {
