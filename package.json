@@ -5,7 +5,7 @@
   "author": "Imandra Inc",
   "publisher": "imandra",
   "license": "MIT",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "repository": {
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
@@ -132,6 +132,10 @@
       {
         "command": "imandrax.clear_cache",
         "title": "ImandraX: Clear cache"
+      },
+      {
+        "command": "imandrax.open_vfs_file",
+        "title": "Imandrax: open VFS file"
       }
     ]
   },
