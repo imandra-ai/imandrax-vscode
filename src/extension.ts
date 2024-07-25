@@ -14,7 +14,8 @@ import {
 	DiagnosticChangeEvent,
 	DecorationOptions,
 	DecorationRenderOptions,
-	DiagnosticSeverity
+	DiagnosticSeverity,
+	TextEditor
 } from "vscode";
 
 import {
@@ -107,30 +108,29 @@ export function activate(context_: ExtensionContext) {
 	restart(true);
 }
 
-function diagnostics_for_uri(uri: Uri) {
-	if (uri) {
-		languages.getDiagnostics(uri).forEach(d => {
-			if (d.source == "lsp") {
-				const editor = window.visibleTextEditors.find(e => {
-					return e.document.uri.toString() == uri.toString();
-				});
-				if (editor) {
-					const good = d.severity == DiagnosticSeverity.Information || d.severity == DiagnosticSeverity.Hint;
-					const decoration_options: DecorationOptions = { range: d.range.with(d.range.start, d.range.start) };
-					editor.setDecorations(good ? decoration_type_good : decoration_type_bad, [decoration_options]);
-				}
+function diagnostics_for_editor(editor: TextEditor) {
+	const all_good: DecorationOptions[] = [];
+	const all_bad: DecorationOptions[] = [];
+	languages.getDiagnostics(editor.document.uri).forEach(d => {
+		if (d.source == "lsp") {
+			if (editor) {
+				const good = d.severity == DiagnosticSeverity.Information || d.severity == DiagnosticSeverity.Hint;
+				const decoration_options: DecorationOptions = { range: d.range.with(d.range.start, d.range.start) };
+				if (good) all_good.push(decoration_options); else all_bad.push(decoration_options);
 			}
 		}
-		);
 	}
+	);
+	editor.setDecorations(decoration_type_good, all_good);
+	editor.setDecorations(decoration_type_bad, all_bad);
 }
 
 function diagnostic_listener(e: DiagnosticChangeEvent) {
-	diagnostics_for_uri(window.activeTextEditor.document.uri);
+	diagnostics_for_editor(window.activeTextEditor);
 }
 
 function active_editor_listener() {
-	diagnostics_for_uri(window.activeTextEditor.document.uri);
+	diagnostics_for_editor(window.activeTextEditor);
 }
 
 export async function start() {
