@@ -31,6 +31,8 @@ let client: LanguageClient = undefined;
 let showFullIDs: boolean = false;
 let next_terminal_id = 0;
 let model_count = 0;
+let decoration_type_good = undefined;
+let decoration_type_bad = undefined;
 
 export function activate(context_: ExtensionContext) {
 	context = context_;
@@ -82,6 +84,23 @@ export function activate(context_: ExtensionContext) {
 	})();
 	context.subscriptions.push(workspace.registerTextDocumentContentProvider("imandrax-vfs", vfs_provider));
 
+	const render_options_good: DecorationRenderOptions = {
+		gutterIconPath:
+			context.asAbsolutePath(Path.join("assets", "imandra-smile.png")),
+		overviewRulerColor: "green",
+		gutterIconSize: "70%",
+		outlineColor: "green",
+	};
+	const render_options_bad: DecorationRenderOptions = {
+		gutterIconPath:
+			context.asAbsolutePath(Path.join("assets", "imandra-wut.png")),
+		overviewRulerColor: "orange",
+		gutterIconSize: "70%",
+		outlineColor: "green",
+	};
+	decoration_type_good = window.createTextEditorDecorationType(render_options_good);
+	decoration_type_bad = window.createTextEditorDecorationType(render_options_bad);
+
 	languages.onDidChangeDiagnostics(diagnostic_listener, undefined, []);
 	window.onDidChangeActiveTextEditor(active_editor_listener, undefined, []);
 
@@ -98,16 +117,7 @@ function diagnostics_for_uri(uri: Uri) {
 				if (editor) {
 					const good = d.severity == DiagnosticSeverity.Information || d.severity == DiagnosticSeverity.Hint;
 					const decoration_options: DecorationOptions = { range: d.range.with(d.range.start, d.range.start) };
-					const render_options: DecorationRenderOptions = {
-						gutterIconPath: good ?
-							context.asAbsolutePath(Path.join("assets", "imandra-smile.png")) :
-							context.asAbsolutePath(Path.join("assets", "imandra-wut.png")),
-						overviewRulerColor: good ? "green" : "orange",
-						gutterIconSize: "70%",
-						outlineColor: "green",
-					};
-					const decoration_type = window.createTextEditorDecorationType(render_options);
-					editor.setDecorations(decoration_type, [decoration_options]);
+					editor.setDecorations(good ? decoration_type_good : decoration_type_bad, [decoration_options]);
 				}
 			}
 		}
@@ -174,6 +184,8 @@ export function restart(initial: boolean = false): Thenable<void> | undefined {
 		clientRestarts += 1;
 		console.log(`Restarting Imandrax LSP server (attempt ${clientRestarts})`);
 		client.stop();
+		window.activeTextEditor.setDecorations(decoration_type_good, []);
+		window.activeTextEditor.setDecorations(decoration_type_bad, []);
 	}
 	return start();
 }
