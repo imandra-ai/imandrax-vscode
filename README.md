@@ -1,4 +1,4 @@
-# Imandrax LSP plugin
+# ImandraX VSCode extension
 
 You need `imandrax-lsp` in your path.
 
@@ -6,12 +6,6 @@ You need `imandrax-lsp` in your path.
 
 This works for `.iml` files, with basic syntax coloring, and the few methods
 that `imandrax-lsp` handles (for now).
-
-## TODO
-
-- [ ] config for check-on-save off/on (currently always on)
-- [ ] config to decide where to schedule tasks (cloud account? ssh to another machine?)
-- [ ] proper tracing through LSP itself (see https://github.com/c-cube/linol/discussions/28)
 
 ## Running for development
 

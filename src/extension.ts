@@ -9,26 +9,35 @@ import {
 	Uri,
 	TerminalOptions,
 	Range,
-	TextDocumentContentProvider
+	TextDocumentContentProvider,
+	languages,
+	DiagnosticChangeEvent,
+	DecorationOptions,
+	DecorationRenderOptions,
+	DiagnosticSeverity,
+	TextEditor
 } from "vscode";
 
 import {
 	Executable,
 	LanguageClient,
 	LanguageClientOptions,
-	ServerOptions,
-	State
 } from "vscode-languageclient/node";
 
 const MAX_RESTARTS: number = 10;
 
-let numManualRestarts: number = 0;
+let context: ExtensionContext = undefined;
+let clientRestarts: number = 0;
 let client: LanguageClient = undefined;
 let showFullIDs: boolean = false;
 let next_terminal_id = 0;
 let model_count = 0;
+let decoration_type_good = undefined;
+let decoration_type_bad = undefined;
 
-export function activate(context: ExtensionContext) {
+export function activate(context_: ExtensionContext) {
+	context = context_;
+
 	// Register commands
 	const restart_cmd = "imandrax.restart_language_server";
 	const restart_handler = () => { restart(); };
@@ -71,12 +80,57 @@ export function activate(context: ExtensionContext) {
 
 	const vfs_provider = new (class implements TextDocumentContentProvider {
 		async provideTextDocumentContent(uri: Uri): Promise<string> {
-			return await client.sendRequest<string>("$imandrax/req-vfs-file", { "uri": uri } );
+			return await client.sendRequest<string>("$imandrax/req-vfs-file", { "uri": uri });
 		}
 	})();
 	context.subscriptions.push(workspace.registerTextDocumentContentProvider("imandrax-vfs", vfs_provider));
 
+	const render_options_good: DecorationRenderOptions = {
+		gutterIconPath:
+			context.asAbsolutePath(Path.join("assets", "imandra-smile.png")),
+		overviewRulerColor: "green",
+		gutterIconSize: "70%",
+		outlineColor: "green",
+	};
+	const render_options_bad: DecorationRenderOptions = {
+		gutterIconPath:
+			context.asAbsolutePath(Path.join("assets", "imandra-wut.png")),
+		overviewRulerColor: "orange",
+		gutterIconSize: "70%",
+		outlineColor: "green",
+	};
+	decoration_type_good = window.createTextEditorDecorationType(render_options_good);
+	decoration_type_bad = window.createTextEditorDecorationType(render_options_bad);
+
+	languages.onDidChangeDiagnostics(diagnostic_listener, undefined, []);
+	window.onDidChangeActiveTextEditor(active_editor_listener, undefined, []);
+
 	restart(true);
+}
+
+function diagnostics_for_editor(editor: TextEditor) {
+	const all_good: DecorationOptions[] = [];
+	const all_bad: DecorationOptions[] = [];
+	languages.getDiagnostics(editor.document.uri).forEach(d => {
+		if (d.source == "lsp") {
+			if (editor) {
+				const good = d.severity == DiagnosticSeverity.Information || d.severity == DiagnosticSeverity.Hint;
+				const decoration_options: DecorationOptions = { range: d.range.with(d.range.start, d.range.start) };
+				if (good) all_good.push(decoration_options); else all_bad.push(decoration_options);
+			}
+		}
+	}
+	);
+	editor.setDecorations(decoration_type_good, all_good);
+	editor.setDecorations(decoration_type_bad, all_bad);
+}
+
+function diagnostic_listener(e: DiagnosticChangeEvent) {
+	diagnostics_for_editor(window.activeTextEditor);
+}
+
+function active_editor_listener() {
+	diagnostics_for_editor(window.activeTextEditor);
 }
 
 export async function start() {
@@ -124,12 +178,14 @@ async function sleep(time_s: number) {
 }
 
 export function restart(initial: boolean = false): Thenable<void> | undefined {
-	if (initial)
+	if (initial && client == undefined)
 		console.log("Starting ImandraX LSP server");
 	else {
-		numManualRestarts += 1;
-		console.log(`Restarting Imandrax LSP server (attempt ${numManualRestarts})`);
+		clientRestarts += 1;
+		console.log(`Restarting Imandrax LSP server (attempt ${clientRestarts})`);
 		client.stop();
+		window.activeTextEditor.setDecorations(decoration_type_good, []);
+		window.activeTextEditor.setDecorations(decoration_type_bad, []);
 	}
 	return start();
 }

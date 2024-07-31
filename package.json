@@ -3,9 +3,10 @@
   "displayName": "ImandraX",
   "description": "The ImandraX VSCode Extension",
   "author": "Imandra Inc",
-  "publisher": "imandra",
+  "publisher": "Imandra",
+  "icon": "assets/vscode-imandra-avatar.png",
   "license": "MIT",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "repository": {
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
@@ -141,7 +142,7 @@
       },
       {
         "command": "imandrax.open_vfs_file",
-        "title": "Imandrax: open VFS file"
+        "title": "Imandrax: Open VFS file"
       }
     ]
   },
