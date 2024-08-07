@@ -22,6 +22,7 @@ import {
 	Executable,
 	LanguageClient,
 	LanguageClientOptions,
+	VersionedTextDocumentIdentifier,
 } from "vscode-languageclient/node";
 
 const MAX_RESTARTS: number = 10;
@@ -168,6 +169,8 @@ export async function start() {
 
 	client.onRequest("$imandrax/interact-model", (params) => { interact_model(params); });
 
+	client.onRequest("$imandrax/copy-model", (params) => { copy_model(params); });
+
 	// Start the client. This will also launch the server.
 	client.start();
 }
@@ -283,6 +286,16 @@ function interact_model(params) {
 	});
 
 	t.show();
+}
+
+function copy_model(params) {
+	const models = params["models"];
+	let str = "";
+	models.join();
+	models.forEach(async m => {
+		str += m;
+	});
+	env.clipboard.writeText(str);
 }
 
 function clear_cache() {
