@@ -15,7 +15,10 @@ import {
 	DecorationOptions,
 	DecorationRenderOptions,
 	DiagnosticSeverity,
-	TextEditor
+	TextEditor,
+	StatusBarAlignment,
+	ThemeColor,
+	StatusBarItem
 } from "vscode";
 
 import {
@@ -35,6 +38,8 @@ let next_terminal_id = 0;
 let model_count = 0;
 let decoration_type_good = undefined;
 let decoration_type_bad = undefined;
+let file_progress_sbi: StatusBarItem = undefined;
+let file_progress_text: string = "No tasks";
 
 export function activate(context_: ExtensionContext) {
 	context = context_;
@@ -106,6 +111,19 @@ export function activate(context_: ExtensionContext) {
 	languages.onDidChangeDiagnostics(diagnostic_listener, undefined, []);
 	window.onDidChangeActiveTextEditor(active_editor_listener, undefined, []);
 
+	const fileProgressCmdId = "file-progress-cmd";
+	context.subscriptions.push(commands.registerCommand(fileProgressCmdId, () => {
+		window.showInformationMessage(file_progress_text);
+	}));
+
+	file_progress_sbi = window.createStatusBarItem(StatusBarAlignment.Right, 0);
+	file_progress_sbi.text = "100%";
+	file_progress_sbi.command = fileProgressCmdId;
+	file_progress_sbi.backgroundColor = undefined;
+	context.subscriptions.push(file_progress_sbi);
+
+	file_progress_sbi.show();
+
 	restart(true);
 }
 
@@ -126,12 +144,43 @@ function diagnostics_for_editor(editor: TextEditor) {
 	editor.setDecorations(decoration_type_bad, all_bad);
 }
 
-function diagnostic_listener(e: DiagnosticChangeEvent) {
+async function diagnostic_listener(e: DiagnosticChangeEvent) {
 	diagnostics_for_editor(window.activeTextEditor);
+	const file_uri = window.activeTextEditor.document.uri;
+	if (file_uri.scheme == "file")
+		req_file_progress(file_uri);
 }
 
-function active_editor_listener() {
+async function active_editor_listener() {
 	diagnostics_for_editor(window.activeTextEditor);
+	const file_uri = window.activeTextEditor.document.uri;
+	if (file_uri.scheme == "file")
+		req_file_progress(file_uri);
+}
+
+async function req_file_progress(uri: Uri) {
+	client.sendRequest<string>("$imandrax/req-file-progress", { "uri": uri.path }).then((rsp) => {
+		const finished = parseInt(rsp["finished"]);
+		const successful = parseInt(rsp["successful"]);
+		const failed = parseInt(rsp["failed"]);
+		const started = parseInt(rsp["started"]);
+		const total = parseInt(rsp["total"]);
+		if (total == 0) {
+			file_progress_sbi.text = "100%";
+			file_progress_sbi.backgroundColor = undefined;
+			file_progress_text = "No tasks";
+		}
+		else {
+			file_progress_sbi.text = `${successful}/${total}`;
+			if (failed != 0)
+				file_progress_sbi.backgroundColor = new ThemeColor('statusBarItem.errorBackground');
+			else if (successful != total)
+				file_progress_sbi.backgroundColor = new ThemeColor('statusBarItem.warningBackground');
+			else
+				file_progress_sbi.backgroundColor = undefined;
+			file_progress_text = `${started} started, ${finished} finished, ${successful} successful, ${failed} failed, ${total} total tasks.`;
+		}
+	});
 }
 
 export async function start() {
@@ -213,7 +262,8 @@ export function check_all(): Thenable<void> | undefined {
 		return undefined;
 	}
 	const file_uri = window.activeTextEditor.document.uri;
-	client.sendRequest("workspace/executeCommand", { "command": "check-all", "arguments": [file_uri.toString()] });
+	if (file_uri.scheme == "file")
+		client.sendRequest("workspace/executeCommand", { "command": "check-all", "arguments": [file_uri.toString()] });
 }
 
 export function browse(uri: string): Thenable<boolean> | undefined {
