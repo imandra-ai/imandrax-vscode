@@ -176,8 +176,8 @@ export async function start() {
 }
 
 // Sleep for the number of seconds
-async function sleep(time_s: number) {
-	return new Promise(resolve => setTimeout(resolve, time_s * 1000));
+async function sleep(time_ms: number) {
+	return new Promise(resolve => setTimeout(resolve, time_ms));
 }
 
 export function restart(initial: boolean = false): Thenable<void> | undefined {
@@ -186,9 +186,13 @@ export function restart(initial: boolean = false): Thenable<void> | undefined {
 	else {
 		clientRestarts += 1;
 		console.log(`Restarting Imandrax LSP server (attempt ${clientRestarts})`);
+		client.sendRequest("shutdown", null); // Try to shut down gracefully.
 		client.stop();
+
 		window.activeTextEditor.setDecorations(decoration_type_good, []);
 		window.activeTextEditor.setDecorations(decoration_type_bad, []);
+
+		sleep(500); // Give it a bit of time to avoid races on the log file.
 	}
 	return start();
 }
