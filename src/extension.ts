@@ -202,6 +202,7 @@ export function deactivate(): Thenable<void> | undefined {
 		return undefined;
 	}
 	console.log("Deactivating ImandraX LSP server");
+	client.sendRequest("shutdown", null);
 	const c = client;
 	client = null;
 	return c.stop();
