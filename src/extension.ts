@@ -149,6 +149,8 @@ async function diagnostic_listener(e: DiagnosticChangeEvent) {
 	const file_uri = window.activeTextEditor.document.uri;
 	if (file_uri.scheme == "file")
 		req_file_progress(file_uri);
+	else
+		file_progress_sbi.hide();
 }
 
 async function active_editor_listener() {
@@ -156,6 +158,8 @@ async function active_editor_listener() {
 	const file_uri = window.activeTextEditor.document.uri;
 	if (file_uri.scheme == "file")
 		req_file_progress(file_uri);
+	else
+		file_progress_sbi.hide();
 }
 
 async function req_file_progress(uri: Uri) {
@@ -180,6 +184,7 @@ async function req_file_progress(uri: Uri) {
 				file_progress_sbi.backgroundColor = undefined;
 			file_progress_text = `${started} started, ${finished} finished, ${successful} successful, ${failed} failed, ${total} total tasks.`;
 		}
+		file_progress_sbi.show();
 	});
 }
 
