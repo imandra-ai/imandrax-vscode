@@ -164,11 +164,12 @@ async function active_editor_listener() {
 
 async function req_file_progress(uri: Uri) {
 	client.sendRequest<string>("$imandrax/req-file-progress", { "uri": uri.path }).then((rsp) => {
-		const finished = parseInt(rsp["finished"]);
-		const successful = parseInt(rsp["successful"]);
-		const failed = parseInt(rsp["failed"]);
-		const started = parseInt(rsp["started"]);
-		const total = parseInt(rsp["total"]);
+		const task_stats = rsp["task_stats"];
+		const finished = parseInt(task_stats["finished"]);
+		const successful = parseInt(task_stats["successful"]);
+		const failed = parseInt(task_stats["failed"]);
+		const started = parseInt(task_stats["started"]);
+		const total = parseInt(task_stats["total"]);
 		if (total == 0) {
 			file_progress_sbi.text = "100%";
 			file_progress_sbi.backgroundColor = undefined;
