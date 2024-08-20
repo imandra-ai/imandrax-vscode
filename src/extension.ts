@@ -165,27 +165,33 @@ async function active_editor_listener() {
 async function req_file_progress(uri: Uri) {
 	client.sendRequest<string>("$imandrax/req-file-progress", { "uri": uri.path }).then((rsp) => {
 		const task_stats = rsp["task_stats"];
-		const finished = parseInt(task_stats["finished"]);
-		const successful = parseInt(task_stats["successful"]);
-		const failed = parseInt(task_stats["failed"]);
-		const started = parseInt(task_stats["started"]);
-		const total = parseInt(task_stats["total"]);
-		if (total == 0) {
-			file_progress_sbi.text = "100%";
-			file_progress_sbi.backgroundColor = undefined;
-			file_progress_text = "No tasks";
+		if (task_stats == null) file_progress_sbi.hide(); else {
+			try {
+				const finished = parseInt(task_stats["finished"]);
+				const successful = parseInt(task_stats["successful"]);
+				const failed = parseInt(task_stats["failed"]);
+				const started = parseInt(task_stats["started"]);
+				const total = parseInt(task_stats["total"]);
+				if (total == 0) {
+					file_progress_sbi.text = "100%";
+					file_progress_sbi.backgroundColor = undefined;
+					file_progress_text = "No tasks";
+				}
+				else {
+					file_progress_sbi.text = `${successful}/${total}`;
+					if (failed != 0)
+						file_progress_sbi.backgroundColor = new ThemeColor('statusBarItem.errorBackground');
+					else if (successful != total)
+						file_progress_sbi.backgroundColor = new ThemeColor('statusBarItem.warningBackground');
+					else
+						file_progress_sbi.backgroundColor = undefined;
+					file_progress_text = `${started} started, ${finished} finished, ${successful} successful, ${failed} failed, ${total} total tasks.`;
+				}
+				file_progress_sbi.show();
+			} catch (_) {
+				file_progress_sbi.hide();
+			}
 		}
-		else {
-			file_progress_sbi.text = `${successful}/${total}`;
-			if (failed != 0)
-				file_progress_sbi.backgroundColor = new ThemeColor('statusBarItem.errorBackground');
-			else if (successful != total)
-				file_progress_sbi.backgroundColor = new ThemeColor('statusBarItem.warningBackground');
-			else
-				file_progress_sbi.backgroundColor = undefined;
-			file_progress_text = `${started} started, ${finished} finished, ${successful} successful, ${failed} failed, ${total} total tasks.`;
-		}
-		file_progress_sbi.show();
 	});
 }
 
