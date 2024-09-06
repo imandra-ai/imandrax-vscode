@@ -151,7 +151,7 @@ export function activate(context_: ExtensionContext) {
 }
 
 function diagnostics_for_editor(editor: TextEditor) {
-	const all_good: DecorationOptions[] = [];
+	let all_good: DecorationOptions[] = [];
 	const all_bad: DecorationOptions[] = [];
 	const doc = editor.document;
 	if (doc !== undefined) {
@@ -159,12 +159,17 @@ function diagnostics_for_editor(editor: TextEditor) {
 			if (d.source == "lsp") {
 				if (editor) {
 					const good = d.severity == DiagnosticSeverity.Information || d.severity == DiagnosticSeverity.Hint;
-					const decoration_options: DecorationOptions = { range: d.range.with(d.range.start, d.range.start) };
-					if (good) all_good.push(decoration_options); else all_bad.push(decoration_options);
+					const range = d.range.with(d.range.start, d.range.start);
+					const decoration_options: DecorationOptions = { range: range };
+					if (good)
+						all_good.push(decoration_options);
+					else
+						all_bad.push(decoration_options);
 				}
 			}
 		}
 		);
+		all_good = all_good.filter(x => { return all_bad.find(y => x.range.start.line == y.range.start.line) == undefined; });
 		editor.setDecorations(decoration_type_good, all_good);
 		editor.setDecorations(decoration_type_bad, all_bad);
 	}
