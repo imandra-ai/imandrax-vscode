@@ -1,5 +1,3 @@
-import Path from 'path';
-
 import {
 	workspace,
 	window,
@@ -9,11 +7,15 @@ import {
 	Uri,
 	TerminalOptions,
 	Range,
+	TextDocument,
 	TextDocumentContentProvider,
+	TextEdit,
 	languages,
 	DiagnosticChangeEvent,
 	DecorationOptions,
 	DecorationRenderOptions,
+	DocumentFormattingEditProvider,
+	DocumentColorProvider,
 	DiagnosticSeverity,
 	TextEditor,
 	StatusBarAlignment,
@@ -21,12 +23,17 @@ import {
 	StatusBarItem
 } from "vscode";
 
+
 import {
 	Executable,
 	LanguageClient,
 	LanguageClientOptions,
 	VersionedTextDocumentIdentifier,
 } from "vscode-languageclient/node";
+
+import CP = require('child_process');
+import Path = require('path');
+
 
 const MAX_RESTARTS: number = 10;
 
@@ -43,6 +50,22 @@ let file_progress_text: string = "No tasks";
 
 export function activate(context_: ExtensionContext) {
 	context = context_;
+
+	// Register formatter
+	languages.registerDocumentFormattingEditProvider("imandrax", {
+		provideDocumentFormattingEdits(document: TextDocument): TextEdit[] {
+			const config = workspace.getConfiguration("imandrax");
+			const cmd_args: string[] = config.lsp.formatter;
+			if (!cmd_args || cmd_args.length == 0)
+				return [];
+			else {
+				const out = CP.execSync(cmd_args.join(" ") + " " + document.fileName);
+				const rng = new Range(0, 0, document.lineCount, 0);
+				document.validateRange(rng);
+				return [TextEdit.replace(rng, out.toString())];
+			}
+		}
+	});
 
 	// Register commands
 	const restart_cmd = "imandrax.restart_language_server";
@@ -128,71 +151,102 @@ export function activate(context_: ExtensionContext) {
 }
 
 function diagnostics_for_editor(editor: TextEditor) {
-	const all_good: DecorationOptions[] = [];
+	let all_good: DecorationOptions[] = [];
 	const all_bad: DecorationOptions[] = [];
-	languages.getDiagnostics(editor.document.uri).forEach(d => {
-		if (d.source == "lsp") {
-			if (editor) {
-				const good = d.severity == DiagnosticSeverity.Information || d.severity == DiagnosticSeverity.Hint;
-				const decoration_options: DecorationOptions = { range: d.range.with(d.range.start, d.range.start) };
-				if (good) all_good.push(decoration_options); else all_bad.push(decoration_options);
+	const doc = editor.document;
+	if (doc !== undefined) {
+		languages.getDiagnostics(doc.uri).forEach(d => {
+			if (d.source == "lsp") {
+				if (editor) {
+					const good = d.severity == DiagnosticSeverity.Information || d.severity == DiagnosticSeverity.Hint;
+					const range = d.range.with(d.range.start, d.range.start);
+					const decoration_options: DecorationOptions = { range: range };
+					if (good)
+						all_good.push(decoration_options);
+					else
+						all_bad.push(decoration_options);
+				}
 			}
 		}
+		);
+		all_good = all_good.filter(x => { return all_bad.find(y => x.range.start.line == y.range.start.line) == undefined; });
+		editor.setDecorations(decoration_type_good, all_good);
+		editor.setDecorations(decoration_type_bad, all_bad);
 	}
-	);
-	editor.setDecorations(decoration_type_good, all_good);
-	editor.setDecorations(decoration_type_bad, all_bad);
 }
 
 async function diagnostic_listener(e: DiagnosticChangeEvent) {
-	diagnostics_for_editor(window.activeTextEditor);
-	const file_uri = window.activeTextEditor.document.uri;
-	if (file_uri.scheme == "file")
-		req_file_progress(file_uri);
-	else
-		file_progress_sbi.hide();
+	const editor = window.activeTextEditor;
+	if (editor !== undefined) {
+		const doc = editor.document;
+		if (doc !== undefined) {
+			if (doc.languageId == "imandrax") {
+				diagnostics_for_editor(window.activeTextEditor);
+				const file_uri = window.activeTextEditor.document.uri;
+				if (file_uri.scheme == "file")
+					req_file_progress(file_uri);
+				else
+					file_progress_sbi.hide();
+			}
+		}
+	}
 }
 
 async function active_editor_listener() {
-	diagnostics_for_editor(window.activeTextEditor);
-	const file_uri = window.activeTextEditor.document.uri;
-	if (file_uri.scheme == "file")
-		req_file_progress(file_uri);
-	else
-		file_progress_sbi.hide();
+	const editor = window.activeTextEditor;
+	if (editor !== undefined) {
+		const doc = editor.document;
+		if (doc !== undefined) {
+			if (doc.languageId == "imandrax") {
+				diagnostics_for_editor(window.activeTextEditor);
+				const file_uri = doc.uri;
+				if (file_uri.scheme == "file") {
+					console.log(client !== undefined && client.isRunning());
+					if (client !== undefined && client.isRunning())
+						client.sendNotification("$imandrax/active-document", { "uri": file_uri.path });
+					req_file_progress(file_uri);
+				}
+				else
+					file_progress_sbi.hide();
+			}
+			else
+				file_progress_sbi.hide();
+		}
+	}
 }
 
 async function req_file_progress(uri: Uri) {
-	client.sendRequest<string>("$imandrax/req-file-progress", { "uri": uri.path }).then((rsp) => {
-		const task_stats = rsp["task_stats"];
-		if (task_stats == null) file_progress_sbi.hide(); else {
-			try {
-				const finished = parseInt(task_stats["finished"]);
-				const successful = parseInt(task_stats["successful"]);
-				const failed = parseInt(task_stats["failed"]);
-				const started = parseInt(task_stats["started"]);
-				const total = parseInt(task_stats["total"]);
-				if (total == 0) {
-					file_progress_sbi.text = "100%";
-					file_progress_sbi.backgroundColor = undefined;
-					file_progress_text = "No tasks";
-				}
-				else {
-					file_progress_sbi.text = `${successful}/${total}`;
-					if (failed != 0)
-						file_progress_sbi.backgroundColor = new ThemeColor('statusBarItem.errorBackground');
-					else if (successful != total)
-						file_progress_sbi.backgroundColor = new ThemeColor('statusBarItem.warningBackground');
-					else
+	if (client && client.isRunning())
+		client.sendRequest<string>("$imandrax/req-file-progress", { "uri": uri.path }).then((rsp) => {
+			const task_stats = rsp["task_stats"];
+			if (task_stats == null) file_progress_sbi.hide(); else {
+				try {
+					const finished = parseInt(task_stats["finished"]);
+					const successful = parseInt(task_stats["successful"]);
+					const failed = parseInt(task_stats["failed"]);
+					const started = parseInt(task_stats["started"]);
+					const total = parseInt(task_stats["total"]);
+					if (total == 0) {
+						file_progress_sbi.text = "0/0";
 						file_progress_sbi.backgroundColor = undefined;
-					file_progress_text = `${started} started, ${finished} finished, ${successful} successful, ${failed} failed, ${total} total tasks.`;
+						file_progress_text = "No tasks";
+					}
+					else {
+						file_progress_sbi.text = `${successful}/${total}`;
+						if (failed != 0)
+							file_progress_sbi.backgroundColor = new ThemeColor('statusBarItem.errorBackground');
+						else if (successful != total)
+							file_progress_sbi.backgroundColor = new ThemeColor('statusBarItem.warningBackground');
+						else
+							file_progress_sbi.backgroundColor = undefined;
+						file_progress_text = `${started} started, ${finished} finished, ${successful} successful, ${failed} failed, ${total} total tasks.`;
+					}
+					file_progress_sbi.show();
+				} catch (_) {
+					file_progress_sbi.hide();
 				}
-				file_progress_sbi.show();
-			} catch (_) {
-				file_progress_sbi.hide();
 			}
-		}
-	});
+		}, _ => { /* Fine, we'll get it the next time. */ });
 }
 
 export async function start() {
@@ -233,7 +287,7 @@ export async function start() {
 	client.onRequest("$imandrax/copy-model", (params) => { copy_model(params); });
 
 	// Start the client. This will also launch the server.
-	client.start();
+	client.start().catch(ex => { console.log(`Exception thrown while starting LSP client/server: ${ex}`); });
 }
 
 // Sleep for the number of seconds
@@ -241,14 +295,18 @@ async function sleep(time_ms: number) {
 	return new Promise(resolve => setTimeout(resolve, time_ms));
 }
 
-export function restart(initial: boolean = false): Thenable<void> | undefined {
+export async function restart(initial: boolean = false) {
 	if (initial && client == undefined)
 		console.log("Starting ImandraX LSP server");
 	else {
 		clientRestarts += 1;
 		console.log(`Restarting Imandrax LSP server (attempt ${clientRestarts})`);
-		client.sendRequest("shutdown", null); // Try to shut down gracefully.
-		client.stop();
+
+		// Try to shut down gracefully.
+		if (client && client.isRunning())
+			await client.stop().catch(ex => console.log(`Exception thrown while stopping LSP client/server: ${ex}`));
+
+		client = undefined;
 
 		window.activeTextEditor.setDecorations(decoration_type_good, []);
 		window.activeTextEditor.setDecorations(decoration_type_bad, []);
@@ -263,10 +321,8 @@ export function deactivate(): Thenable<void> | undefined {
 		return undefined;
 	}
 	console.log("Deactivating ImandraX LSP server");
-	client.sendRequest("shutdown", null);
-	const c = client;
-	client = null;
-	return c.stop();
+	if (client.isRunning())
+		client.stop().catch(ex => console.log(`Exception thrown while stopping LSP client/server: ${ex}`));
 }
 
 export function check_all(): Thenable<void> | undefined {
@@ -274,7 +330,7 @@ export function check_all(): Thenable<void> | undefined {
 		return undefined;
 	}
 	const file_uri = window.activeTextEditor.document.uri;
-	if (file_uri.scheme == "file")
+	if (client && client.isRunning() && file_uri.scheme == "file")
 		client.sendRequest("workspace/executeCommand", { "command": "check-all", "arguments": [file_uri.toString()] });
 }
 
@@ -287,8 +343,10 @@ export function browse(uri: string): Thenable<boolean> | undefined {
 }
 
 export function toggle_full_ids(): Thenable<void> | undefined {
-	showFullIDs = !showFullIDs;
-	return client.sendNotification("workspace/didChangeConfiguration", { "settings": { "show-full-ids": showFullIDs } });
+	if (client && client.isRunning()) {
+		showFullIDs = !showFullIDs;
+		return client.sendNotification("workspace/didChangeConfiguration", { "settings": { "show-full-ids": showFullIDs } });
+	}
 }
 
 function create_terminal(cwd) {
@@ -366,6 +424,7 @@ function copy_model(params) {
 }
 
 function clear_cache() {
-	client.sendRequest("workspace/executeCommand", { "command": "clear-cache", "arguments": [] });
+	if (client && client.isRunning())
+		client.sendRequest("workspace/executeCommand", { "command": "clear-cache", "arguments": [] });
 	return true;
 }
