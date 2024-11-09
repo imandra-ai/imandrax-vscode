@@ -6,7 +6,7 @@
   "publisher": "Imandra",
   "icon": "assets/vscode-imandra-avatar.png",
   "license": "MIT",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "repository": {
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
@@ -152,6 +152,15 @@
       {
         "command": "imandrax.open_vfs_file",
         "title": "Imandrax: Open VFS file"
+      }
+      ,
+      {
+        "command": "imandrax.open_goal_state",
+        "title": "Imandrax: Open goal state"
+      },
+      {
+        "command": "imandrax.reset_goal_state",
+        "title": "Imandrax: Reset goal state"
       }
     ]
   },
