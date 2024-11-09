@@ -153,6 +153,15 @@
         "command": "imandrax.open_vfs_file",
         "title": "Imandrax: Open VFS file"
       }
+      ,
+      {
+        "command": "imandrax.open_goal_state",
+        "title": "Imandrax: Open goal state"
+      },
+      {
+        "command": "imandrax.reset_goal_state",
+        "title": "Imandrax: Reset goal state"
+      }
     ]
   },
   "scripts": {

@@ -20,7 +20,9 @@ import {
 	TextEditor,
 	StatusBarAlignment,
 	ThemeColor,
-	StatusBarItem
+	StatusBarItem,
+	EventEmitter,
+	ViewColumn,
 } from "vscode";
 
 
@@ -47,6 +49,23 @@ let decoration_type_good = undefined;
 let decoration_type_bad = undefined;
 let file_progress_sbi: StatusBarItem = undefined;
 let file_progress_text: string = "No tasks";
+
+class VFSContentProvider implements TextDocumentContentProvider {
+	onDidChangeEmitter = new EventEmitter<Uri>();
+	onDidChange = this.onDidChangeEmitter.event;
+
+	async provideTextDocumentContent(uri: Uri): Promise<string> {
+		console.log(`VFS URI: ${uri} path: ${uri.path} auth: ${uri.authority} scheme: ${uri.scheme} fsPath: ${uri.fsPath}`);
+		if (uri.authority == undefined || uri.authority == "") {
+			const fst = uri.path.split("/");
+			const auth = (fst[0] == "") ? fst[1] : fst[0];
+			uri = uri.with({authority : auth});
+		}
+		return await client.sendRequest<string>("$imandrax/req-vfs-file", { "uri": uri });
+	}
+}
+
+let vfs_provider: VFSContentProvider = undefined;
 
 export function activate(context_: ExtensionContext) {
 	context = context_;
@@ -98,7 +117,7 @@ export function activate(context_: ExtensionContext) {
 
 	const open_vfs_file_cmd = "imandrax.open_vfs_file";
 	const open_vfs_file_handler = async () => {
-		const what = await window.showInputBox({ placeHolder: 'file name?' });
+		const what = await window.showInputBox({ placeHolder: 'file uri?' });
 		if (what) {
 			const uri = Uri.parse(what);
 			const doc = await workspace.openTextDocument(uri);
@@ -107,12 +126,25 @@ export function activate(context_: ExtensionContext) {
 	};
 	context.subscriptions.push(commands.registerCommand(open_vfs_file_cmd, open_vfs_file_handler));
 
-	const vfs_provider = new (class implements TextDocumentContentProvider {
-		async provideTextDocumentContent(uri: Uri): Promise<string> {
-			return await client.sendRequest<string>("$imandrax/req-vfs-file", { "uri": uri });
-		}
-	})();
+	vfs_provider = new VFSContentProvider();
 	context.subscriptions.push(workspace.registerTextDocumentContentProvider("imandrax-vfs", vfs_provider));
+
+	const open_goal_state_cmd = "imandrax.open_goal_state";
+	const open_goal_state_handler = async () => {
+		const uri = Uri.parse("imandrax-vfs://internal//goal-state.md");
+		const doc = await workspace.openTextDocument(uri);
+		const x = await window.showTextDocument(doc, { preview: false, viewColumn: ViewColumn.Beside, preserveFocus: true });
+		languages.setTextDocumentLanguage(doc, "markdown");
+	};
+	context.subscriptions.push(commands.registerCommand(open_goal_state_cmd, open_goal_state_handler));
+
+	const reset_goal_state_cmd = "imandrax.reset_goal_state";
+	const reset_goal_state_handler = () => {
+		if (client && client.isRunning())
+			client.sendRequest("workspace/executeCommand", { "command": "reset-goal-state", "arguments": [] });
+		return true;
+	};
+	context.subscriptions.push(commands.registerCommand(reset_goal_state_cmd, reset_goal_state_handler));
 
 	const render_options_good: DecorationRenderOptions = {
 		gutterIconPath:
@@ -285,6 +317,11 @@ export async function start() {
 	client.onRequest("$imandrax/interact-model", (params) => { interact_model(params); });
 
 	client.onRequest("$imandrax/copy-model", (params) => { copy_model(params); });
+
+	client.onNotification("$imandrax/vfs-file-changed", async (params) => {
+		const uri = Uri.parse(params["uri"]);
+		vfs_provider.onDidChangeEmitter.fire(uri);
+	});
 
 	// Start the client. This will also launch the server.
 	client.start().catch(ex => { console.log(`Exception thrown while starting LSP client/server: ${ex}`); });
