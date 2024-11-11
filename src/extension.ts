@@ -195,7 +195,7 @@ function update_configuration(): Promise<void> {
 			"settings":
 			{
 				"show-full-ids": showFullIDs,
-				"goal-state-show-proven": config.lsp.goal_state_show_proven
+				"goal-state-show-proven": config.lsp.showProvenGoals
 			}
 		});
 	}

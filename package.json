@@ -99,7 +99,7 @@
           "default": [],
           "description": "Formatter binary and commandline arguments"
         },
-        "imandrax.lsp.goal_state_show_proven": {
+        "imandrax.lsp.showProvenGoals": {
           "scope": "window",
           "type": "boolean",
           "default": false,
