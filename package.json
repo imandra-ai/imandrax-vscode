@@ -6,7 +6,7 @@
   "publisher": "Imandra",
   "icon": "assets/vscode-imandra-avatar.png",
   "license": "MIT",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "repository": {
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
@@ -98,6 +98,12 @@
           },
           "default": [],
           "description": "Formatter binary and commandline arguments"
+        },
+        "imandrax.lsp.goal_state_show_proven": {
+          "scope": "window",
+          "type": "boolean",
+          "default": false,
+          "description": "Show proven goals in goal state"
         }
       }
     },

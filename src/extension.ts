@@ -59,7 +59,7 @@ class VFSContentProvider implements TextDocumentContentProvider {
 		if (uri.authority == undefined || uri.authority == "") {
 			const fst = uri.path.split("/");
 			const auth = (fst[0] == "") ? fst[1] : fst[0];
-			uri = uri.with({authority : auth});
+			uri = uri.with({ authority: auth });
 		}
 		return await client.sendRequest<string>("$imandrax/req-vfs-file", { "uri": uri });
 	}
@@ -179,7 +179,26 @@ export function activate(context_: ExtensionContext) {
 
 	file_progress_sbi.show();
 
+	workspace.onDidChangeConfiguration(event => {
+		if (event.affectsConfiguration('imandrax')) {
+			update_configuration();
+		}
+	});
+
 	restart(true);
+}
+
+function update_configuration(): Promise<void> {
+	if (client && client.isRunning()) {
+		const config = workspace.getConfiguration("imandrax");
+		return client.sendNotification("workspace/didChangeConfiguration", {
+			"settings":
+			{
+				"show-full-ids": showFullIDs,
+				"goal-state-show-proven": config.lsp.goal_state_show_proven
+			}
+		});
+	}
 }
 
 function diagnostics_for_editor(editor: TextEditor) {
@@ -324,7 +343,9 @@ export async function start() {
 	});
 
 	// Start the client. This will also launch the server.
-	client.start().catch(ex => { console.log(`Exception thrown while starting LSP client/server: ${ex}`); });
+	client.start().catch(ex => { console.log(`Exception thrown while starting LSP client/server: ${ex}`); }).then(
+		_ => { update_configuration(); }
+	);
 }
 
 // Sleep for the number of seconds
