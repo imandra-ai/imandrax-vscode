@@ -35,6 +35,7 @@ import {
 
 import CP = require('child_process');
 import Path = require('path');
+import Which = require('which');
 
 
 const MAX_RESTARTS: number = 10;
@@ -133,7 +134,7 @@ export function activate(context_: ExtensionContext) {
 	const open_goal_state_handler = async () => {
 		const uri = Uri.parse("imandrax-vfs://internal//goal-state.md");
 		const doc = await workspace.openTextDocument(uri);
-		const x = await window.showTextDocument(doc, { preview: false, viewColumn: ViewColumn.Beside, preserveFocus: true });
+		await window.showTextDocument(doc, { preview: false, viewColumn: ViewColumn.Beside, preserveFocus: true });
 		languages.setTextDocumentLanguage(doc, "markdown");
 	};
 	context.subscriptions.push(commands.registerCommand(open_goal_state_cmd, open_goal_state_handler));
@@ -180,24 +181,27 @@ export function activate(context_: ExtensionContext) {
 	file_progress_sbi.show();
 
 	workspace.onDidChangeConfiguration(event => {
-		if (event.affectsConfiguration('imandrax')) {
-			update_configuration();
-		}
+			update_configuration(event);
 	});
 
 	restart(true);
 }
 
-function update_configuration(): Promise<void> {
-	if (client && client.isRunning()) {
-		const config = workspace.getConfiguration("imandrax");
-		return client.sendNotification("workspace/didChangeConfiguration", {
-			"settings":
-			{
-				"show-full-ids": showFullIDs,
-				"goal-state-show-proven": config.lsp.showProvenGoals
-			}
-		});
+function update_configuration(event): Promise<void> {
+	if (event == undefined || event.affectsConfiguration('imandrax')) {
+		if (event.affectsConfiguration('imandrax.lsp.binary'))
+			restart(client == undefined);
+
+		if (client && client.isRunning()) {
+			const config = workspace.getConfiguration("imandrax");
+			return client.sendNotification("workspace/didChangeConfiguration", {
+				"settings":
+				{
+					"show-full-ids": showFullIDs,
+					"goal-state-show-proven": config.lsp.showProvenGoals
+				}
+			});
+		}
 	}
 }
 
@@ -310,42 +314,53 @@ export async function start() {
 	const system_env = process.env;
 	const merged_env = Object.assign(system_env, server_env);
 
-	const serverOptions: Executable = { command: binary, args: server_args, options: { env: merged_env } };
+	const bin_abs_path = Which.sync(binary, { nothrow: true });
+	if (!bin_abs_path) {
+		const args = { revealSetting: { key: 'imandrax.lsp.binary', edit: true } };
+		const openUri = Uri.parse(
+			`command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
+		);
+		window.showErrorMessage(`Could not find ImandraX. Please ensure the imandrax-cli binary is in your PATH or its location is set in the [Workspace Settings](${openUri})`);
+	}
+	else {
+		const serverOptions: Executable = { command: bin_abs_path, args: server_args, options: { env: merged_env } };
 
-	// Options to control the language client
-	const clientOptions: LanguageClientOptions = {
-		// Register the server for plain text documents
-		documentSelector: [{ scheme: "file", language: "imandrax" }],
-		stdioEncoding: "utf-8",
-		connectionOptions: {
-			maxRestartCount: MAX_RESTARTS,
-		},
-		synchronize: {
-			fileEvents: workspace.createFileSystemWatcher("**/*.iml")
-		}
-	};
+		// Options to control the language client
+		const clientOptions: LanguageClientOptions = {
+			// Register the server for plain text documents
+			documentSelector: [{ scheme: "file", language: "imandrax" }],
+			stdioEncoding: "utf-8",
+			connectionOptions: {
+				maxRestartCount: MAX_RESTARTS,
+			},
+			synchronize: {
+				fileEvents: workspace.createFileSystemWatcher("**/*.iml")
+			}
+		};
 
-	// Create the language client and start the client.
-	client = new LanguageClient(
-		"imandrax_lsp",
-		"ImandraX LSP",
-		serverOptions,
-		clientOptions
-	);
+		// Create the language client and start the client.
+		client = new LanguageClient(
+			"imandrax_lsp",
+			"ImandraX LSP",
+			serverOptions,
+			clientOptions
+		);
 
-	client.onRequest("$imandrax/interact-model", (params) => { interact_model(params); });
+		client.onRequest("$imandrax/interact-model", (params) => { interact_model(params); });
 
-	client.onRequest("$imandrax/copy-model", (params) => { copy_model(params); });
+		client.onRequest("$imandrax/copy-model", (params) => { copy_model(params); });
 
-	client.onNotification("$imandrax/vfs-file-changed", async (params) => {
-		const uri = Uri.parse(params["uri"]);
-		vfs_provider.onDidChangeEmitter.fire(uri);
-	});
+		client.onNotification("$imandrax/vfs-file-changed", async (params) => {
+			const uri = Uri.parse(params["uri"]);
+			vfs_provider.onDidChangeEmitter.fire(uri);
+		});
 
-	// Start the client. This will also launch the server.
-	client.start().catch(ex => { console.log(`Exception thrown while starting LSP client/server: ${ex}`); }).then(
-		_ => { update_configuration(); }
-	);
+		// Start the client. This will also launch the server.
+		client.start().catch(ex => { console.log(`Exception thrown while starting LSP client/server: ${ex}`); }).then(
+			_ => { update_configuration(undefined); }
+		);
+
+	}
 }
 
 // Sleep for the number of seconds
