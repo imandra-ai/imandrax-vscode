@@ -57,3 +57,10 @@ jobs:
           allowUpdates: false
           removeArtifacts: true
           makeLatest: true
+
+      - name: Publish to Visual Studio Marketplace
+        uses: HaaLeo/publish-vscode-extension@v1
+        with:
+          pat: ${{ secrets.VS_MARKETPLACE_TOKEN }}
+          registryUrl: https://marketplace.visualstudio.com
+          extensionFile: imandrax-${{ env.VERSION }}.vsix

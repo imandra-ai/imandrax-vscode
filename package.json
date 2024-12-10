@@ -2,11 +2,11 @@
   "name": "imandrax",
   "displayName": "ImandraX",
   "description": "The ImandraX VSCode Extension",
-  "author": "Imandra Inc",
+  "author": "Imandra",
   "publisher": "Imandra",
   "icon": "assets/vscode-imandra-avatar.png",
   "license": "MIT",
-  "version": "0.0.17",
+  "version": "0.0.19",
   "repository": {
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
