@@ -6,7 +6,7 @@
   "publisher": "Imandra",
   "icon": "assets/vscode-imandra-avatar.png",
   "license": "MIT",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "repository": {
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
