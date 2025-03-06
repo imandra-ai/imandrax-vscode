@@ -22,7 +22,7 @@ import {
 	ThemeColor,
 	StatusBarItem,
 	EventEmitter,
-	ViewColumn,
+	ViewColumn
 } from "vscode";
 
 
@@ -189,7 +189,7 @@ export function activate(context_: ExtensionContext) {
 
 function update_configuration(event): Promise<void> {
 	if (event == undefined || event.affectsConfiguration('imandrax')) {
-		if (event.affectsConfiguration('imandrax.lsp.binary'))
+		if (event && event.affectsConfiguration('imandrax.lsp.binary'))
 			restart(client == undefined);
 
 		if (client && client.isRunning()) {
