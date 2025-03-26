@@ -507,7 +507,7 @@ function visualize_decomp(params) {
 
 	for (const d of decomps) {
 		const source = d["source"];
-		body += `<h1>Decomposition of <span class="ifun">${source}</span></h1>`;
+		body += `<h1>Decomposition of <span class="code">${source}</span></h1>`;
 		body += d["decomp"];
 		sources.push(source);
 	}

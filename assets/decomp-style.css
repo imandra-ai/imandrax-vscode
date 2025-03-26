@@ -10,13 +10,25 @@
   --color-code: #f4f0f0;
 }
 
+h1 {
+  font-family: var(--vscode-editor-font-family);
+  color: var(--vscode-editor-foreground);
+}
+
 /* code blocks and logic */
+
+code {
+  font-family: var(--vscode-editor-font-family);
+  font-weight: var(--vscode-editor-font-weight);
+  font-size: var(--vscode-editor-font-size);
+  color: var(--vscode-editor-foreground);
+}
 
 /* General Code Styling */
 .icode {
-    font-family: Consolas, Monaco, 'Lucida Console', 'Liberation Mono',
-                 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Courier New', monospace;
-    font-size: 0.85rem;
+    font-family: var(--vscode-editor-font-family);
+    font-weight: var(--vscode-editor-font-weight);
+    font-size: var(--vscode-editor-font-size);
     white-space: pre; /* Ensures proper spacing */
     /* background-color: var(--color-code, #f4f4f4); */
     text-align: left;
@@ -230,24 +242,34 @@ details.apply > summary {
   width: 50%;
 }
 .decompose .decompose-details {
+  font-family: var(--vscode-editor-font-family);
+  font-weight: var(--vscode-editor-font-weight);
+  font-size: var(--vscode-editor-font-size);
   width: 50%;
   overflow-y: scroll;
   padding: 10px;
 }
 .decompose .decompose-details-header {
+  font-family: var(--vscode-editor-font-family);
   font-weight: bold;
   font-size: 1.4em;
   margin: 0 0 0.5em 0;
 }
 .decompose .decompose-details-section-header {
+  font-family: var(--vscode-editor-font-family);
   font-weight: bold;
   font-size: 1.2em;
   margin: 1em 0 0.5em 0;
 }
 .decompose .decompose-details-constraint {
+  font-family: var(--vscode-editor-font-family);
+  font-weight: var(--vscode-editor-font-weight);
+  font-size: var(--vscode-editor-font-size);
   border-bottom: 1px black dotted;
 }
 .decompose .decompose-details-invariant-text {
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size);
   font-weight: bold;
   border: 1px black solid;
   padding: 1em;
