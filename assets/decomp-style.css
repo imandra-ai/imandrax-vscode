@@ -11,7 +11,7 @@
 }
 
 h1 {
-  font-family: var(--vscode-editor-font-family);
+  /* font-family: var(--vscode-editor-font-family); */
   color: var(--vscode-editor-foreground);
 }
 
