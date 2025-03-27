@@ -57,7 +57,6 @@ class VFSContentProvider implements TextDocumentContentProvider {
 	onDidChange = this.onDidChangeEmitter.event;
 
 	async provideTextDocumentContent(uri: Uri): Promise<string> {
-		console.log(`VFS URI: ${uri} path: ${uri.path} auth: ${uri.authority} scheme: ${uri.scheme} fsPath: ${uri.fsPath}`);
 		if (uri.authority == undefined || uri.authority == "") {
 			const fst = uri.path.split("/");
 			const auth = (fst[0] == "") ? fst[1] : fst[0];
@@ -257,7 +256,6 @@ async function active_editor_listener() {
 				diagnostics_for_editor(window.activeTextEditor);
 				const file_uri = doc.uri;
 				if (file_uri.scheme == "file") {
-					console.log(client !== undefined && client.isRunning());
 					if (client !== undefined && client.isRunning())
 						client.sendNotification("$imandrax/active-document", { "uri": file_uri.path });
 					req_file_progress(file_uri);
@@ -362,7 +360,6 @@ export async function start() {
 		client.start().catch(ex => { console.log(`Exception thrown while starting LSP client/server: ${ex}`); }).then(
 			_ => { update_configuration(undefined); }
 		);
-
 	}
 }
 
