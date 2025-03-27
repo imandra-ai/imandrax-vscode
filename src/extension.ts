@@ -36,6 +36,7 @@ import {
 import CP = require('child_process');
 import Path = require('path');
 import Which = require('which');
+import { setHeapSnapshotNearHeapLimit } from 'v8';
 
 
 const MAX_RESTARTS: number = 10;
@@ -181,7 +182,7 @@ export function activate(context_: ExtensionContext) {
 	file_progress_sbi.show();
 
 	workspace.onDidChangeConfiguration(event => {
-			update_configuration(event);
+		update_configuration(event);
 	});
 
 	restart(true);
@@ -350,6 +351,8 @@ export async function start() {
 
 		client.onRequest("$imandrax/copy-model", (params) => { copy_model(params); });
 
+		client.onRequest("$imandrax/visualize-decomp", (params) => { visualize_decomp(params); });
+
 		client.onNotification("$imandrax/vfs-file-changed", async (params) => {
 			const uri = Uri.parse(params["uri"]);
 			vfs_provider.onDidChangeEmitter.fire(uri);
@@ -494,6 +497,52 @@ function copy_model(params) {
 		str += m;
 	});
 	env.clipboard.writeText(str);
+}
+
+function visualize_decomp(params) {
+	const decomps = params["decomps"];
+
+	let body: string = "";
+	const sources : string[] = [];
+
+	for (const d of decomps) {
+		const source = d["source"];
+		body += `<h1>Decomposition of <span class="code">${source}</span></h1>`;
+		body += d["decomp"];
+		sources.push(source);
+	}
+
+	const sources_str = sources.join(", ");
+
+	const panel = window.createWebviewPanel("imandrax-decomp", `Decomposition of ${sources_str}`, ViewColumn.One, {
+		enableScripts: true, localResourceRoots: [
+			Uri.joinPath(context.extensionUri, "assets")
+		],
+		enableCommandUris: true,
+	});
+
+	const style_path = Uri.joinPath(context.extensionUri, "assets", "decomp-style.css");
+	const style_uri = panel.webview.asWebviewUri(style_path);
+
+	const voronoi_path = Uri.joinPath(context.extensionUri, "assets", "voronoi.js");
+	const voronoi_uri = panel.webview.asWebviewUri(voronoi_path);
+
+	const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ 	<link rel="stylesheet" href="${style_uri}">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+	<script src="${voronoi_uri}"></script>
+</head>
+<body>
+${body}
+</body>
+</html>`;
+
+	// console.log(`DECOMP HTML: ${html}`);
+
+	panel.webview.html = html;
 }
 
 function clear_cache() {

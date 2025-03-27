@@ -1,0 +1,276 @@
+
+/* variables */
+
+:root {
+  --color-error: #fc6453;
+  --color-error-bg: #fc9b90;
+  --color-success: #1dceae;
+  --color-success-bg: #60e3cb;
+  --color-danger: #fe8543;
+  --color-code: #f4f0f0;
+}
+
+h1 {
+  /* font-family: var(--vscode-editor-font-family); */
+  color: var(--vscode-editor-foreground);
+}
+
+/* code blocks and logic */
+
+code {
+  font-family: var(--vscode-editor-font-family);
+  font-weight: var(--vscode-editor-font-weight);
+  font-size: var(--vscode-editor-font-size);
+  color: var(--vscode-editor-foreground);
+}
+
+/* General Code Styling */
+.icode {
+    font-family: var(--vscode-editor-font-family);
+    font-weight: var(--vscode-editor-font-weight);
+    font-size: var(--vscode-editor-font-size);
+    white-space: pre; /* Ensures proper spacing */
+    /* background-color: var(--color-code, #f4f4f4); */
+    text-align: left;
+    padding: 10px;
+    border: solid grey 1px;
+    overflow-x: auto; /* Ensures horizontal scrolling if content overflows */
+    display: block;
+    max-width: 100%;
+    word-wrap: normal;  /* Prevents forced wrapping */
+}
+.ifun, .ifun * { color: #9e3b09; font-weight: 600 }
+.ity, .ity * { color: #2f5c5c }
+.istrlit { color: darkgreen }
+.icstor, .icstor * { color: #6f6f01; font-weight: 600 }
+.imod, .imod * { color: darkslateblue }
+.icomment, .icomment * { color: #5c731d }
+.ierror { color: red; font-weight: bold; }
+.ieval { color: inherit }
+.irule { color: rebeccapurple; font-weight: bold }
+.idecl {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.icode-block pre {
+    white-space: pre-wrap; /* Ensures long lines do not get cut */
+    overflow-x: auto; /* Enables scrolling instead of weird wrapping */
+    display: block;
+    max-width: 100%;
+    padding: 10px;
+}
+
+/* Code block container */
+
+.idecl .icode-block {
+    flex-grow: 1;
+    min-width: 800px; /* Makes the code box wider by default */
+    max-width: 95vw; /* Ensures it doesn’t take up the full screen */
+    overflow-x: auto;
+    display: block;
+    /* background-color: #f4f4f4; */
+    padding: 12px;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+/* proof checking */
+
+.icheckid {
+  font-weight: bold; margin: 1em; padding: 0.2em;
+  /* background-color: lightsalmon;  */
+  text-decoration: none;
+  color: black; }
+.ichecklbl { font-weight: bold }
+pre.prooftracestep { background-color: var(--color-code) };
+.proofcheckheader th { text-align: left }
+.proofcheck { align-items: top; border-collapse: collapse; }
+.proofcheck td { vertical-align: top; padding: .5em }
+.proofcheckok { text-decoration: underline .2em var(--color-success) }
+.proofcheckfail { text-decoration: underline .2em var(--color-error) }
+.proofcheckpremisefail { text-decoration: underline .2em #c206c2 }
+.proofcheckhassorry { text-decoration: underline .2em  #e06403}
+table.proofcheckstep { margin: 1.5em; border: 2px solid slategray; border-collapse: collapse; }
+.proofchecksteprow td { vertical-align: top; padding: 2px }
+.proofcheckstep td { padding: 2px }
+.summaryok {
+  border: solid 2px var(--color-success);
+  background-color: var(--color-success-bg);
+  margin: .5em }
+.summaryfail {
+  border: solid 2px var(--color-error);
+  background-color: var(--color-error-bg);
+  margin: .5em }
+
+/* PO */
+
+.po-success {
+  background-color: var(--color-success-bg);
+  padding: .2em;
+  border: 1px solid;
+  box-shadow: 2px 2px 2px var(--color-success);
+}
+.po-failure {
+  background-color: var(--color-error-bg);
+  padding: .2em;
+  border: 1px solid;
+  box-shadow: 2px 2px 2px var(--color-error);
+}
+
+/* status indicators */
+
+
+.validate-status {
+  background-color: var(--color-success-bg);
+  padding: .2em;
+  margin: 1em;
+  font-size: 80%;
+  border: 1px solid;
+  box-shadow: 2px 2px 2px var(--color-success);
+  align-self: center;
+}
+.error-count {
+  background-color: var(--color-error-bg);
+  padding: .2em;
+  margin: 1em;
+  font-size: 80%;
+  border: 1px solid;
+  box-shadow: 2px 2px 2px var(--color-error);
+  align-self: center;
+}
+
+/* sections */
+
+.itask { border-left: 2px solid blueviolet; padding-left: 5px; border-radius: 7px; }
+.iproofobl { border-left: 2px solid blueviolet; padding-left: 5px; border-radius: 7px; }
+
+/* report */
+
+/* TODO: we need to find how to make the terms and such flow better… */
+.report_atomic_event { align-items: center; display: flex; flex-wrap: wrap; }
+.report_span_enter { align-items: center; display: flex; }
+details.report_span { border-left: 3px dotted cadetblue; padding-left: 10px; border-radius: 5px; display: block !important; }
+
+/* logging */
+
+.logheader th { text-align: left }
+.logentry { align-items: top; border-collapse: collapse; }
+.logentry td { vertical-align: top; }
+
+.logmsg { background-color: #f1f1ff; }
+/* .logsrc { background-color: #d7d7f5; } */
+.loglevel.debug { background-color: #f1f1ff; }
+.loglevel.info { background-color: #90b0ff; }
+.loglevel.warn { background-color: #f0f189; }
+.loglevel.error { background-color: var(--color-error); }
+.loglevel.app { background-color: #c7ff70; }
+.logts { text-decoration: underline }
+
+/* navigation bar */
+
+.navitem {
+  box-shadow: 3px 3px 5px lightblue;
+  border: 2px solid teal;
+  text-decoration: none;
+  border-radius: 4%;
+  font-size: 1.2rem;
+  padding: 3px;
+  margin: 3px;
+}
+.navbar { background-color: azure; display: flex }
+
+/* errors */
+
+.logerrorbox {
+  border: 2px solid;
+  border-color: var(--color-error);
+  margin: 5px;
+}
+.logerror {
+  background-color: var(--color-error-bg);
+  padding: 3px;
+}
+.logerrorctxbox {
+  border: 2px solid;
+  border-color: #998aff;
+  margin: 5px;
+}
+.logerrorctx {
+  background-color: #bfb5ff;
+  padding: 3px;
+}
+
+/* misc */
+
+table.record { border: 2px solid slategray; margin: 2px }
+.recordentry {
+  margin: 1.5em;
+  border-collapse: collapse;
+  /* background-color: #f1f1ff;   */
+}
+td.recordentry  { vertical-align: top; padding: 2px }
+td.recordentry.key { text-align: right }
+
+/* details { padding-left: 15px; } */
+details.apply { display: inline; }
+details.apply[open] summary span.markeropen { display: inline; font-size: 50%;}
+details.apply[open] summary span.markerclosed { display: none }
+details.apply:not([open]) summary span.markerclosed { display: inline; }
+details.apply:not([open]) summary span.markeropen { display: none; }
+
+/* details.apply summary { display: list-item; list-style-type: "…"; list-style-position: inside } */
+/* Hide "Details" and arrow in apply blocks */
+details.apply > summary {
+    display: none !important;
+}
+/* details.apply[open] > * { margin-left: 2px; } */
+
+.button { border-radius: 4px }
+.danger { margin-left: 1em; border: 2px solid var(--color-danger) }
+.hbox { display: flex }
+.ms { margin: .4em }
+
+.display-none {
+  display: none;
+}
+.decompose {
+  display: flex;
+  justify-content: space-between;
+}
+.decompose .decompose-foamtree {
+  width: 50%;
+}
+.decompose .decompose-details {
+  font-family: var(--vscode-editor-font-family);
+  font-weight: var(--vscode-editor-font-weight);
+  font-size: var(--vscode-editor-font-size);
+  width: 50%;
+  overflow-y: scroll;
+  padding: 10px;
+}
+.decompose .decompose-details-header {
+  font-family: var(--vscode-editor-font-family);
+  font-weight: bold;
+  font-size: 1.4em;
+  margin: 0 0 0.5em 0;
+}
+.decompose .decompose-details-section-header {
+  font-family: var(--vscode-editor-font-family);
+  font-weight: bold;
+  font-size: 1.2em;
+  margin: 1em 0 0.5em 0;
+}
+.decompose .decompose-details-constraint {
+  font-family: var(--vscode-editor-font-family);
+  font-weight: var(--vscode-editor-font-weight);
+  font-size: var(--vscode-editor-font-size);
+  border-bottom: 1px black dotted;
+}
+.decompose .decompose-details-invariant-text {
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size);
+  font-weight: bold;
+  border: 1px black solid;
+  padding: 1em;
+}
