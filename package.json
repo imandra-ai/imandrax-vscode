@@ -175,6 +175,80 @@
       {
         "command": "imandrax.reset_goal_state",
         "title": "Imandrax: Reset goal state"
+      },
+      {
+        "command": "imandrax.test_api",
+        "title": "Imandrax: Test API"
+      },
+      {
+        "command": "imandrax.test_context",
+        "title": "Imandrax: Test Context"
+      },
+      {
+        "command": "imandrax.show-subgoal",
+        "title": "Imandrax: Show Subgoal"
+      },
+      {
+        "command": "imandrax.show-goal",
+        "title": "Imandrax: Show Goal"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "submenu": "imandrax.proof-step.subMenu",
+          "group": "imandrax-proof",
+          "when": "resourceLangId == imandrax"
+        }
+      ],
+      "imandrax.proof-step.subMenu": [
+        {
+          "command": "imandrax.test_context",
+          "group": "imandrax-proof"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "imandrax.show-subgoal",
+          "when": "view == reportTreeViewer && viewItem == subgoal",
+          "group": "inline"
+        },
+        {
+          "command": "imandrax.show-goal",
+          "when": "view == reportTreeViewer && viewItem == goal",
+          "group": "inline"
+        }
+      ]
+    },
+    "submenus": [
+      {
+        "id": "imandrax.proof-step.subMenu",
+        "label": "Proof",
+        "group": "imandrax-proof"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "report-explorer",
+          "title": "Report Explorer",
+          "icon": "assets/imandrax.svg"
+        }
+      ]
+    },
+    "views": {
+      "report-explorer": [
+        {
+          "id": "reportTreeViewer",
+          "name": "Report",
+          "icon": "assets/imandrax.svg"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "reportTreeViewer",
+        "contents": "This is where a report may be shown."
       }
     ]
   },
@@ -187,13 +261,15 @@
     "lint": "eslint ./src --ext .ts,.tsx",
     "vscode:prepublish": "npm run esbuild-base -- --minify",
     "esbuild": "npm run esbuild-base -- --sourcemap",
-    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node",
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node --external:'prettier'",
     "esbuild-clean": "rm -rf out/ && npm run esbuild",
     "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
     "test": "vscode-test",
     "test-clean": "npm run build-clean && npm run esbuild-clean && vscode-test"
   },
   "dependencies": {
+    "async-mutex": "^0.5.0",
+    "prettier": "^3.5.0",
     "vscode-languageclient": "^8.1.0"
   },
   "devDependencies": {
@@ -215,6 +291,9 @@
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
     "typescript": "^5.2.2",
-    "typescript-eslint": "^8.34.1"
+    "typescript-eslint": "^8.34.1",
+    "imandrax-api": "file:vendor/imandrax-api/src/ts/lib",
+    "ts-node": "^10.9.2",
+    "imlformat": "file:imlformat"
   }
 }

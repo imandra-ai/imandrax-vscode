@@ -1,0 +1,13 @@
+{
+  "name": "imlformat",
+  "description": "A formatter for IML files",
+  "author": "Imandra",
+  "publisher": "Imandra",
+  "version": "0.0.1",
+  "dependencies": {
+    "prettier": "^3.5.0",
+    "ts-node": "*",
+    "tsx": "^4.19.3",
+    "typescript": "next"
+  }
+}

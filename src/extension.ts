@@ -11,7 +11,8 @@ import {
   ExtensionMode,
   Uri,
   window,
-  workspace
+  workspace,
+  TextEditorDecorationType
 } from "vscode";
 
 import {
