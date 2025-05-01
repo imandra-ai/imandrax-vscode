@@ -1,0 +1,24 @@
+{
+	"compilerOptions": {
+		"module": "node16",
+		"target": "es2020",
+		"lib": [
+			"es2020"
+		],
+		"outDir": "out",
+		"rootDir": ".",
+		"sourceMap": true,
+		"composite": true,
+		// "allowJs": true
+	},
+	"include": [],
+	"exclude": [
+		"node_modules",
+	],
+	"references": [],
+	"files": [
+		"imlformat.ts",
+		"iml-prettier.ts",
+		// "../vendor/iml2json.bc.js"
+	]
+}
