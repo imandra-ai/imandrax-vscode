@@ -1,15 +1,12 @@
+// An IML plugin for prettier.
+
 import { Doc, doc, AST, AstPath, Options, Printer } from "prettier";
 
 const { group, indent, indentIfBreak, dedent, join, ifBreak, breakParent, line, hardline, hardlineWithoutBreakParent, softline, fill } = doc.builders;
 
 
 import { iml2json } from '../vendor/iml2json.bc';
-import { isStringLiteralOrJsxExpression } from 'typescript';
 import { assert } from 'node:console';
-import { DebugAdapterNamedPipeServer, Selection } from 'vscode';
-import { fileURLToPath } from 'node:url';
-import { allowedNodeEnvironmentFlags } from 'node:process';
-// let iml2json = require('../vendor/iml2json.bc').iml2json;
 
 export const languages = [
 	{
@@ -91,7 +88,7 @@ function get_source(start, end, options: Options): string {
 	return (options.originalText as string).slice(from, to);
 }
 
-function print_longident(node: AST, options: Options): any {
+function print_longident(node: AST, options: Options): Doc {
 	let constructor = node[0];
 	let args = node.slice(1);
 	switch (constructor) {
@@ -107,11 +104,11 @@ function print_longident(node: AST, options: Options): any {
 	}
 }
 
-function print_longident_loc(node: AST, options: Options): any {
+function print_longident_loc(node: AST, options: Options): Doc {
 	return print_longident(node.txt, options);
 }
 
-function print_constant_desc(node: AST, options: Options): any {
+function print_constant_desc(node: AST, options: Options): Doc {
 	let constructor = node[0];
 	let args = node.slice(1);
 	switch (constructor) {
@@ -148,11 +145,11 @@ function print_constant_desc(node: AST, options: Options): any {
 	}
 }
 
-function print_constant(node: AST, options: Options): any {
+function print_constant(node: AST, options: Options): Doc {
 	return print_constant_desc(node.pconst_desc, options);
 }
 
-function print_payload(node: AST, options: Options): any {
+function print_payload(node: AST, options: Options): Doc {
 	let constructor = node[0];
 	let args = node.slice(1);
 	switch (constructor) {
@@ -175,7 +172,7 @@ function print_payload(node: AST, options: Options): any {
 	}
 }
 
-function print_module_type_desc(node: AST, options: Options): any {
+function print_module_type_desc(node: AST, options: Options): Doc {
 	let constructor = node[0];
 	let args = node.slice(1);
 	switch (constructor) {
@@ -207,7 +204,7 @@ function print_module_type_desc(node: AST, options: Options): any {
 	}
 }
 
-function print_with_constraint(node: AST, options: Options): any {
+function print_with_constraint(node: AST, options: Options): Doc {
 	let constructor = node[0];
 	let args = node.slice(1);
 	switch (constructor) {
@@ -243,7 +240,7 @@ function print_with_constraint(node: AST, options: Options): any {
 	}
 }
 
-function print_module_expr_desc(node: AST, options: Options): any {
+function print_module_expr_desc(node: AST, options: Options): Doc {
 	let constructor = node[0];
 	let args = node.slice(1);
 	switch (constructor) {
@@ -277,11 +274,11 @@ function print_module_expr_desc(node: AST, options: Options): any {
 	}
 }
 
-function print_string_loc(node: AST, options: Options): any {
+function print_string_loc(node: AST, options: Options): Doc {
 	return node.txt;
 }
 
-function print_core_type_desc(node: AST, options: Options): any {
+function print_core_type_desc(node: AST, options: Options): Doc {
 	let constructor = node[0];
 	let args = node.slice(1);
 	switch (constructor) {
@@ -389,7 +386,7 @@ function print_core_type_desc(node: AST, options: Options): any {
 	}
 }
 
-function print_core_type(node: AST, options: Options): any {
+function print_core_type(node: AST, options: Options): Doc {
 	// {
 	//  ptyp_desc: core_type_desc;
 	//  ptyp_loc: Location.t;
@@ -399,7 +396,7 @@ function print_core_type(node: AST, options: Options): any {
 	return print_core_type_desc(node.ptyp_desc, options); // TODO: attributes
 }
 
-function print_pattern_desc(node: AST, options: Options): any {
+function print_pattern_desc(node: AST, options: Options): Doc {
 	let constructor = node[0];
 	let args = node.slice(1);
 	switch (constructor) {
@@ -475,7 +472,7 @@ function print_pattern_desc(node: AST, options: Options): any {
 	}
 }
 
-function print_pattern(node: AST, options: Options): any {
+function print_pattern(node: AST, options: Options): Doc {
 	// pattern =
 	//   {
 	//    ppat_desc: pattern_desc;
@@ -486,7 +483,7 @@ function print_pattern(node: AST, options: Options): any {
 	return print_pattern_desc(node.ppat_desc, options); // TODO: attributes
 }
 
-function print_value_binding(node: AST, options: Options): any {
+function print_value_binding(node: AST, options: Options): Doc {
 	// {
 	//   pvb_pat: pattern;
 	//   pvb_expr: expression;
@@ -497,7 +494,7 @@ function print_value_binding(node: AST, options: Options): any {
 	return g([print_pattern(node.pvb_pat, options), line, "=", line, print_expression(node.pvb_expr, options)]);
 }
 
-function print_expression(node: AST, options: Options): any {
+function print_expression(node: AST, options: Options): Doc {
 	// {
 	// 	pexp_desc: expression_desc;
 	// 	pexp_loc: Location.t;
@@ -507,7 +504,7 @@ function print_expression(node: AST, options: Options): any {
 	return print_expression_desc(node.pexp_desc, options); // TODO: attributes
 }
 
-function print_function_param_desc(node: AST, options: Options): any {
+function print_function_param_desc(node: AST, options: Options): Doc {
 	let constructor = node[0];
 	let args = node.slice(1);
 	switch (constructor) {
@@ -558,11 +555,11 @@ function print_function_param_desc(node: AST, options: Options): any {
 	}
 }
 
-function print_function_param(node: AST, options: Options): any {
+function print_function_param(node: AST, options: Options): Doc {
 	return print_function_param_desc(node.pparam_desc, options);
 }
 
-function print_function_body(node: AST, options: Options): any {
+function print_function_body(node: AST, options: Options): Doc {
 	let constructor = node[0];
 	let args = node.slice(1);
 	switch (constructor) {
@@ -583,11 +580,11 @@ function print_function_body(node: AST, options: Options): any {
 	}
 }
 
-function print_module_expr_open_infos(node: AST, options: Options): any {
+function print_module_expr_open_infos(node: AST, options: Options): Doc {
 	return print_module_expr(node.popen_expr, options); // TODO: attributes, override
 }
 
-function print_open_declaration(node: AST, options: Options): any {
+function print_open_declaration(node: AST, options: Options): Doc {
 	// 	open_declaration = module_expr open_infos
 	// (** Values of type [open_declaration] represents:
 	//     - [open M.N]
@@ -596,7 +593,7 @@ function print_open_declaration(node: AST, options: Options): any {
 	return print_module_expr_open_infos(node, options);
 }
 
-function print_expression_desc(node: AST, options: Options): any {
+function print_expression_desc(node: AST, options: Options): Doc {
 	let constructor = node[0];
 	let args = node.slice(1);
 	switch (constructor) {
@@ -670,7 +667,7 @@ function print_expression_desc(node: AST, options: Options): any {
 
 			//          Invariant: [n > 0]
 			//        *)
-			function is_infix(obj: any, children: any): boolean {
+			function is_infix(obj: any, children: Doc): boolean {
 				// Can we figure out whether an operator was used in infix fashion from the source text?
 				if (children instanceof Array && children.length > 0) {
 					let c2 = children[0]
@@ -838,7 +835,7 @@ function print_expression_desc(node: AST, options: Options): any {
 	}
 }
 
-function print_constructor_arguments(node: AST, options: Options): any {
+function print_constructor_arguments(node: AST, options: Options): Doc {
 	let constructor = node[0];
 	let args = node.slice(1);
 	switch (constructor) {
@@ -865,7 +862,7 @@ function print_constructor_arguments(node: AST, options: Options): any {
 	}
 }
 
-function print_constructor_declaration(node: AST, options: Options): any {
+function print_constructor_declaration(node: AST, options: Options): Doc {
 	// {
 	//  pcd_name: string loc;
 	//  pcd_vars: string loc list;
@@ -877,7 +874,7 @@ function print_constructor_declaration(node: AST, options: Options): any {
 	return print_constructor_arguments(node.pcd_args, options); // TODO: rest
 }
 
-function print_label_declaration(node: AST, options: Options): any {
+function print_label_declaration(node: AST, options: Options): Doc {
 	// {
 	// 	pld_name: string loc;
 	// 	pld_mutable: mutable_flag;
@@ -888,7 +885,7 @@ function print_label_declaration(node: AST, options: Options): any {
 	return print_core_type(node.pld_type, options);
 }
 
-function print_type_kind(node: AST, options: Options): any {
+function print_type_kind(node: AST, options: Options): Doc {
 	let constructor = node[0];
 	let args = node.slice(1);
 	switch (constructor) {
@@ -897,7 +894,7 @@ function print_type_kind(node: AST, options: Options): any {
 			return ""; // TODO: this can't be right.
 		case "Ptype_variant":
 			// | Ptype_variant of constructor_declaration list
-			return g([line, ifBreak("| ", ""), join([line, "| "], args[0].map(x => {
+			return g([ifBreak("| ", ""), join([line, "| "], args[0].map(x => {
 				if (x.pcd_args[1].length == 0)
 					return x.pcd_name.txt;
 				else
@@ -906,9 +903,12 @@ function print_type_kind(node: AST, options: Options): any {
 			))]);
 		case "Ptype_record":
 			// | Ptype_record of label_declaration list  (** Invariant: non-empty list *)
-			return fill(join([";", hardline], args[0].map(x => {
-				return fill([x.pld_name.txt, line, ":", line, print_label_declaration(x, options)]);
-			})));
+			return fill(["{",
+				indent([line, join([";", line], args[0].map(x => {
+					return fill([x.pld_name.txt, line, ":", line, print_label_declaration(x, options)]);
+				})),
+					";", line,
+					"}"])]);
 		case "Ptype_open":
 			// | Ptype_open
 			niy();
@@ -917,7 +917,7 @@ function print_type_kind(node: AST, options: Options): any {
 	}
 }
 
-function print_type_declaration(node: AST, options: Options): any {
+function print_type_declaration(node: AST, options: Options): Doc {
 	// {
 	// 	ptype_name: string loc;
 	// 	ptype_params: (core_type * (variance * injectivity)) list;
@@ -930,10 +930,10 @@ function print_type_declaration(node: AST, options: Options): any {
 	// 	ptype_attributes: attributes;  (** [... [\@\@id1] [\@\@id2]] *)
 	// 	ptype_loc: Location.t;
 	//  }
-	return fill([node.ptype_name.txt, line, "=", indent([print_type_kind(node.ptype_kind, options)])]); // TODO: rest
+	return fill([indent([node.ptype_name.txt, " ", "=", line, [print_type_kind(node.ptype_kind, options)]])]); // TODO: rest
 }
 
-function print_module_expr(node: AST, options: Options): any {
+function print_module_expr(node: AST, options: Options): Doc {
 	// {
 	// 	pmod_desc: module_expr_desc;
 	// 	pmod_loc: Location.t;
@@ -942,7 +942,7 @@ function print_module_expr(node: AST, options: Options): any {
 	return print_module_expr_desc(node.pmod_desc, options);
 }
 
-function print_module_binding(node: AST, options: Options): any {
+function print_module_binding(node: AST, options: Options): Doc {
 	// {
 	// 	pmb_name: string option loc;
 	// 	pmb_expr: module_expr;
@@ -952,7 +952,7 @@ function print_module_binding(node: AST, options: Options): any {
 	return print_module_expr(node.pmb_expr, options); // TODO: rest
 }
 
-function print_attribute(node: AST, options: Options): any {
+function print_attribute(node: AST, options: Options): Doc {
 	// {
 	//   attr_name : string loc;
 	//   attr_payload : payload;
@@ -975,7 +975,7 @@ function has_attribute(attrs, x): boolean {
 	return attrs.find(a => a.attr_name.txt == x);
 }
 
-function print_structure_item_desc(node: AST, options: Options): any {
+function print_structure_item_desc(node: AST, options: Options): Doc {
 	let constructor = node[0];
 	let args = node.slice(1);
 	switch (constructor) {
@@ -1054,7 +1054,7 @@ function print_structure_item_desc(node: AST, options: Options): any {
 		case "Pstr_type": {
 			// | Pstr_type of rec_flag * type_declaration list
 			// 		(** [type t1 = ... and ... and tn = ...] *)
-			return fill(["type", line, join([line, "and", line], args[1].map(td => print_type_declaration(td, options)))]);
+			return fill([indent(["type", line, join([line, "and", line], args[1].map(td => print_type_declaration(td, options)))])]);
 		}
 		case "Pstr_typext":
 			// | Pstr_typext of type_extension  (** [type t1 += ...] *)
@@ -1099,24 +1099,59 @@ function print_structure_item_desc(node: AST, options: Options): any {
 	}
 }
 
-function print_structure_item(node: AST, options: Options): any {
+function print_structure_item(node: AST, options: Options): Doc {
 	return print_structure_item_desc(node.pstr_desc, options);
 }
 
-function print_structure(node: AST, options: Options): any {
+function print_structure(node: AST, options: Options): Doc {
 	return join(hardline, node.map(x => print_structure_item(x, options)));
 }
 
-function print_toplevel_directive(node: AST, options: Options): any {
+function print_directive_argument_desc(node: AST, options: Options): Doc {
+	let constructor = node[0];
+	let args = node.slice(1);
+	switch (constructor) {
+		case "Pdir_string":
+			//   | Pdir_string of string
+			return ["\"", args[0], "\""];
+		case "Pdir_int":
+			//   | Pdir_int of string * char option
+			if (args[1])
+				return [args[0], args[1]];
+			else
+				return args[0];
+		case "Pdir_ident":
+			//   | Pdir_ident of Longident.t
+			return print_longident(args[0], options);
+		case "Pdir_bool":
+			//   | Pdir_bool of bool
+			return args[0] ? "true" : "false";
+		default:
+			throw new Error(`Unexpected node type: ${constructor}`);
+	}
+}
+
+function print_directive_argument(node: AST, options: Options): Doc {
+	// 	{
+	//     pdira_desc: directive_argument_desc;
+	//     pdira_loc: Location.t;
+	//   }
+	return print_directive_argument_desc(node.pdira_desc, options);
+}
+
+function print_toplevel_directive(node: AST, options: Options): Doc {
 	// {
 	//   pdir_name: string loc;
 	//   pdir_arg: directive_argument option;
 	//   pdir_loc: Location.t;
 	// }
-	niy();
+	return fill(["#", softline,
+		print_string_loc(node.pdir_name, options),
+		(node.pdir_arg ? [line, print_directive_argument(node.pdir_arg, options)] : []), softline,
+		";;"]);
 }
 
-function print_toplevel_phrase(node: AST, options: Options): any {
+function print_toplevel_phrase(node: AST, options: Options): Doc {
 	let constructor = node[0];
 	let args = node.slice(1);
 	switch (constructor) {
@@ -1147,7 +1182,7 @@ function print_toplevel_phrase(node: AST, options: Options): any {
 			}
 			catch (e) {
 				// If something fails, just keep the original text.
-				get_source(args[0].pdir_loc, args[0].pdir_loc, options);
+				return get_source(args[0].pdir_loc, args[0].pdir_loc, options);
 			}
 		}
 		default:
