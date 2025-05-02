@@ -19,9 +19,6 @@
   ],
   "references": [
 		{
-			"path": "vendor/imandrax-api/src/ts/tsconfig.json"
-		},
-		{
 			"path": "imlformat/tsconfig.json"
 		}
 	]
