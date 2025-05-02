@@ -38,6 +38,12 @@ import Path = require('path');
 import Which = require('which');
 import { setHeapSnapshotNearHeapLimit } from 'v8';
 
+import * as prettier from 'prettier';
+import * as mir_prettier from './mir-prettier';
+import * as api from 'imandrax-api/types';
+
+import { ReportDataProvider, ReportItem } from './report-data-provider';
+
 
 const MAX_RESTARTS: number = 10;
 
