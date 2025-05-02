@@ -40,9 +40,7 @@ import Path = require('path');
 import { getEnv } from "./environment";
 
 import * as prettier from 'prettier';
-import * as mir_prettier from './mir-prettier';
 import * as iml_prettier from 'imlformat/iml-prettier';
-import * as api from 'imandrax-api/types';
 
 const MAX_RESTARTS: number = 10;
 
