@@ -4,5 +4,12 @@
 	"typescript.preferences.quoteStyle": "single",
 	"editor.codeActionsOnSave": {
 		"source.fixAll.eslint": "explicit"
-	}
+	},
+	"imandrax.lsp.binary": "/home/cwinter/work/imandrax/_build/default/src/cli/imandrax_cli.exe",
+	"imandrax.lsp.arguments": [
+		"lsp",
+		"--check-on-save=true",
+		"--unicode=true",
+		"--log-file=lsp.log"
+	]
 }

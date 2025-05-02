@@ -51,6 +51,7 @@ let decoration_type_good = undefined;
 let decoration_type_bad = undefined;
 let file_progress_sbi: StatusBarItem = undefined;
 let file_progress_text: string = "No tasks";
+let rdp: ReportDataProvider | undefined = undefined;
 
 class VFSContentProvider implements TextDocumentContentProvider {
 	onDidChangeEmitter = new EventEmitter<Uri>();
@@ -185,6 +186,14 @@ export function activate(context_: ExtensionContext) {
 	});
 
 	restart(true);
+
+	context.subscriptions.push(commands.registerCommand("imandrax.test_api", () => { test_api(); }));
+	context.subscriptions.push(commands.registerCommand("imandrax.test_context", args => { test_context(args); }));
+
+	rdp = new ReportDataProvider();
+	window.registerTreeDataProvider('reportTreeViewer', rdp);
+	context.subscriptions.push(commands.registerCommand("imandrax.show-subgoal", args => { show_subgoal(args); }));
+	context.subscriptions.push(commands.registerCommand("imandrax.show-goal", async args => { await show_goal(args); }));
 }
 
 function update_configuration(event): Promise<void> {
@@ -546,4 +555,72 @@ function clear_cache() {
 	if (client && client.isRunning())
 		client.sendRequest("workspace/executeCommand", { "command": "clear-cache", "arguments": [] });
 	return true;
+}
+
+function test_api() {
+	if (rdp) {
+		const fn = "/home/cwinter/work/imandrax-vscode-dbgws/dec_zero_ok_14m_data.twine";
+		rdp.load(fn);
+		rdp.refresh();
+	}
+}
+
+function test_context(args) {
+	if (!window.activeTextEditor)
+		return;
+
+	const editor = window.activeTextEditor;
+	const doc = editor.document;
+	const selection = editor.selection.active;
+	console.log(`Selection: :${selection.line}:${selection.character}`);
+	const pos = doc.offsetAt(selection);
+	console.log(`Position: ${pos}`);
+	const wr = doc.getWordRangeAtPosition(selection);
+	if (wr == undefined) {
+		console.log("No word range");
+	} else {
+		console.log(`Word range: :${wr.start.line}:${wr.start.character} to :${wr.end.line}:${wr.end.character}`);
+		const word = doc.getText(wr);
+		console.log(`Word: ${word}`);
+	}
+}
+
+async function format(term: api.Mir_Term): Promise<string> {
+	try {
+		mir_prettier.requests_lock.acquire();
+		let id = mir_prettier.requests.size;
+		mir_prettier.requests.set(id, term);
+		mir_prettier.requests_lock.release();
+		return await prettier.format(id.toString(), {
+			semi: false,
+			parser: "mir-parse",
+			plugins: [mir_prettier],
+		});
+	}
+	catch (e) { return "Prettier error: " + e.toString() + "\n" + e.stack.toString() }
+}
+
+async function show_subgoal(args: ReportItem): Promise<void> {
+	if (args.event && "goal" in args.event && "hyps" in args.event.goal && "concls" in args.event.goal) {
+		const hyps = await Promise.all(args.event.goal.hyps.map(t => { return format(t); }));
+		const concls = await Promise.all(args.event.goal.concls.map(t => { return format(t); }));
+
+		const content = hyps.join("\n") + `\n|${"-".repeat(79)}\n` + concls.join("\n");
+
+		workspace.openTextDocument({ language: "imandrax", content })
+			.then(doc =>
+				window.showTextDocument(doc));
+	}
+}
+
+async function show_goal(args: ReportItem): Promise<void> {
+	if (args.event && "arg" in args.event) {
+		const goal_trm = args.event.arg[1].arg;
+		const content = await format(goal_trm);
+
+		workspace.openTextDocument({ language: "imandrax", content })
+			.then(doc => {
+				window.showTextDocument(doc)
+			});
+	}
 }
