@@ -15,6 +15,6 @@
 		".vscode-test"
 	],
 	"references": [
-		{ "path": "./src" },
+		// { "path": "./src" },
 	]
 }
