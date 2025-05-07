@@ -1,7 +1,1 @@
-{
-	"root": [
-		"./extension.ts"
-	],
-	"errors": true,
-	"version": "5.8.2"
-}
+{"root":["./extension.ts"],"version":"5.8.2"}
