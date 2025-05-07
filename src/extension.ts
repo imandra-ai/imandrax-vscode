@@ -322,9 +322,10 @@ export async function start() {
 		);
 		window.showErrorMessage(`Could not find ImandraX. Please ensure the imandrax-cli binary is in your PATH or its location is set in the [Workspace Settings](${openUri})`);
 
-		const opts = {
+		const opts: QuickPickOptions = {
 			title: "Couldn't find ImandraX binary",
 			placeHolder: "Run the ImandraX installer?",
+			ignoreFocusOut: true
 		};
 		const labels: readonly QuickPickItem[] = [{
 			label: 'Yes'
