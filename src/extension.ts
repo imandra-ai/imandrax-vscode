@@ -501,7 +501,7 @@ function visualize_decomp(params) {
 	const decomps = params["decomps"];
 
 	let body: string = "";
-	const sources : string[] = [];
+	const sources: string[] = [];
 
 	for (const d of decomps) {
 		const source = d["source"];
