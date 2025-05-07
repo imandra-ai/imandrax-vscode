@@ -319,6 +319,7 @@ export async function start() {
 		const openUri = Uri.parse(
 			`command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
 		);
+		window.showQuickPick(['foo', 'bar', null]);
 		window.showErrorMessage(`Could not find ImandraX. Please ensure the imandrax-cli binary is in your PATH or its location is set in the [Workspace Settings](${openUri})`);
 	}
 	else {
