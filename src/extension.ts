@@ -320,6 +320,8 @@ export async function start() {
 		const openUri = Uri.parse(
 			`command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
 		);
+		window.showErrorMessage(`Could not find ImandraX. Please ensure the imandrax-cli binary is in your PATH or its location is set in the [Workspace Settings](${openUri})`);
+
 		const opts = {
 			title: "Couldn't find ImandraX binary",
 			placeHolder: "Run the ImandraX installer?",
@@ -339,7 +341,6 @@ export async function start() {
 			terminal.show(true);
 			terminal.sendText('sh -c "$(curl -fsSL https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/scripts/install.sh)"');
 		}
-		window.showErrorMessage(`Could not find ImandraX. Please ensure the imandrax-cli binary is in your PATH or its location is set in the [Workspace Settings](${openUri})`);
 	}
 	else {
 		const serverOptions: Executable = { command: bin_abs_path, args: server_args, options: { env: merged_env } };
