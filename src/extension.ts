@@ -8,6 +8,8 @@ import {
 	EventEmitter,
 	ExtensionContext,
 	languages,
+	QuickPickItem,
+	QuickPickOptions,
 	Range,
 	StatusBarAlignment,
 	StatusBarItem,
@@ -25,6 +27,7 @@ import {
 
 
 import {
+	CancellationToken,
 	Executable,
 	LanguageClient,
 	LanguageClientOptions,
@@ -317,7 +320,29 @@ export async function start() {
 		const openUri = Uri.parse(
 			`command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
 		);
-		window.showQuickPick(['foo', 'bar', null]);
+		const opts = {
+			title: "Couldn't find ImandraX binary",
+			placeHolder: "Install it?",
+			// matchOnDescription: true,
+			// matchOnDetail: true,
+			// onDidSelectItem: (item: QuickPickItem) => {
+			// }
+		};
+		const labels: readonly QuickPickItem[] = [{
+			label: 'Yes'
+		}, {
+			label: 'No'
+		}];
+
+		const itemT = await window.showQuickPick(labels, opts, CancellationToken.None);;
+		if (itemT.label === 'Yes') {
+			const terminal = window.createTerminal({
+				name: 'foo',
+				shellPath: '/bin/zsh',
+			});
+			terminal.show(true);
+			terminal.sendText('sh -c "$(curl -fsSL https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/scripts/install.sh)"');
+		}
 		window.showErrorMessage(`Could not find ImandraX. Please ensure the imandrax-cli binary is in your PATH or its location is set in the [Workspace Settings](${openUri})`);
 	}
 	else {
