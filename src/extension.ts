@@ -4,8 +4,6 @@ import {
 	DecorationRenderOptions,
 	DiagnosticChangeEvent,
 	DiagnosticSeverity,
-	DocumentColorProvider,
-	DocumentFormattingEditProvider,
 	env,
 	EventEmitter,
 	ExtensionContext,
