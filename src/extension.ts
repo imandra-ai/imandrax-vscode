@@ -322,11 +322,7 @@ export async function start() {
 		);
 		const opts = {
 			title: "Couldn't find ImandraX binary",
-			placeHolder: "Install it?",
-			// matchOnDescription: true,
-			// matchOnDetail: true,
-			// onDidSelectItem: (item: QuickPickItem) => {
-			// }
+			placeHolder: "Run the ImandraX installer?",
 		};
 		const labels: readonly QuickPickItem[] = [{
 			label: 'Yes'
