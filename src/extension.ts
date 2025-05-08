@@ -1,4 +1,11 @@
 import {
+	CancellationToken,
+	Executable,
+	LanguageClient,
+	LanguageClientOptions,
+} from "vscode-languageclient/node";
+
+import {
 	commands,
 	DecorationOptions,
 	DecorationRenderOptions,
@@ -24,15 +31,6 @@ import {
 	window,
 	workspace
 } from "vscode";
-
-
-import {
-	CancellationToken,
-	Executable,
-	LanguageClient,
-	LanguageClientOptions,
-	VersionedTextDocumentIdentifier,
-} from "vscode-languageclient/node";
 
 import CP = require('child_process');
 import Path = require('path');
