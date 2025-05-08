@@ -316,13 +316,12 @@ export async function start() {
 			`command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
 		);
 
-		const openInstallerItem = { title: "Open installer" } as const;
-		const dismissItem = { title: "Dismiss" } as const;
-		const items: readonly MessageItem[] = [openInstallerItem, dismissItem];
+		const launchInstallerItem = { title: "Launch installer" } as const;
+		const items: readonly MessageItem[] = [launchInstallerItem];
 
 		const itemT = await window.showErrorMessage(`Could not find ImandraX. Please install it or ensure the imandrax-cli binary is in your PATH or its location is set in [Workspace Settings](${openUri}).`, ...items);
 
-		if (itemT.title === openInstallerItem.title) {
+		if (itemT.title === launchInstallerItem.title) {
 			const terminal = window.createTerminal({
 				name: 'Install ImandraX',
 				shellPath: '/bin/zsh',
