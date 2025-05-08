@@ -15,7 +15,6 @@
         buildInputs = [
           pkgs.vscode
           pkgs.git
-          pkgs.wget
           pkgs.nodejs_22
         ];
         shellHook = ''
