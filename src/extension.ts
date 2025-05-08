@@ -15,8 +15,7 @@ import {
 	EventEmitter,
 	ExtensionContext,
 	languages,
-	QuickPickItem,
-	QuickPickOptions,
+	MessageItem,
 	Range,
 	StatusBarAlignment,
 	StatusBarItem,
@@ -316,21 +315,15 @@ export async function start() {
 		const openUri = Uri.parse(
 			`command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
 		);
-		window.showErrorMessage(`Could not find ImandraX. Please ensure the imandrax-cli binary is in your PATH or its location is set in the [Workspace Settings](${openUri})`);
 
-		const opts: QuickPickOptions = {
-			title: "Couldn't find ImandraX binary",
-			placeHolder: "Run the ImandraX installer?",
-			ignoreFocusOut: true
-		};
-		const labels: readonly QuickPickItem[] = [{
-			label: 'Yes'
-		}, {
-			label: 'No'
-		}];
+		const items: readonly MessageItem[] = [
+			{ title: "Open installer" },
+			{ title: "Dismiss" }
+		];
 
-		const itemT = await window.showQuickPick(labels, opts, CancellationToken.None);
-		if (itemT.label === 'Yes') {
+		const itemT = await window.showErrorMessage(`Could not find ImandraX. Please install it or ensure the imandrax-cli binary is in your PATH or its location is set in the [Workspace Settings](${openUri})`, ...items);
+
+		if (itemT.title === 'Yes') {
 			const terminal = window.createTerminal({
 				name: 'foo',
 				shellPath: '/bin/zsh',
