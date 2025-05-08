@@ -550,7 +550,7 @@ function visualize_decomp(params) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
- 	<link rel="stylesheet" href="${style_uri}">
+	<link rel="stylesheet" href="${style_uri}">
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
 	<script src="${voronoi_uri}"></script>
 </head>
