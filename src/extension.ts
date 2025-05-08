@@ -35,8 +35,6 @@ import {
 import CP = require('child_process');
 import Path = require('path');
 import Which = require('which');
-import { setHeapSnapshotNearHeapLimit } from 'v8';
-
 
 const MAX_RESTARTS: number = 10;
 
