@@ -329,7 +329,7 @@ export async function start() {
 			label: 'No'
 		}];
 
-		const itemT = await window.showQuickPick(labels, opts, CancellationToken.None);;
+		const itemT = await window.showQuickPick(labels, opts, CancellationToken.None);
 		if (itemT.label === 'Yes') {
 			const terminal = window.createTerminal({
 				name: 'foo',
