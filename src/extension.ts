@@ -320,7 +320,7 @@ export async function start() {
 		const dismissItem = { title: "Dismiss" } as const;
 		const items: readonly MessageItem[] = [openInstallerItem, dismissItem];
 
-		const itemT = await window.showErrorMessage(`Could not find ImandraX. Please install it or ensure the imandrax-cli binary is in your PATH or its location is set in the [Workspace Settings](${openUri})`, ...items);
+		const itemT = await window.showErrorMessage(`Could not find ImandraX. Please install it or ensure the imandrax-cli binary is in your PATH or its location is set in [Workspace Settings](${openUri}).`, ...items);
 
 		if (itemT.title === openInstallerItem.title) {
 			const terminal = window.createTerminal({
