@@ -47,8 +47,9 @@ export function activate(context: ExtensionContext) {
 		}
 	});
 
-	ixcommands.registerCommands(context);
+	lsp_client.activate(context);
 	vfs.activate(context);
+	ixcommands.registerCommands(context);
 
 	const open_goal_state_cmd = "imandrax.open_goal_state";
 	const open_goal_state_handler = async () => {
@@ -58,8 +59,6 @@ export function activate(context: ExtensionContext) {
 		languages.setTextDocumentLanguage(doc, "markdown");
 	};
 	context.subscriptions.push(commands.registerCommand(open_goal_state_cmd, open_goal_state_handler));
-
-	lsp_client.activate(context);
 
 	languages.onDidChangeDiagnostics(diagnostic_listener, undefined, []);
 	window.onDidChangeActiveTextEditor(active_editor_listener, undefined, []);
