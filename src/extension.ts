@@ -330,6 +330,7 @@ export async function start() {
 			terminal.show(true);
 			terminal.sendText('sh -c "$(curl -fsSL https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/scripts/install.sh)"');
 		}
+		// should this handle failures (incl. partial ones), and if so, how?
 	}
 	else {
 		const serverOptions: Executable = { command: bin_abs_path, args: server_args, options: { env: merged_env } };
