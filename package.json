@@ -10,7 +10,7 @@
     "theme": "dark"
   },
   "license": "MIT",
-  "version": "0.0.23",
+  "version": "0.0.24",
   "repository": {
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
