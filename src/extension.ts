@@ -326,7 +326,7 @@ export async function start() {
 				name: 'Install ImandraX'
 			});
 			terminal.show(true);
-			terminal.sendText('sh -c "$(curl -fsSL https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/scripts/install.sh)"');
+			terminal.sendText('sh -c "$(curl -fsSL https://imandra.ai/get-imandrax.sh)"');
 		}
 		// should this handle failures (incl. partial ones), and if so, how?
 	}
