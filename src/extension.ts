@@ -324,7 +324,7 @@ export async function start() {
 		if (itemT.title === launchInstallerItem.title) {
 			const terminal = window.createTerminal({
 				name: 'Install ImandraX',
-				shellPath: '/bin/zsh',
+				shellPath: config.terminal.binary,
 			});
 			terminal.show(true);
 			terminal.sendText('sh -c "$(curl -fsSL https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/scripts/install.sh)"');
