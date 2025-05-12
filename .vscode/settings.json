@@ -1,10 +1,10 @@
 {
-	"typescript.tsc.autoDetect": "off",
-	"typescript.preferences.quoteStyle": "single",
-	"editor.codeActionsOnSave": {
-		"source.fixAll.eslint": "explicit"
-	},
-	"editor.tabSize": 4,
-	"editor.insertSpaces": false,
-	"editor.detectIndentation": false
+  "typescript.tsc.autoDetect": "off",
+  "typescript.preferences.quoteStyle": "single",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false
 }
