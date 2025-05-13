@@ -16,9 +16,11 @@ import {
   ExtensionContext,
   languages,
   MessageItem,
+  ProgressLocation,
   Range,
   StatusBarAlignment,
   StatusBarItem,
+  TerminalExitReason,
   TerminalOptions,
   TextDocument,
   TextDocumentContentProvider,
@@ -299,6 +301,27 @@ async function req_file_progress(uri: Uri) {
     }, _ => { /* Fine, we'll get it the next time. */ });
 }
 
+async function maybeRunInstaller(itemT: MessageItem, title: string): Promise<void> {
+  if (itemT.title === title) {
+    return new Promise<void>((resolve, reject) => {
+      const term = window.createTerminal({
+        name: 'Install ImandraX',
+        hideFromUser: true,
+      });
+
+      term.sendText('yes \'\' | sh -c "$(curl -fsSL https://imandra.ai/get-imandrax.sh)"; exit');
+
+      const sub = window.onDidCloseTerminal(async t => {
+        const code = t.exitStatus?.code ?? -1;
+        code === 0
+          ? (resolve(), await window.showInformationMessage("ImandraX installed"))
+          : (reject(), await window.showErrorMessage(`ImandraX install failed with ${code}`));
+        sub.dispose();
+      });
+    });
+  }
+}
+
 export async function start() {
   // Start language server
   const config = workspace.getConfiguration("imandrax");
@@ -321,13 +344,12 @@ export async function start() {
 
     const itemT = await window.showErrorMessage(`Could not find ImandraX. Please install it or ensure the imandrax-cli binary is in your PATH or its location is set in [Workspace Settings](${openUri}).`, ...items);
 
-    if (itemT.title === launchInstallerItem.title) {
-      const terminal = window.createTerminal({
-        name: 'Install ImandraX'
-      });
-      terminal.show(true);
-      terminal.sendText('sh -c "$(curl -fsSL https://imandra.ai/get-imandrax.sh)"');
-    }
+    await window.withProgress(
+      {
+        location: ProgressLocation.Notification,
+        title: 'Installing ImandraX'
+      },
+      () => maybeRunInstaller(itemT, launchInstallerItem.title));
   }
   else {
     const serverOptions: Executable = { command: bin_abs_path, args: server_args, options: { env: merged_env } };
