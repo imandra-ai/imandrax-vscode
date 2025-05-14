@@ -38,11 +38,13 @@ export async function maybeRunInstaller(itemT: MessageItem, title: string): Prom
 
         });
 
+        const url = 'https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/s/support-linux/scripts/install.sh';
+
         if (onWindows) {
-          term.sendText('wsl sh -c "curl -fsSL https://imandra.ai/get-imandrax.sh | sh"; exit');
+          term.sendText(`wsl sh -c "yes '' | sh -c \`$(curl -fsSL ${url})";`);
         }
         else {
-          term.sendText('yes \'\' | sh -c "$(curl -fsSL https://imandra.ai/get-imandrax.sh)"; exit');
+          term.sendText(`yes '' | sh -c "$(curl -fsSL ${url})"; exit`);
         }
 
         const sub = window.onDidCloseTerminal(async t => {
