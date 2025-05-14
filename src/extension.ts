@@ -1,11 +1,4 @@
 import {
-  CancellationToken,
-  Executable,
-  LanguageClient,
-  LanguageClientOptions,
-} from "vscode-languageclient/node";
-
-import {
   commands,
   DecorationOptions,
   DecorationRenderOptions,
@@ -20,7 +13,6 @@ import {
   Range,
   StatusBarAlignment,
   StatusBarItem,
-  TerminalExitReason,
   TerminalOptions,
   TextDocument,
   TextDocumentContentProvider,
@@ -33,9 +25,16 @@ import {
   workspace
 } from "vscode";
 
+import {
+  Executable,
+  LanguageClient,
+  LanguageClientOptions,
+} from "vscode-languageclient/node";
+
 import CP = require('child_process');
 import Path = require('path');
 import Which = require('which');
+import { maybeRunInstaller } from './installer';
 
 const MAX_RESTARTS: number = 10;
 
@@ -299,31 +298,6 @@ async function req_file_progress(uri: Uri) {
         }
       }
     }, _ => { /* Fine, we'll get it the next time. */ });
-}
-
-// looks like getting this to work on wsl will be a chore
-// docs here: https://code.visualstudio.com/docs/remote/wsl
-// i guess that means we'll need to require the wsl extension for imandrax
-
-async function maybeRunInstaller(itemT: MessageItem, title: string): Promise<void> {
-  if (itemT.title === title) {
-    return new Promise<void>((resolve, reject) => {
-      const term = window.createTerminal({
-        name: 'Install ImandraX',
-        hideFromUser: false,
-      });
-
-      term.sendText('yes \'\' | sh -c "$(curl -fsSL https://imandra.ai/get-imandrax.sh)"; exit');
-
-      const sub = window.onDidCloseTerminal(async t => {
-        const code = t.exitStatus?.code ?? -1;
-        code === 0
-          ? (resolve(), await window.showInformationMessage("ImandraX installed"))
-          : (reject(), await window.showErrorMessage(`ImandraX install failed with ${code}`));
-        sub.dispose();
-      });
-    });
-  }
 }
 
 export async function start() {
