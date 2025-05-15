@@ -33,7 +33,8 @@ import {
 
 import CP = require('child_process');
 import Path = require('path');
-import Which = require('which');
+
+import { get_env } from './environment';
 import { maybeRunInstaller } from './installer';
 
 const MAX_RESTARTS: number = 10;
@@ -302,16 +303,8 @@ async function req_file_progress(uri: Uri) {
 
 export async function start() {
   // Start language server
-  const config = workspace.getConfiguration("imandrax");
-  const binary = config.lsp.binary;
-  const server_args = config.lsp.arguments;
-  const server_env = config.lsp.environment;
-
-  const system_env = process.env;
-  const merged_env = Object.assign(system_env, server_env);
-
-  const bin_abs_path = Which.sync(binary, { nothrow: true });
-  if (!bin_abs_path) {
+  const env = get_env();
+  if (!env.bin_abs_path) {
     const args = { revealSetting: { key: 'imandrax.lsp.binary', edit: true } };
     const openUri = Uri.parse(
       `command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
@@ -330,7 +323,7 @@ export async function start() {
       () => maybeRunInstaller(itemT, launchInstallerItem.title));
   }
   else {
-    const serverOptions: Executable = { command: bin_abs_path, args: server_args, options: { env: merged_env } };
+    const serverOptions: Executable = { command: env.bin_abs_path, args: env.server_args, options: { env: env.merged_env } };
 
     // Options to control the language client
     const clientOptions: LanguageClientOptions = {
