@@ -5,12 +5,12 @@ import {
   WorkspaceConfiguration
 } from "vscode";
 
-export interface PlatformConfiguration {
+ interface PlatformConfiguration {
   onWindows: boolean;
   inRemoteWsl: boolean;
 }
 
-export interface ImandraXLspConfiguration {
+ interface ImandraXLspConfiguration {
   config: WorkspaceConfiguration,
   binary: string,
   server_args,
@@ -21,7 +21,7 @@ export interface ImandraXLspConfiguration {
   platform_configuration: PlatformConfiguration
 }
 
-export type BinAbsPath =
+ type BinAbsPath =
   | {
     status: "foundPath"
     path: string
