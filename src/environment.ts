@@ -33,12 +33,9 @@ function get_bin_abs_path(platform_configuration: PlatformConfiguration, binary)
       name: 'foo',
       hideFromUser: false
     });
-    // https://github.com/microsoft/vscode-remote-release/issues/6096
-    // aaaaaaaaa
     const out =
       (new TextDecoder()).decode(
-        cp.execSync(`Get-ChildItem -Path "\\\\wsl.localhost\\Ubuntu\\home" -Recurse -Filter 'imandrax-cli' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName`,
-          { shell: "powershell.exe" }));
+        cp.execSync(`wsl --shell-type login which ${binary}`));
     console.log(out);
     term.show();
     return binary;
