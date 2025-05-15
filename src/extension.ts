@@ -304,6 +304,7 @@ async function req_file_progress(uri: Uri) {
 export async function start() {
   // Start language server
   const env = get_env();
+  
   if (!env.bin_abs_path) {
     const args = { revealSetting: { key: 'imandrax.lsp.binary', edit: true } };
     const openUri = Uri.parse(
@@ -320,7 +321,7 @@ export async function start() {
         location: ProgressLocation.Notification,
         title: 'Installing ImandraX'
       },
-      () => maybeRunInstaller(itemT, launchInstallerItem.title));
+      () => maybeRunInstaller(itemT, launchInstallerItem.title, env.platform_configuration));
   }
   else {
     const serverOptions: Executable = { command: env.bin_abs_path, args: env.server_args, options: { env: env.merged_env } };
