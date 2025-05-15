@@ -324,7 +324,7 @@ export async function start() {
       () => runInstallerForLinux(itemT, launchInstallerItem.title));
   }
   else if (env.bin_abs_path.status === "onWindows") {
-    window.showErrorMessage(`You can't run ImandraX natively on Windows. Please start a remote VSCode session against WSL.`);
+    window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL.`);
   }
   else {
     const serverOptions: Executable = { command: env.bin_abs_path.path, args: env.server_args, options: { env: env.merged_env } };
