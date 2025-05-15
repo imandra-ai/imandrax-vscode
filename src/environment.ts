@@ -33,10 +33,13 @@ function get_bin_abs_path(platform_configuration: PlatformConfiguration, binary)
       name: 'foo',
       hideFromUser: false
     });
-    term.sendText(`Get-ChildItem -Path "\\\\wsl.localhost\\Ubuntu\\home" -Recurse -Filter 'imandrax-cli' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName`);
-
+    const out =
+      (new TextDecoder()).decode(
+        cp.execSync(`Get-ChildItem -Path "\\\\wsl.localhost\\Ubuntu\\home" -Recurse -Filter 'imandrax-cli' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName`,
+          { shell: "powershell.exe" }));
+    console.log(out);
     term.show();
-    throw "todo";
+    return binary;
   }
 }
 
