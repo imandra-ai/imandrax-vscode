@@ -305,7 +305,7 @@ export async function start() {
   // Start language server
   const env = get_env();
 
-  if (env.bin_abs_path.status === "missingPath") {
+  if (env.binAbsPath.status === "missingPath") {
     const args = { revealSetting: { key: "imandrax.lsp.binary", edit: true } };
     const openUri = Uri.parse(
       `command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
@@ -323,11 +323,11 @@ export async function start() {
       },
       () => runInstallerForLinux(itemT, launchInstallerItem.title));
   }
-  else if (env.bin_abs_path.status === "onWindows") {
+  else if (env.binAbsPath.status === "onWindows") {
     window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL.`);
   }
   else {
-    const serverOptions: Executable = { command: env.bin_abs_path.path, args: env.serverArgs, options: { env: env.mergedEnv } };
+    const serverOptions: Executable = { command: env.binAbsPath.path, args: env.serverArgs, options: { env: env.mergedEnv } };
 
     // Options to control the language client
     const clientOptions: LanguageClientOptions = {
