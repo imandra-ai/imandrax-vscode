@@ -1,27 +1,27 @@
-import Which = require('which');
+import Which = require("which");
 import {
   env,
   workspace,
   WorkspaceConfiguration
 } from "vscode";
 
- interface PlatformConfiguration {
+interface PlatformConfiguration {
   onWindows: boolean;
   inRemoteWsl: boolean;
 }
 
- interface ImandraXLspConfiguration {
+interface ImandraXLspConfiguration {
   config: WorkspaceConfiguration,
   binary: string,
-  server_args,
-  server_env,
-  system_env: NodeJS.ProcessEnv,
-  merged_env,
-  bin_abs_path: BinAbsPath,
-  platform_configuration: PlatformConfiguration
+  serverArgs,
+  serverEnv,
+  systemEnv: NodeJS.ProcessEnv,
+  mergedEnv,
+  binAbsPath: BinAbsPath,
+  platformConfiguration: PlatformConfiguration
 }
 
- type BinAbsPath =
+type BinAbsPath =
   | {
     status: "foundPath"
     path: string
@@ -49,8 +49,8 @@ function get_bin_abs_path(platform_configuration: PlatformConfiguration, binary:
 }
 
 function get_platform_configuration(): PlatformConfiguration {
-  const onWindows = process.platform === 'win32';
-  const inRemoteWsl = env.remoteName === 'wsl';
+  const onWindows = process.platform === "win32";
+  const inRemoteWsl = env.remoteName === "wsl";
 
   return { onWindows, inRemoteWsl };
 }
@@ -58,15 +58,15 @@ function get_platform_configuration(): PlatformConfiguration {
 export function get_env(): ImandraXLspConfiguration {
   const config = workspace.getConfiguration("imandrax");
   const binary = config.lsp.binary;
-  const server_args = config.lsp.arguments;
-  const server_env = config.lsp.environment;
+  const serverArgs = config.lsp.arguments;
+  const serverEnv = config.lsp.environment;
 
-  const system_env = process.env;
-  const merged_env = Object.assign(system_env, server_env);
+  const systemEnv = process.env;
+  const mergedEnv = Object.assign(systemEnv, serverEnv);
 
-  const platform_configuration = get_platform_configuration();
+  const platformConfiguration = get_platform_configuration();
 
-  const bin_abs_path = get_bin_abs_path(platform_configuration, binary);
+  const binAbsPath = get_bin_abs_path(platformConfiguration, binary);
 
-  return { config, binary, server_args, server_env, system_env, merged_env, bin_abs_path, platform_configuration };
+  return { config, binary, serverArgs, serverEnv, systemEnv, mergedEnv, binAbsPath, platformConfiguration };
 }

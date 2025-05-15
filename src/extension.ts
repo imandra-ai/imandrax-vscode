@@ -34,8 +34,8 @@ import {
 import CP = require('child_process');
 import Path = require('path');
 
-import { get_env } from './environment';
-import { runInstallerForLinux } from './installer';
+import { get_env } from "./environment";
+import { runInstallerForLinux } from "./installer";
 
 const MAX_RESTARTS: number = 10;
 
@@ -306,7 +306,7 @@ export async function start() {
   const env = get_env();
 
   if (env.bin_abs_path.status === "missingPath") {
-    const args = { revealSetting: { key: 'imandrax.lsp.binary', edit: true } };
+    const args = { revealSetting: { key: "imandrax.lsp.binary", edit: true } };
     const openUri = Uri.parse(
       `command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
     );
@@ -319,7 +319,7 @@ export async function start() {
     await window.withProgress(
       {
         location: ProgressLocation.Notification,
-        title: 'Installing ImandraX'
+        title: "Installing ImandraX"
       },
       () => runInstallerForLinux(itemT, launchInstallerItem.title));
   }
@@ -327,7 +327,7 @@ export async function start() {
     window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL.`);
   }
   else {
-    const serverOptions: Executable = { command: env.bin_abs_path.path, args: env.server_args, options: { env: env.merged_env } };
+    const serverOptions: Executable = { command: env.bin_abs_path.path, args: env.serverArgs, options: { env: env.mergedEnv } };
 
     // Options to control the language client
     const clientOptions: LanguageClientOptions = {
