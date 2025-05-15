@@ -2,6 +2,7 @@ import * as cp from 'child_process';
 import Which = require('which');
 import {
   env,
+  window,
   workspace,
   WorkspaceConfiguration
 } from "vscode";
@@ -21,6 +22,22 @@ export interface env {
   merged_env,
   bin_abs_path: string
   platform_configuration: PlatformConfiguration
+}
+
+function get_bin_abs_path(platform_configuration: PlatformConfiguration, binary): string {
+  if ((!platform_configuration.onWindows)
+    || (platform_configuration.onWindows && platform_configuration.inRemoteWsl)) {
+    return Which.sync(binary, { nothrow: true });
+  } else {
+    const term = window.createTerminal({
+      name: 'foo',
+      hideFromUser: false
+    });
+    term.sendText(`Get-ChildItem -Path "\\\\wsl.localhost\\Ubuntu\\home" -Recurse -Filter 'imandrax-cli' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName`);
+
+    term.show();
+    throw "todo";
+  }
 }
 
 function get_platform_configuration(): PlatformConfiguration {
@@ -53,9 +70,9 @@ export function get_env(): env {
   const system_env = process.env;
   const merged_env = Object.assign(system_env, server_env);
 
-  const bin_abs_path = Which.sync(binary, { nothrow: true });
-
   const platform_configuration = get_platform_configuration();
+
+  const bin_abs_path = get_bin_abs_path(platform_configuration, binary);
 
   return { config, binary, server_args, server_env, system_env, merged_env, bin_abs_path, platform_configuration };
 }
