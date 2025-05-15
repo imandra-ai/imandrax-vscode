@@ -1,8 +1,6 @@
-import * as cp from 'child_process';
 import Which = require('which');
 import {
   env,
-  window,
   workspace,
   WorkspaceConfiguration
 } from "vscode";
@@ -10,51 +8,54 @@ import {
 export interface PlatformConfiguration {
   onWindows: boolean;
   inRemoteWsl: boolean;
-  hasWsl: boolean;
 }
 
-export interface env {
+export interface ImandraXLspConfiguration {
   config: WorkspaceConfiguration,
-  binary,
+  binary: string,
   server_args,
   server_env,
   system_env: NodeJS.ProcessEnv,
   merged_env,
-  bin_abs_path: string
+  bin_abs_path: BinAbsPath,
   platform_configuration: PlatformConfiguration
 }
 
-function get_bin_abs_path(platform_configuration: PlatformConfiguration, binary): string {
+export type BinAbsPath =
+  | {
+    status: "foundPath"
+    path: string
+  }
+  | {
+    status: "onWindows"
+  }
+  | {
+    status: "missingPath"
+  }
+
+function get_bin_abs_path(platform_configuration: PlatformConfiguration, binary: string): BinAbsPath {
   if ((!platform_configuration.onWindows)
     || (platform_configuration.onWindows && platform_configuration.inRemoteWsl)) {
-    return Which.sync(binary, { nothrow: true });
+    const path = Which.sync(binary, { nothrow: true });
+    if (path != "" && path != null) {
+      return { status: "foundPath", path };
+    }
+    else {
+      return { status: "missingPath" };
+    }
   } else {
-    throw "we can't support this at the moment";
+    return { status: "onWindows" };
   }
 }
 
 function get_platform_configuration(): PlatformConfiguration {
-
-  // are we on windows?
   const onWindows = process.platform === 'win32';
-
-  // is the extension host running in wsl?
   const inRemoteWsl = env.remoteName === 'wsl';
 
-  // does windows have wsl?
-
-  const hasWsl = (() => {
-    if (!onWindows) { return false; }
-    try {
-      cp.execSync('wsl.exe --list --quiet', { stdio: 'ignore' });
-      return true;
-    }
-    catch { return false; }
-  })();
-  return { onWindows, inRemoteWsl, hasWsl };
+  return { onWindows, inRemoteWsl };
 }
 
-export function get_env(): env {
+export function get_env(): ImandraXLspConfiguration {
   const config = workspace.getConfiguration("imandrax");
   const binary = config.lsp.binary;
   const server_args = config.lsp.arguments;
