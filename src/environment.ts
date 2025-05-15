@@ -11,14 +11,9 @@ interface PlatformConfiguration {
 }
 
 interface ImandraXLspConfiguration {
-  config: WorkspaceConfiguration,
-  binary: string,
   serverArgs,
-  serverEnv,
-  systemEnv: NodeJS.ProcessEnv,
   mergedEnv,
   binAbsPath: BinAbsPath,
-  platformConfiguration: PlatformConfiguration
 }
 
 type BinAbsPath =
@@ -68,5 +63,5 @@ export function getEnv(): ImandraXLspConfiguration {
 
   const binAbsPath = getBinAbsPath(platformConfiguration, binary);
 
-  return { config, binary, serverArgs, serverEnv, systemEnv, mergedEnv, binAbsPath, platformConfiguration };
+  return { serverArgs, mergedEnv, binAbsPath };
 }
