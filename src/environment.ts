@@ -33,7 +33,7 @@ type BinAbsPath =
     status: "missingPath"
   }
 
-function get_bin_abs_path(platform_configuration: PlatformConfiguration, binary: string): BinAbsPath {
+function getBinAbsPath(platform_configuration: PlatformConfiguration, binary: string): BinAbsPath {
   if ((!platform_configuration.onWindows)
     || (platform_configuration.onWindows && platform_configuration.inRemoteWsl)) {
     const path = Which.sync(binary, { nothrow: true });
@@ -48,14 +48,14 @@ function get_bin_abs_path(platform_configuration: PlatformConfiguration, binary:
   }
 }
 
-function get_platform_configuration(): PlatformConfiguration {
+function getPlatformConfiguration(): PlatformConfiguration {
   const onWindows = process.platform === "win32";
   const inRemoteWsl = env.remoteName === "wsl";
 
   return { onWindows, inRemoteWsl };
 }
 
-export function get_env(): ImandraXLspConfiguration {
+export function getEnv(): ImandraXLspConfiguration {
   const config = workspace.getConfiguration("imandrax");
   const binary = config.lsp.binary;
   const serverArgs = config.lsp.arguments;
@@ -64,9 +64,9 @@ export function get_env(): ImandraXLspConfiguration {
   const systemEnv = process.env;
   const mergedEnv = Object.assign(systemEnv, serverEnv);
 
-  const platformConfiguration = get_platform_configuration();
+  const platformConfiguration = getPlatformConfiguration();
 
-  const binAbsPath = get_bin_abs_path(platformConfiguration, binary);
+  const binAbsPath = getBinAbsPath(platformConfiguration, binary);
 
   return { config, binary, serverArgs, serverEnv, systemEnv, mergedEnv, binAbsPath, platformConfiguration };
 }

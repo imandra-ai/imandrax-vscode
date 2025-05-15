@@ -34,7 +34,7 @@ import {
 import CP = require('child_process');
 import Path = require('path');
 
-import { get_env } from "./environment";
+import { getEnv } from "./environment";
 import { runInstallerForLinux } from "./installer";
 
 const MAX_RESTARTS: number = 10;
@@ -303,7 +303,7 @@ async function req_file_progress(uri: Uri) {
 
 export async function start() {
   // Start language server
-  const env = get_env();
+  const env = getEnv();
 
   if (env.binAbsPath.status === "missingPath") {
     const args = { revealSetting: { key: "imandrax.lsp.binary", edit: true } };
