@@ -1,4 +1,4 @@
-import Which = require("which");
+import * as Which from "which";
 import {
   env,
   workspace,
