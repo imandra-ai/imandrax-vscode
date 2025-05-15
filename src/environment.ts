@@ -34,8 +34,8 @@ function get_bin_abs_path(platform_configuration: PlatformConfiguration, binary)
       hideFromUser: false
     });
     const out =
-      "wsl " + (new TextDecoder()).decode(
-        cp.execSync(`wsl --shell-type login which ${binary}`));
+      '"wsl ' + (new TextDecoder()).decode(
+        cp.execSync(`wsl --shell-type login which ${binary}`)).trim() + '"';
     console.log(out);
     term.show();
     return out;

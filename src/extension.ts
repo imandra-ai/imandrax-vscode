@@ -324,6 +324,8 @@ export async function start() {
       () => maybeRunInstaller(itemT, launchInstallerItem.title, env.platform_configuration));
   }
   else {
+    env.bin_abs_path = 'wsl';
+    env.server_args=['/home/seb/.local/bin/imandrax-cli', 'lsp', '--check-on-save=true', '--unicode=true'];
     const serverOptions: Executable = { command: env.bin_abs_path, args: env.server_args, options: { env: env.merged_env } };
 
     // Options to control the language client
