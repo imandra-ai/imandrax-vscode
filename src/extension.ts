@@ -1,3 +1,5 @@
+import  * as installer from "./installer";
+
 import {
   commands,
   DecorationOptions,
@@ -35,7 +37,6 @@ import CP = require('child_process');
 import Path = require('path');
 
 import { getEnv } from "./environment";
-import { runInstallerForLinux } from "./installer";
 
 const MAX_RESTARTS: number = 10;
 
@@ -311,17 +312,7 @@ export async function start() {
       `command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
     );
 
-    const launchInstallerItem = { title: "Launch installer" } as const;
-    const items: readonly MessageItem[] = [launchInstallerItem];
-
-    const itemT = await window.showErrorMessage(`Could not find ImandraX. Please install it or ensure the imandrax-cli binary is in your PATH or its location is set in [Workspace Settings](${openUri}).`, ...items);
-
-    await window.withProgress(
-      {
-        location: ProgressLocation.Notification,
-        title: "Installing ImandraX"
-      },
-      () => runInstallerForLinux(itemT, launchInstallerItem.title));
+    await installer.promptToInstall(openUri);
   }
   else if (env.binAbsPath.status === "onWindows") {
     window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL.`);
