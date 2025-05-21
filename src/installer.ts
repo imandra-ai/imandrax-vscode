@@ -14,18 +14,18 @@ async function getApiKeyInput(apiKey: string | null) {
 }
 
 async function promptForApiKey() {
-  const options: QuickPickOptions = { title: 'Choose how to configure your API key' };
+  const options: QuickPickOptions = { title: 'Choose how to configure your API key', ignoreFocusOut: true };
 
   const existingApiKey: string | null = await ApiKey.get();
 
   // items
   const useExisting = { label: "Use already configured API key" };
-  const goToIu = { label: 'Go to Imandra Universe to copy my API key' };
-  const pasteNow = { label: "I've already copied my API key" };
+  const goToIu = { label: 'Go to Imandra Universe and obtain/copy an API key' };
+  const pasteNow = { label: "I've already copied my API key, let me paste it in" };
   const skip = { label: "Skip configuring API key for now" };
 
   // only show useExisting if one actually exists
-  const makeItems = (others: QuickPickItem[]) => (existingApiKey ? [useExisting] : [].concat(others));
+  const makeItems = (others: QuickPickItem[]) => (existingApiKey ? [useExisting] : []).concat(others);
 
   const items: readonly QuickPickItem[] = makeItems([goToIu, pasteNow, skip]);
 
@@ -80,8 +80,6 @@ async function runInstallerForUnix(itemT: MessageItem, title: string): Promise<v
           : (reject(code));
         sub.dispose();
       });
-
-      term.show();
     });
   }
 }
