@@ -66,10 +66,10 @@ async function runInstallerForUnix(itemT: MessageItem, title: string): Promise<v
     return new Promise<void>((resolve, reject) => {
       const term = window.createTerminal({
         name: "Install ImandraX",
-        hideFromUser: false,
+        hideFromUser: true,
       });
 
-      const url = "https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/s/support-linux/scripts/install.sh";
+      const url = "https://imandra.ai/get-imandrax.sh";
 
       term.sendText(`yes '' | sh -c "$(curl -fsSL ${url})"; exit`);
 
