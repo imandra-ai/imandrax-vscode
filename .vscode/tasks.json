@@ -23,18 +23,6 @@
 			"problemMatcher": [],
 			"label": "npm: esbuild",
 			"detail": "npm run esbuild-base -- --sourcemap"
-		},
-		  {
-            "type": "typescript",
-			"label": "compile imlformat",
-            "tsconfig": "imlformat/tsconfig.json",
-            "problemMatcher": [
-                "$tsc"
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        }
+		}
 	]
 }

@@ -6,8 +6,7 @@
   "version": "0.0.1",
   "dependencies": {
     "prettier": "^3.5.0",
-    "ts-node": "*",
-    "tsx": "^4.19.3",
+    "tsx": "^4.19.4",
     "typescript": "next"
   }
 }
