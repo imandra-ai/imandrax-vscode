@@ -3,8 +3,7 @@ import { commands, env, MessageItem, ProgressLocation, QuickPickItem, QuickPickO
 
 async function getApiKeyInput() {
   const result = await window.showInputBox({
-    title: 'Enter your API key',
-    prompt: 'from universe.imandra.ai/user/api-keys',
+    placeHolder: 'Paste your API key here',
     ignoreFocusOut: true
   });
   window.showInformationMessage(`Got: ${result}`);
