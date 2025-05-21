@@ -1,9 +1,4 @@
-import {
-  CancellationToken,
-  Executable,
-  LanguageClient,
-  LanguageClientOptions,
-} from "vscode-languageclient/node";
+import  * as installer from "./installer";
 
 import {
   commands,
@@ -20,7 +15,6 @@ import {
   Range,
   StatusBarAlignment,
   StatusBarItem,
-  TerminalExitReason,
   TerminalOptions,
   TextDocument,
   TextDocumentContentProvider,
@@ -33,9 +27,16 @@ import {
   workspace
 } from "vscode";
 
+import {
+  Executable,
+  LanguageClient,
+  LanguageClientOptions,
+} from "vscode-languageclient/node";
+
 import CP = require('child_process');
 import Path = require('path');
-import Which = require('which');
+
+import { getEnv } from "./environment";
 
 const MAX_RESTARTS: number = 10;
 
@@ -301,58 +302,23 @@ async function req_file_progress(uri: Uri) {
     }, _ => { /* Fine, we'll get it the next time. */ });
 }
 
-async function maybeRunInstaller(itemT: MessageItem, title: string): Promise<void> {
-  if (itemT.title === title) {
-    return new Promise<void>((resolve, reject) => {
-      const term = window.createTerminal({
-        name: 'Install ImandraX',
-        hideFromUser: true,
-      });
-
-      term.sendText('yes \'\' | sh -c "$(curl -fsSL https://imandra.ai/get-imandrax.sh)"; exit');
-
-      const sub = window.onDidCloseTerminal(async t => {
-        const code = t.exitStatus?.code ?? -1;
-        code === 0
-          ? (resolve(), await window.showInformationMessage("ImandraX installed"))
-          : (reject(), await window.showErrorMessage(`ImandraX install failed with ${code}`));
-        sub.dispose();
-      });
-    });
-  }
-}
-
 export async function start() {
   // Start language server
-  const config = workspace.getConfiguration("imandrax");
-  const binary = config.lsp.binary;
-  const server_args = config.lsp.arguments;
-  const server_env = config.lsp.environment;
+  const env = getEnv();
 
-  const system_env = process.env;
-  const merged_env = Object.assign(system_env, server_env);
-
-  const bin_abs_path = Which.sync(binary, { nothrow: true });
-  if (!bin_abs_path) {
-    const args = { revealSetting: { key: 'imandrax.lsp.binary', edit: true } };
+  if (env.binAbsPath.status === "missingPath") {
+    const args = { revealSetting: { key: "imandrax.lsp.binary", edit: true } };
     const openUri = Uri.parse(
       `command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
     );
 
-    const launchInstallerItem = { title: "Launch installer" } as const;
-    const items: readonly MessageItem[] = [launchInstallerItem];
-
-    const itemT = await window.showErrorMessage(`Could not find ImandraX. Please install it or ensure the imandrax-cli binary is in your PATH or its location is set in [Workspace Settings](${openUri}).`, ...items);
-
-    await window.withProgress(
-      {
-        location: ProgressLocation.Notification,
-        title: 'Installing ImandraX'
-      },
-      () => maybeRunInstaller(itemT, launchInstallerItem.title));
+    await installer.promptToInstall(openUri);
+  }
+  else if (env.binAbsPath.status === "onWindows") {
+    window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL.`);
   }
   else {
-    const serverOptions: Executable = { command: bin_abs_path, args: server_args, options: { env: merged_env } };
+    const serverOptions: Executable = { command: env.binAbsPath.path, args: env.serverArgs, options: { env: env.mergedEnv } };
 
     // Options to control the language client
     const clientOptions: LanguageClientOptions = {
