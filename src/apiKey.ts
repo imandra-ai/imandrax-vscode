@@ -1,8 +1,8 @@
 import { Uri, workspace } from 'vscode';
 import { homedir } from 'os';
 
-// copied from
-// https://github.com/imandra-ai/code-logician-vscode/blob/008f9ddcef0b9dd900bf742109007cc8cd9ff614/src/infrastructure/langgraph.ts#L37
+const CONFIG_DIR = ['.config', 'imandrax'] as const;
+const API_KEY_FILE = 'api_key';
 
 const readOptionalFile = async (file: Uri) => {
   try {
@@ -13,10 +13,22 @@ const readOptionalFile = async (file: Uri) => {
   }
 };
 
+function getApiKeyFileUri(): Uri {
+  const home = Uri.file(homedir());
+  const configDir = Uri.joinPath(home, ...CONFIG_DIR);
+  return Uri.joinPath(configDir, API_KEY_FILE);
+}
+
 export async function get(): Promise<string | null> {
   const userHome = Uri.file(homedir());
   return (process.env.IMANDRA_API_KEY ||
     (await readOptionalFile(
-      Uri.joinPath(userHome, ".config", "imandrax", "api_key")
+      getApiKeyFileUri()
     )))?.trim();
+}
+
+export async function put(key: string): Promise<void> {
+  const file = getApiKeyFileUri();
+  await workspace.fs.createDirectory(file.with({ path: file.path.replace(/\/[^/]+$/, '') })); // parent dir
+  await workspace.fs.writeFile(file, Buffer.from(key, 'utf8')); // overwrite OK
 }

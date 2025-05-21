@@ -6,7 +6,13 @@ async function getApiKeyInput() {
     placeHolder: 'Paste your API key here',
     ignoreFocusOut: true
   });
-  window.showInformationMessage(`Got: ${result}`);
+
+  if (!result?.trim()) {
+    return;
+  }
+
+  await ApiKey.put(result.trim());
+  window.showInformationMessage('API key saved to disk.');
 }
 
 async function promptForApiKey() {
