@@ -1,14 +1,11 @@
 import * as ApiKey from './apiKey';
 import { commands, env, MessageItem, ProgressLocation, QuickPickItem, QuickPickOptions, Uri, window, workspace } from "vscode";
 
-async function getApiKeyInput(apiKey: string | null) {
+async function getApiKeyInput() {
   const result = await window.showInputBox({
     title: 'Enter your API key',
     prompt: 'from universe.imandra.ai/user/api-keys',
-    ignoreFocusOut: true,
-    ...(apiKey
-      ? { value: apiKey }
-      : { placeHolder: 'foo' })
+    ignoreFocusOut: true
   });
   window.showInformationMessage(`Got: ${result}`);
 }
@@ -34,10 +31,10 @@ async function promptForApiKey() {
   switch (itemT.label) {
     case goToIu.label:
       env.openExternal(await env.asExternalUri(Uri.parse("https://universe.imandra.ai/user/api-keys")));
-      getApiKeyInput(existingApiKey);
+      getApiKeyInput();
       break;
     case pasteNow.label:
-      getApiKeyInput(existingApiKey);
+      getApiKeyInput();
       break;
     case skip.label:
       break;
