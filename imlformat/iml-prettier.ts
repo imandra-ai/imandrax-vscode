@@ -25,8 +25,10 @@ export const parsers = {
 	'iml-parse': {
 		parse: (text: string, options: Options): Tree => {
 			try {
+				let jdefs = iml2json.parse(text);
+				// console.log(jdefs);
 				let x: Tree = {
-					top_defs: JSON.parse(iml2json.parse(text)),
+					top_defs: JSON.parse(jdefs),
 					comments: ""
 				};
 				// console.log(x.top_defs);
@@ -86,6 +88,13 @@ function get_source(start, end, options: Options): string {
 	let from = start.loc_start.pos_cnum;
 	let to = end.loc_end.pos_cnum;
 	return (options.originalText as string).slice(from, to);
+}
+
+function ifnonempty(x, d: Doc): Doc {
+	if (d instanceof Array && d.length == 0)
+		return d;
+	else
+		return [x, d];
 }
 
 function print_longident(node: AST, options: Options): Doc {
@@ -155,7 +164,7 @@ function print_payload(node: AST, options: Options): Doc {
 	switch (constructor) {
 		case "PStr": {
 			// | PStr of structure
-			return print_structure(args[0], options);
+			return fill([print_structure(args[0], options)]);
 		}
 		case "PSig":
 			// | PSig of signature  (** [: SIG] in an attribute or an extension point *)
@@ -278,12 +287,20 @@ function print_string_loc(node: AST, options: Options): Doc {
 	return node.txt;
 }
 
+function print_attributes(node: AST, level: number, options: Options): Doc {
+	return join(line, node.map(x => print_attribute(x, level, options)));
+}
+
 function print_core_type_desc(node: AST, options: Options): Doc {
 	let constructor = node[0];
 	let args = node.slice(1);
 	switch (constructor) {
-		// | Ptyp_any  (** [_] *)
-		// | Ptyp_var of string  (** A type variable such as ['a] *)
+		case "Ptyp_any":
+			// | Ptyp_any  (** [_] *)
+			return "_";
+		case "Ptyp_var":
+			// | Ptyp_var of string  (** A type variable such as ['a] *)
+			return ["'", args[0]];
 		// | Ptyp_arrow of arg_label * core_type * core_type
 		//     (** [Ptyp_arrow(lbl, T1, T2)] represents:
 		//           - [T1 -> T2]    when [lbl] is
@@ -452,7 +469,7 @@ function print_pattern_desc(node: AST, options: Options): Doc {
 			return g([print_pattern(args[0], options), line, "|", line, print_pattern(args[1], options)]);
 		case "Ppat_constraint":
 			// | Ppat_constraint of pattern * core_type  (** Pattern [(P : T)] *)
-			return g([print_pattern(args[0], options), line, ":", line, print_core_type(args[1], options)]);
+			return g(["(", print_pattern(args[0], options), line, ":", line, print_core_type(args[1], options), ")"]);
 		// | Ppat_type of Longident.t loc  (** Pattern [#tconst] *)
 		// | Ppat_lazy of pattern  (** Pattern [lazy P] *)
 		// | Ppat_unpack of string option loc
@@ -593,6 +610,35 @@ function print_open_declaration(node: AST, options: Options): Doc {
 	return print_module_expr_open_infos(node, options);
 }
 
+function print_extension(node: AST, options: Options): Doc {
+	// extension = string loc * payload
+	// Extension points such as [[%id ARG] and [%%id ARG]].
+	let args = node;
+	let payload = print_payload(args[1], options);
+	return fill([print_string_loc(args[0], options), indent([ifnonempty(line, payload)])]);
+}
+
+function print_flat_list_elems(e: AST, options: Options): Doc[] {
+	let d0 = print_expression(e.pexp_desc[1][0], options);
+	let e1 = e.pexp_desc[1][1];
+	if (e1.pexp_desc[0] == "Pexp_construct" &&
+		e1.pexp_desc[1].txt[1] == "[]")
+		return [d0];
+	else if (e1.pexp_desc[0] == "Pexp_construct" &&
+		e1.pexp_desc[1].txt[1] == "::") {
+		let rest = print_flat_list_elems(e1.pexp_desc[2], options);
+		return [d0].concat(rest);
+	}
+	else {
+		return [d0, print_expression(e1, options)];
+	}
+}
+
+function print_list(e: AST, options: Options): Doc {
+	let es = print_flat_list_elems(e, options);
+	return fill(["[", join([";", line], es), "]"]);
+}
+
 function print_expression_desc(node: AST, options: Options): Doc {
 	let constructor = node[0];
 	let args = node.slice(1);
@@ -614,7 +660,15 @@ function print_expression_desc(node: AST, options: Options): Doc {
 			//      - [C E]             when [exp] is [Some E],
 			//      - [C (E1, ..., En)] when [exp] is [Some (Pexp_tuple[E1;...;En])]
 			//   *)
-			return g([print_longident_loc(args[0], options)]); // TODO: args
+			let id = print_longident_loc(args[0], options)
+			if (id == '::' && args[1] && args[1].pexp_desc[0] == "Pexp_tuple") {
+				return print_list(args[1], options);
+			} else {
+				let r = [id];
+				if (args[1])
+					r = r.concat(print_expression(args[1], options));
+				return fill(r);
+			}
 		case "Pexp_let": {
 			// | Pexp_let of rec_flag * value_binding list * expression
 			//     (** [Pexp_let(flag, [(P1,E1) ; ... ; (Pn,En)], E)] represents:
@@ -674,7 +728,8 @@ function print_expression_desc(node: AST, options: Options): Doc {
 					const infix_ops = ['=', '==', '!=',
 						'+', '-', '*', '/', '<', '<=', '>', '>=',
 						'+.', '-.', '*.', '/.', '<.', '<=.', '>.', '>=.',
-						'&&', '||'];
+						'&&', '||',
+						'@', '@>', '@>|'];
 					return obj.pexp_desc[1].txt[0] == "Lident" &&
 						infix_ops.find(x => x == obj.pexp_desc[1].txt[1]) !== undefined &&
 						c2 instanceof Array && c2.length == 2;
@@ -828,7 +883,9 @@ function print_expression_desc(node: AST, options: Options): Doc {
 		// | Pexp_letop of letop
 		//     (** - [let* P = E0 in E1]
 		//           - [let* P0 = E00 and* P1 = E01 in E1] *)
-		// | Pexp_extension of extension  (** [[%id]] *)
+		case "Pexp_extension":
+			// | Pexp_extension of extension  (** [[%id]] *)
+			return print_extension(args[0], options)
 		// | Pexp_unreachable  (** [.] *)
 		default:
 			throw new Error(`Unexpected node type: ${constructor}`);
@@ -871,7 +928,7 @@ function print_constructor_declaration(node: AST, options: Options): Doc {
 	//  pcd_loc: Location.t;
 	//  pcd_attributes: attributes;  (** [C of ... [\@id1] [\@id2]] *)
 	// }
-	return print_constructor_arguments(node.pcd_args, options); // TODO: rest
+	return [print_constructor_arguments(node.pcd_args, options), line, print_attributes(node.pcd_attributes, 1, options)]; // TODO: rest
 }
 
 function print_label_declaration(node: AST, options: Options): Doc {
@@ -882,7 +939,7 @@ function print_label_declaration(node: AST, options: Options): Doc {
 	// 	pld_loc: Location.t;
 	// 	pld_attributes: attributes;  (** [l : T [\@id1] [\@id2]] *)
 	//  }
-	return print_core_type(node.pld_type, options);
+	return [print_core_type(node.pld_type, options), line, print_attributes(node.pld_attributes, 1, options)];
 }
 
 function print_type_kind(node: AST, options: Options): Doc {
@@ -930,7 +987,7 @@ function print_type_declaration(node: AST, options: Options): Doc {
 	// 	ptype_attributes: attributes;  (** [... [\@\@id1] [\@\@id2]] *)
 	// 	ptype_loc: Location.t;
 	//  }
-	return fill([indent([node.ptype_name.txt, " ", "=", line, [print_type_kind(node.ptype_kind, options)]])]); // TODO: rest
+	return fill([indent([node.ptype_name.txt, " ", "=", line, [print_type_kind(node.ptype_kind, options)], line, print_attributes(node.pcd_attributes, 2, options)])]); // TODO: rest
 }
 
 function print_module_expr(node: AST, options: Options): Doc {
@@ -939,7 +996,7 @@ function print_module_expr(node: AST, options: Options): Doc {
 	// 	pmod_loc: Location.t;
 	// 	pmod_attributes: attributes;  (** [... [\@id1] [\@id2]] *)
 	//  }
-	return print_module_expr_desc(node.pmod_desc, options);
+	return [print_module_expr_desc(node.pmod_desc, options), line, print_attributes(node.pcd_attributes, 1, options)];
 }
 
 function print_module_binding(node: AST, options: Options): Doc {
@@ -949,30 +1006,39 @@ function print_module_binding(node: AST, options: Options): Doc {
 	// 	pmb_attributes: attributes;
 	// 	pmb_loc: Location.t;
 	//  }
-	return print_module_expr(node.pmb_expr, options); // TODO: rest
+	return [print_module_expr(node.pmb_expr, options), line, print_attributes(node.pcd_attributes, 1, options)];
 }
 
-function print_attribute(node: AST, options: Options): Doc {
+function print_attribute(node: AST, level: number, options: Options): Doc {
 	// {
 	//   attr_name : string loc;
 	//   attr_payload : payload;
 	//   attr_loc : Location.t;
 	// }
-	switch (node.attr_name.txt) {
-		case "ocaml.text":
-			return g(["(**", print_payload(node.attr_payload, options), line, "*)"]);
-		case "import": {
-			// We need a tuple without parentheses here.
-			let mod_file = node.attr_payload[1][0].pstr_desc[1].pexp_desc[1];
-			return fill(["[@@@import", line, print_expression(mod_file[0], options), ",", line, "\"", print_expression(mod_file[1], options), "\"", "]"]);
+	if (level == 3) {
+		switch (node.attr_name.txt) {
+			case "ocaml.text":
+				if (node.attr_payload == "prettier.ignore")
+					return g(["(**", print_payload(node.attr_payload, options), line, "*)"]);
+				else
+					return g(["(**", print_payload(node.attr_payload, options), line, "*)"]);
+			case "import": {
+				// We need a tuple without parentheses here.
+				let mod_file = node.attr_payload[1][0].pstr_desc[1].pexp_desc[1];
+				return fill(["[@@@import", line, print_expression(mod_file[0], options), ",", line, "\"", print_expression(mod_file[1], options), "\"", "]"]);
+			}
 		}
-		default:
-			return g(["[@@@", node.attr_name.txt, line, print_payload(node.attr_payload, options), "]"]);
 	}
+	let payload = print_payload(node.attr_payload, options);
+	return g(["[", "@".repeat(level), node.attr_name.txt, ifnonempty(line, payload), "]"]);
 }
 
 function has_attribute(attrs, x): boolean {
 	return attrs.find(a => a.attr_name.txt == x);
+}
+
+function filter_attributes(attrs) {
+	return attrs.filter(a => a.attr_name.txt != "imandra_theorem" && a.attr_name.txt != "imandra_instance")
 }
 
 function print_structure_item_desc(node: AST, options: Options): Doc {
@@ -981,10 +1047,15 @@ function print_structure_item_desc(node: AST, options: Options): Doc {
 	switch (constructor) {
 		case "Pstr_eval": {
 			// | Pstr_eval of expression * attributes  (** [E] *)
+			let r: Doc[] = [];
 			if (args.length > 1 && has_attribute(args[1], "imandra_eval"))
-				return fill(["eval", line, print_expression(args[0], options)]);
+				r = ["eval", line, print_expression(args[0], options)];
 			else
-				return print_expression(args[0], options); // TODO: attributes
+				r = [print_expression(args[0], options)];
+			if (args[1].length == 0)
+				return [r];
+			else
+				return [r, line, print_attributes(args[1], 3, options)];
 		}
 		case "Pstr_value":
 			// | Pstr_value of rec_flag * value_binding list
@@ -996,8 +1067,10 @@ function print_structure_item_desc(node: AST, options: Options): Doc {
 			// 			*)
 			let r: Array<Doc> = [];
 			let is_instance = false;
-			if (args[1][0].pvb_attributes.length > 0) {
-				let attrs = args[1][0].pvb_attributes;
+			let pvb = args[1][0];
+			let attrs = pvb.pvb_attributes;
+
+			if (attrs.length > 0) {
 				if (has_attribute(attrs, "imandra_theorem")) {
 					// Could be a theorem or a lemma; search backwards for the keyword.
 					let cloc = args[1][0].pvb_loc;
@@ -1027,25 +1100,27 @@ function print_structure_item_desc(node: AST, options: Options): Doc {
 				r.push(line);
 				r.push("rec");
 			}
+			attrs = filter_attributes(attrs);
 			if (is_instance) {
 				// Do this for all lambdas?
-				let pvb = args[1][0];
-				return g([r, line, "(", softline, "fun", line,
+				return fill([r, indent([line, "(", softline, "fun", line,
 					join(line, pvb.pvb_expr.pexp_desc[1].map(x => print_function_param(x, options))), line,
 					"->", line,
-					print_function_body(pvb.pvb_expr.pexp_desc[3], options), softline, ")"]);
+					print_function_body(pvb.pvb_expr.pexp_desc[3], options), softline, ")"]),
+					ifnonempty(hardline, print_attributes(attrs, 2, options))]);
 			}
 			else if (args[1].length > 0) {
-				let pvb = args[1][0];
 				if (pvb.pvb_expr.pexp_desc[0] == "Pexp_function") {
 					// For function definitions we want to hoist the arguments
-					return g([r, line, print_pattern(pvb.pvb_pat, options), line,
+					return fill([r, indent([line, print_pattern(pvb.pvb_pat, options), line,
 						join(line, pvb.pvb_expr.pexp_desc[1].map(x => print_function_param(x, options))), line,
-						"=", line, print_function_body(pvb.pvb_expr.pexp_desc[3], options)]);
+						"=", line, print_function_body(pvb.pvb_expr.pexp_desc[3], options)]),
+						ifnonempty(hardline, print_attributes(attrs, 2, options)),]);
 				}
 			}
 			// Generic version
-			return g([r, line, join([line, "and", line], args[1].map(x => print_value_binding(x, options)))]);
+			return fill([r, indent([line, join([line, "and", line], args[1].map(x => print_value_binding(x, options)))]),
+				ifnonempty(hardline, print_attributes(attrs, 2, options))]);
 		case "Pstr_primitive": // TODO
 			// | Pstr_primitive of value_description
 			// 		(** - [val x: T]
@@ -1090,7 +1165,7 @@ function print_structure_item_desc(node: AST, options: Options): Doc {
 			niy()
 		case "Pstr_attribute":
 			// | Pstr_attribute of attribute  (** [[\@\@\@id]] *)
-			return print_attribute(args[0], options);
+			return print_attribute(args[0], 3, options);
 		case "Pstr_extension":
 			// | Pstr_extension of extension * attributes  (** [[%%id]] *)
 			niy()
@@ -1190,7 +1265,10 @@ function print_toplevel_phrase(node: AST, options: Options): Doc {
 	}
 }
 
-function print(path: AstPath<Tree>, options: Options, print: (path: AstPath<Tree>) => Doc) {
+function print(path: AstPath<Tree>, options: Options, print
+	// (selector?: string | number | Array<string | number> | AstPath<Tree>) => Doc
+	
+) {
 	return join([hardlineWithoutBreakParent, hardlineWithoutBreakParent], path.node.top_defs.map(n => {
 		return [print_toplevel_phrase(n, options)];
 	}

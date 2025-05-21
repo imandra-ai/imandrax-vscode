@@ -19,6 +19,20 @@
         "type": "npm",
         "script": "esbuild"
       }
-    }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug imlformat",
+      "cwd": "${workspaceFolder}/imlformat",
+      "program": "${workspaceFolder}/imlformat/imlformat.ts",
+      "args": [
+        "${workspaceFolder}/demo.iml"
+      ],
+      "preLaunchTask": "compile imlformat",
+      "outFiles": [
+        "${workspaceFolder}/imlformat/out/**/*.js"
+      ]
+    },
   ]
 }
