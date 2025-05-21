@@ -9,16 +9,18 @@
 		"rootDir": ".",
 		"sourceMap": true,
 		"composite": true,
-		// "allowJs": true
+		"allowJs": true,
+		"checkJs": false,
 	},
 	"include": [],
 	"exclude": [
 		"node_modules",
+		"out"
 	],
 	"references": [],
 	"files": [
 		"imlformat.ts",
 		"iml-prettier.ts",
-		// "../vendor/iml2json.bc.js"
+		"iml2json.bc.js"
 	]
 }
