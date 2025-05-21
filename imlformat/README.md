@@ -7,5 +7,5 @@ Run me like so:
 
 ```
 npm install
-npx ts-node imlformat.ts <filename>
+npx tsx imlformat.ts <filename>
 ```

@@ -21,18 +21,30 @@
       }
     },
     {
+      "name": "Debug imlformat",
       "type": "node",
       "request": "launch",
-      "name": "Debug imlformat",
+      "runtimeExecutable": "tsx",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
       "cwd": "${workspaceFolder}/imlformat",
       "program": "${workspaceFolder}/imlformat/imlformat.ts",
       "args": [
-        "${workspaceFolder}/demo.iml"
+        "${workspaceFolder}/imlformat/test/demo.iml"
       ],
-      "preLaunchTask": "compile imlformat",
       "outFiles": [
         "${workspaceFolder}/imlformat/out/**/*.js"
-      ]
+      ],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/imlformat/**",
+      ],
+      "skipFiles": [
+        "<node_internals>/**",
+        "${workspaceFolder}/out/**",
+        "${workspaceFolder}/node_modules/**",
+        "${workspaceFolder}/imlformat/node_modules/**",
+        "${workspaceFolder}/node_modules/out/**",
+      ],
     },
   ]
 }
