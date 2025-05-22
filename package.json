@@ -10,14 +10,14 @@
     "theme": "dark"
   },
   "license": "MIT",
-  "version": "0.0.23",
+  "version": "0.0.24",
   "repository": {
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
   },
   "categories": [],
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.99.1"
   },
   "activationEvents": [
     "onCommand:imandrax.restart_lsp_server"
@@ -189,12 +189,14 @@
   "devDependencies": {
     "@types/mocha": "^9.1.0",
     "@types/node": "^16.18.34",
+    "@types/vscode": "^1.99.1",
+    "@types/which": "^3.0.4",
     "@typescript-eslint/eslint-plugin": "^6.7.0",
     "@typescript-eslint/parser": "^6.7.0",
+    "@vscode/test-cli": "^0.0.10",
     "esbuild": "^0.19.5",
     "eslint": "^8.35.0",
     "mocha": "^9.2.1",
-    "typescript": "^5.2.2",
-    "vscode": "^1.1.37"
+    "typescript": "^5.2.2"
   }
 }
