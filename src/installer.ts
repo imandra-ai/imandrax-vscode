@@ -1,7 +1,7 @@
 import * as ApiKey from './apiKey';
 import * as Which from "which";
-import { commands, env, MessageItem, ProgressLocation, QuickPickItem, QuickPickOptions, Uri, window, workspace } from "vscode";
-import { exec, ExecOptions } from 'child_process';
+import { commands, env, MessageItem, ProgressLocation, QuickPickItem, QuickPickOptions, Uri, window } from "vscode";
+import { exec } from 'child_process';
 
 async function getApiKeyInput() {
   const result = await window.showInputBox({
@@ -14,7 +14,7 @@ async function getApiKeyInput() {
   }
 
   await ApiKey.put(result.trim());
-  window.showInformationMessage('API key saved to disk.');
+  window.showInformationMessage('API key saved');
 }
 
 async function promptForApiKey() {
