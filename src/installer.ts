@@ -1,6 +1,7 @@
 import * as ApiKey from './apiKey';
 import * as Which from "which";
 import { commands, env, MessageItem, ProgressLocation, QuickPickItem, QuickPickOptions, Uri, window, workspace } from "vscode";
+import { exec, ExecOptions } from 'child_process';
 
 async function getApiKeyInput() {
   const result = await window.showInputBox({
@@ -94,13 +95,18 @@ async function runInstallerForUnix(itemT: MessageItem, title: string): Promise<v
         ${getCmdPrefix()} ${url} | sh -s -- -y); 
         EC=$? && sleep .5 && exit $EC`);
 
-      const sub = window.onDidCloseTerminal(async t => {
-        const code = t.exitStatus?.code ?? -1;
-        code === 0
-          ? (resolve())
-          : (reject(`Failed with code: ${code}`));
-        sub.dispose();
-      });
+
+      const out = window.createOutputChannel('ImandraX installer', { log: true });
+
+      const child = exec(`(set -e      
+        ${getCmdPrefix()} ${url} | sh -s -- -y); 
+        EC=$? && sleep .5 && exit $EC`, { shell: "sh" });
+
+      child.stdout?.on('data', chunk => out.append(chunk.toString()));
+      child.stderr?.on('data', chunk => out.append(chunk.toString()));
+      child.on('close', code =>
+      (out.appendLine(`\n[installer exited with code ${code}]`),
+        (code === 0 ? (resolve()) : (reject(`Failed with code: ${code}`)))));
     });
   }
 }
