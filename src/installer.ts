@@ -81,7 +81,7 @@ async function runInstallerForUnix(itemT: MessageItem, title: string): Promise<v
             return "curl -fsSL";
           }
           else {
-            reject(`Neither curl nor wget avaialable for downloading the ImandraX installer.`);
+            reject(`Neither curl nor wget available for downloading the ImandraX installer.`);
           }
         }
       };
