@@ -68,11 +68,6 @@ async function handleSuccess() {
 async function runInstallerForUnix(itemT: MessageItem, title: string): Promise<void> {
   if (itemT.title === title) {
     return new Promise<void>((resolve, reject) => {
-      const term = window.createTerminal({
-        name: "Install ImandraX",
-        hideFromUser: true,
-      });
-
       const url = "https://imandra.ai/get-imandrax.sh";
 
       const getCmdPrefix = () => {
@@ -91,16 +86,11 @@ async function runInstallerForUnix(itemT: MessageItem, title: string): Promise<v
         }
       };
 
-      term.sendText(`(set -e      
-        ${getCmdPrefix()} ${url} | sh -s -- -y); 
-        EC=$? && sleep .5 && exit $EC`);
-
-
       const out = window.createOutputChannel('ImandraX installer', { log: true });
 
       const child = exec(`(set -e      
         ${getCmdPrefix()} ${url} | sh -s -- -y); 
-        EC=$? && sleep .5 && exit $EC`, { shell: "sh" });
+        EC=$? && sleep .5 && exit $EC`);
 
       child.stdout?.on('data', chunk => out.append(chunk.toString()));
       child.stderr?.on('data', chunk => out.append(chunk.toString()));
