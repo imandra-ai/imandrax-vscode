@@ -1,4 +1,5 @@
 import * as ApiKey from './apiKey';
+import * as Which from "which";
 import { commands, env, MessageItem, ProgressLocation, QuickPickItem, QuickPickOptions, Uri, window, workspace } from "vscode";
 
 async function getApiKeyInput() {
@@ -73,13 +74,31 @@ async function runInstallerForUnix(itemT: MessageItem, title: string): Promise<v
 
       const url = "https://imandra.ai/get-imandrax.sh";
 
-      term.sendText(`yes '' | sh -c "$(curl -fsSL ${url})"; exit`);
+      const getCmdPrefix = () => {
+        const wgetPath = Which.sync("wget", { nothrow: true });
+        if (wgetPath != "" && wgetPath != null) {
+          return "wget -qO-";
+        }
+        else {
+          const curlPath = Which.sync("curl", { nothrow: true });
+          if (curlPath != "" && curlPath != null) {
+            return "curl -fsSL";
+          }
+          else {
+            reject(`Neither curl nor wget avaialable for downloading the ImandraX installer.`);
+          }
+        }
+      };
+
+      term.sendText(`(set -e      
+        ${getCmdPrefix()} ${url} | sh -s -- -y); 
+        EC=$? && sleep .5 && exit $EC`);
 
       const sub = window.onDidCloseTerminal(async t => {
         const code = t.exitStatus?.code ?? -1;
         code === 0
           ? (resolve())
-          : (reject(code));
+          : (reject(`Failed with code: ${code}`));
         sub.dispose();
       });
     });
@@ -99,6 +118,6 @@ export async function promptToInstall(openUri: Uri) {
     },
     () => runInstallerForUnix(itemT, launchInstallerItem.title)).then(
       handleSuccess,
-      async (code) => { await window.showErrorMessage(`ImandraX install failed with ${code}`); }
+      async (reason) => { await window.showErrorMessage(`ImandraX install failed\n ${reason}`); }
     );
 }
