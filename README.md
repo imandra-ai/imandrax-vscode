@@ -2,10 +2,10 @@
 
 This is the VSCode extension for Imandra's ImandraX automated theorem prover. It
 requires `imandrax-cli` in your path, which includes the language server. If that's
-missing, it'll prompt you to install it. It's effectively running the script from
+missing, this extension will prompt you to install it. It's effectively running the script from
 http://imandra.ai/get-imandrax.sh, with all of the default responses to questions.
 
-If the ImandraX VSCode extentsion is installed but not `imandrax-cli`, then you'll
+If the ImandraX VSCode extension is installed and `imandrax-cli` is not, then you'll
 see something like this the first time you open an `.iml` file:
 
 ![Launch installer prompt](assets/readme-1.png)
@@ -16,7 +16,7 @@ install:
 ![Progress window](assets/readme-2.png)
 
 The installer is generally silent, but if you want to see the output, it's available
-in VSCode's output window (and log files):
+in VSCode's output window and log files:
 
 ![Log view](assets/readme-5.png)
 
