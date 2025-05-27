@@ -43,7 +43,7 @@
         "${workspaceFolder}/out/**",
         "${workspaceFolder}/node_modules/**",
         "${workspaceFolder}/imlformat/node_modules/**",
-        "${workspaceFolder}/node_modules/out/**",
+        "${workspaceFolder}/node_modules/out/**"
       ],
     },
   ]
