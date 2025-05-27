@@ -4,7 +4,6 @@ This is the VSCode extension for the ImandraX automated reasoning engine and int
 
 * [ImandraX product page](https://www.imandra.ai/core)
 * [ImandraX documentation](https://docs.imandra.ai/imandrax/)
-* [ImandraX forum](https://forum.imandra.ai/tag/imandrax)
 
 ## Installing ImandraX
 
