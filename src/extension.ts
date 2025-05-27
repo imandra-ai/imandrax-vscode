@@ -318,6 +318,9 @@ export async function start() {
     await installer.promptToInstall(openUri);
   }
   else if (ilc.binAbsPath.status === "onWindows") {
+    // note: there is a built in command for opening VSCode against WSL (even in a new window)
+    // i wonder if we can check for a valid wsl installation, and if it's configured, give users the option to start
+    // a session right away.
     const item = { title: 'Go to docs' };
     const itemT = await window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL.`, item);
     if (itemT.title === item.title) {
