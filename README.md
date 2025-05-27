@@ -1,13 +1,15 @@
 # ImandraX VSCode extension
 
-This is the VSCode extension for Imandra's ImandraX automated theorem prover. 
+This is the VSCode extension for the ImandraX automated reasoning engine and interactive theorem prover. 
 
 ## Installing ImandraX
-To use the ImandraX LSP, an `imandrax-cli` binary must be in your `PATH`. If that's
+
+To use the ImandraX extension, an `imandrax-cli` binary must be in your `PATH`. If that's
 missing, this extension will prompt you to install it. It will effectively run the script from
 http://imandra.ai/get-imandrax.sh with all of the default options.
 
 ### Supported platforms
+
 Please note that, at the moment, `imandrax-cli` binaries are only available for MacOS and Linux.
 To use this extension on Windows, set up [WSL](https://learn.microsoft.com/en-us/windows/wsl/)
 and initiate [VSCode remote development in WSL](https://code.visualstudio.com/docs/remote/wsl-tutorial).
