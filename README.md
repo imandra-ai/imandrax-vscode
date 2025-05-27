@@ -2,6 +2,7 @@
 
 This is the VSCode extension for Imandra's ImandraX automated theorem prover. 
 
+* [ImandraX Product Page](https://www.imandra.ai/core)
 * [ImandraX documentation](https://docs.imandra.ai/imandrax/)
 
 ## Installing ImandraX
