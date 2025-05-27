@@ -1,3 +1,5 @@
+![ImandraX](assets/readme/main.png)
+
 # ImandraX VSCode extension
 
 This is the VSCode extension for the ImandraX automated reasoning engine and interactive theorem prover. 
