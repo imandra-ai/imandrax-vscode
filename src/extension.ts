@@ -321,6 +321,8 @@ export async function start() {
     // note: there is a built in command for opening VSCode against WSL (even in a new window)
     // i wonder if we can check for a valid wsl installation, and if it's configured, give users the option to start
     // a session right away.
+    // there's also a command to install a vscode extension. if a user installs imandrax on windows, then switches to a wsl session,
+    // then they won't have imandrax installed in the wsl session. can we use commands to automate that too?
     const item = { title: 'Go to docs' };
     const itemT = await window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL.`, item);
     if (itemT.title === item.title) {
