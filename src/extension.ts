@@ -1,4 +1,4 @@
-import  * as installer from "./installer";
+import * as installer from "./installer";
 
 import {
   commands,
@@ -188,7 +188,10 @@ export function activate(context_: ExtensionContext) {
 
 function update_configuration(event): Promise<void> {
   if (event == undefined || event.affectsConfiguration('imandrax')) {
-    if (event && event.affectsConfiguration('imandrax.lsp.binary'))
+    if (event && (
+      event.affectsConfiguration('imandrax.lsp.binary') ||
+      event.affectsConfiguration('imandrax.lsp.arguments') ||
+      event.affectsConfiguration('imandrax.lsp.environment')))
       restart(client == undefined);
 
     if (client && client.isRunning()) {
