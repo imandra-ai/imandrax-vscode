@@ -20,7 +20,7 @@ and initiate [VSCode remote development in WSL](https://code.visualstudio.com/do
 
 ### Opening `.iml` files
 
-Once installed, the ImandraX extension will be enabled whenever you open or create a `.iml` file.
+Once installed, the ImandraX extension will be enabled whenever you open or create an `.iml` file.
 
 If the ImandraX VSCode extension is installed and `imandrax-cli` is not, then you'll
 see something like this the first time you open an `.iml` file:
