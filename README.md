@@ -9,7 +9,8 @@ http://imandra.ai/get-imandrax.sh with all of the default options.
 
 ### Supported platforms
 Please note that, at the moment, `imandrax-cli` binaries are only available for MacOS and Linux.
-To use this extension on Windows, set up [WSL](https://learn.microsoft.com/en-us/windows/wsl/) and initiate [VSCode remote development in WSL](https://code.visualstudio.com/docs/remote/wsl-tutorial).
+To use this extension on Windows, set up [WSL](https://learn.microsoft.com/en-us/windows/wsl/)
+and initiate [VSCode remote development in WSL](https://code.visualstudio.com/docs/remote/wsl-tutorial).
 
 ### Opening `.iml` files
 
@@ -26,14 +27,15 @@ install:
 ### Viewing installer logs
 
 The installer is generally silent, but if you want to see the output, it's available
-in VSCode's output window and [log files](https://code.visualstudio.com/updates/v1_20#_extension-logging):
+in [VSCode's output panel](https://code.visualstudio.com/api/extension-capabilities/common-capabilities#output-channel) 
+and [log files](https://code.visualstudio.com/updates/v1_20#_extension-logging):
 
 ![Log view](assets/readme-5.png)
 
 ### API key configuration
 
-If everything goes well, then you should prompted to enter your API key (or, if one was previously configured, to use an 
-existing API key):
+If everything goes well, then you should prompted to enter your API key
+(or, if one was previously configured, to use an existing API key):
 
 ![API Key prompt](assets/readme-3.png)
 
