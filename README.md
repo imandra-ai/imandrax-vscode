@@ -21,8 +21,8 @@ in VSCode's output window and [log files](https://code.visualstudio.com/updates/
 ![Log view](assets/readme-5.png)
 
 
-If everything goes well, then you should prompted to enter your API key (or use an 
-existing API key if, one was previously configured):
+If everything goes well, then you should prompted to enter your API key (or, if one was previously configured, to use an 
+existing API key):
 
 ![API Key prompt](assets/readme-3.png)
 
