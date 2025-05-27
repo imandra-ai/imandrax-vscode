@@ -1,5 +1,7 @@
 import * as ApiKey from './apiKey';
-import { commands, env, MessageItem, ProgressLocation, QuickPickItem, QuickPickOptions, Uri, window, workspace } from "vscode";
+import * as Which from "which";
+import { commands, env, MessageItem, ProgressLocation, QuickPickItem, QuickPickOptions, Uri, window } from "vscode";
+import { exec } from 'child_process';
 
 async function getApiKeyInput() {
   const result = await window.showInputBox({
@@ -12,7 +14,7 @@ async function getApiKeyInput() {
   }
 
   await ApiKey.put(result.trim());
-  window.showInformationMessage('API key saved to disk.');
+  window.showInformationMessage('API key saved');
 }
 
 async function promptForApiKey() {
@@ -66,22 +68,35 @@ async function handleSuccess() {
 async function runInstallerForUnix(itemT: MessageItem, title: string): Promise<void> {
   if (itemT.title === title) {
     return new Promise<void>((resolve, reject) => {
-      const term = window.createTerminal({
-        name: "Install ImandraX",
-        hideFromUser: true,
-      });
-
       const url = "https://imandra.ai/get-imandrax.sh";
 
-      term.sendText(`yes '' | sh -c "$(curl -fsSL ${url})"; exit`);
+      const getCmdPrefix = () => {
+        const wgetPath = Which.sync("wget", { nothrow: true });
+        if (wgetPath != "" && wgetPath != null) {
+          return "wget -qO-";
+        }
+        else {
+          const curlPath = Which.sync("curl", { nothrow: true });
+          if (curlPath != "" && curlPath != null) {
+            return "curl -fsSL";
+          }
+          else {
+            reject(`Neither curl nor wget available for downloading the ImandraX installer.`);
+          }
+        }
+      };
 
-      const sub = window.onDidCloseTerminal(async t => {
-        const code = t.exitStatus?.code ?? -1;
-        code === 0
-          ? (resolve())
-          : (reject(code));
-        sub.dispose();
-      });
+      const out = window.createOutputChannel('ImandraX installer', { log: true });
+
+      const child = exec(`(set -e      
+        ${getCmdPrefix()} ${url} | sh -s -- -y); 
+        EC=$? && sleep .5 && exit $EC`);
+
+      child.stdout?.on('data', chunk => out.append(chunk.toString()));
+      child.stderr?.on('data', chunk => out.append(chunk.toString()));
+      child.on('close', code =>
+      (out.appendLine(`\n[installer exited with code ${code}]`),
+        (code === 0 ? (resolve()) : (reject(`Failed with code: ${code}`)))));
     });
   }
 }
@@ -99,6 +114,6 @@ export async function promptToInstall(openUri: Uri) {
     },
     () => runInstallerForUnix(itemT, launchInstallerItem.title)).then(
       handleSuccess,
-      async (code) => { await window.showErrorMessage(`ImandraX install failed with ${code}`); }
+      async (reason) => { await window.showErrorMessage(`ImandraX install failed\n ${reason}`); }
     );
 }
