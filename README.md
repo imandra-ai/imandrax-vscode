@@ -2,7 +2,7 @@
 
 This is the VSCode extension for the ImandraX automated reasoning engine and interactive theorem prover. 
 
-* [ImandraX product page](https://www.imandra.ai/core)
+* [ImandraX homepage](https://www.imandra.ai/core)
 * [ImandraX documentation](https://docs.imandra.ai/imandrax/)
 
 ## Installing ImandraX
