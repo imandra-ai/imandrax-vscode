@@ -4,6 +4,7 @@ This is the VSCode extension for Imandra's ImandraX automated theorem prover.
 
 * [ImandraX Product Page](https://www.imandra.ai/core)
 * [ImandraX documentation](https://docs.imandra.ai/imandrax/)
+* [ImandraX forum](https://forum.imandra.ai/tag/imandrax)
 
 ## Installing ImandraX
 To use the ImandraX LSP, an `imandrax-cli` binary must be in your `PATH`. If that's
