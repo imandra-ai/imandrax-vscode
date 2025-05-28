@@ -53,9 +53,9 @@ async function promptForApiKey() {
 async function promptToReloadWindow() {
   const reloadWindowItem = { title: "Reload window" } as const;
   const items: readonly MessageItem[] = [reloadWindowItem];
-  const itemT = await window.showInformationMessage("ImandraX installed!\nReload window to proceed", ...items);
+  const itemT: MessageItem | undefined = await window.showInformationMessage("ImandraX installed!\nReload window to proceed", ...items);
 
-  if (itemT.title === reloadWindowItem.title) {
+  if (itemT?.title === reloadWindowItem.title) {
     commands.executeCommand("workbench.action.reloadWindow");
   }
 }
@@ -105,15 +105,17 @@ export async function promptToInstall(openUri: Uri) {
   const launchInstallerItem = { title: "Launch installer" } as const;
   const items: readonly MessageItem[] = [launchInstallerItem];
 
-  const itemT = await window.showErrorMessage(`Could not find ImandraX. Please install it or ensure the imandrax-cli binary is in your PATH or its location is set in [Workspace Settings](${openUri}).`, ...items);
+  const itemT: MessageItem | undefined = await window.showErrorMessage(`Could not find ImandraX. Please install it or ensure the imandrax-cli binary is in your PATH or its location is set in [Workspace Settings](${openUri}).`, ...items);
 
-  await window.withProgress(
-    {
-      location: ProgressLocation.Notification,
-      title: "Installing ImandraX"
-    },
-    () => runInstallerForUnix(itemT, launchInstallerItem.title)).then(
-      handleSuccess,
-      async (reason) => { await window.showErrorMessage(`ImandraX install failed\n ${reason}`); }
-    );
+  if (itemT) {
+    await window.withProgress(
+      {
+        location: ProgressLocation.Notification,
+        title: "Installing ImandraX"
+      },
+      () => runInstallerForUnix(itemT, launchInstallerItem.title)).then(
+        handleSuccess,
+        async (reason) => { await window.showErrorMessage(`ImandraX install failed\n ${reason}`); }
+      );
+  }
 }
