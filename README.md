@@ -1,23 +1,13 @@
 ![ImandraX](https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/vscode-assets/readme/main.png)
 
-<style>
-  @media (prefers-color-scheme: light) {
-  .theme-b.adaptive {
-    background: #bcd;
-    color: #334;
-    outline: 50px dotted #000;
-  }
-  }
-  @media (prefers-color-scheme: dark) {
-  .theme-b.adaptive {
-    background: #bcd;
-    color: #334;
-    outline: 50px dotted #fff;
-  }
-}
-</style>
+<picture>
+  <source srcset="https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/vscode-assets/readme/done.png" media="(prefers-color-scheme: dark)">
+  <source srcset="https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/vscode-assets/readme/progress-notification.png" media="(prefers-color-scheme: light)">
+   <img src="https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/vscode-assets/readme/done.png" alt="Themed image">
+</picture>
 
-<div>prefers-color-scheme</div>
+
+
 
 # ImandraX VSCode extension
 
