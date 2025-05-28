@@ -9,7 +9,8 @@
 		"rootDir": ".",
 		"sourceMap": true,
 		"composite": true,
-		"allowJs": true
+		"allowJs": true,
+    "isolatedModules": true
 	},
 	"include": [],
 	"exclude": [
@@ -19,6 +20,7 @@
 	"references": [],
 	"files": [
 		"imlformat.ts",
+    "imlformat.format.ts",
 		"iml-prettier.ts",
 		"iml2json.bc.js"
 	]

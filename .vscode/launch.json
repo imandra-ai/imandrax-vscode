@@ -46,5 +46,21 @@
         "${workspaceFolder}/node_modules/out/**"
       ],
     },
+    {
+      "name": "Debug imlformat Jests",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/imlformat",
+      "env": {
+        "NODE_OPTIONS": "--experimental-vm-modules"
+      },
+      "runtimeArgs": [
+        "--inspect-brk",
+        "${workspaceRoot}/imlformat/node_modules/.bin/jest",
+        "--runInBand"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    }
   ]
 }

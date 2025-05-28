@@ -10,8 +10,6 @@ import {
   EventEmitter,
   ExtensionContext,
   languages,
-  MessageItem,
-  ProgressLocation,
   Range,
   StatusBarAlignment,
   StatusBarItem,
