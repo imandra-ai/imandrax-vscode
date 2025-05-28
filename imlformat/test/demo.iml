@@ -1,0 +1,89 @@
+let
+ f
+  x = (x +
+  1)
+
+let
+ g y =
+          (y *.
+      1.23)
+
+theorem
+   f_gt     x
+   = ((f  x   ) >
+    x)
+
+lemma    lem1 q  = (   (f q) >
+  q);;
+
+instance (fun x
+  -> (x
+  > 0)
+  )
+
+eval
+   (f 0);;
+
+type
+  t =
+    { a: int; b : float; c :int; d : float;
+      e :int; f :float; g :int; h : float;
+      i : int; j :float; k :int; l: float;
+}
+
+type u = A |
+B
+
+  #somedirective
+   "def";;
+
+#somedirective
+   1u;;
+
+  #somedirective
+   2;;
+
+   #somedirective    abc;;
+
+#somedirective true;;
+
+let
+g
+?(x)
+~(y:real)
+=
+  42
+
+
+(* Comment A. *)
+
+(** Comment B. *)
+
+let a =
+  (* Command B'.*)
+  ()
+(* Comment C. *)
+let b = ()
+
+let c = ()
+(** Comment D. *)
+let d = ()
+
+let e = ()
+(* Comment E. *)
+
+let f = ()
+(** Comment F. *)
+
+(* Comment G. *)
+let h = ()
+
+(** Comment H. *)
+let i = ()
+
+
+(** Long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long comment. *)
+
+(* Is lpar-asterisk-rpar also a comment? *)
+
+(***** Many stars *)
