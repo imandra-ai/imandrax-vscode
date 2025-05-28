@@ -554,7 +554,7 @@ function print_pattern_desc(node: AST, options: Options): Doc {
 				if (cargs.length > 0)
 					cargs = ["(type", line, cargs, softline, ")"];
 				return f([print_longident_loc(args[0], options), line,
-				print_pattern(pat, options), line, cargs]);
+				print_pattern(args[1][1], options), line, cargs]);
 			}
 			else
 				return print_longident_loc(args[0], options);
