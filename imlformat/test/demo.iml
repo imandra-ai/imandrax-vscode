@@ -34,6 +34,15 @@ type
 type u = A |
 B
 
+exception SomeException of string
+
+let g x =
+  try
+    1
+  with SomeException y -> 2
+
+let f x y = (1 + x) * y;;
+
   #somedirective
    "def";;
 
