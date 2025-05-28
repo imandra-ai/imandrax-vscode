@@ -1,11 +1,13 @@
-![ImandraX](assets/readme/dark/main.png)
-
 # ImandraX VSCode extension
 
 This is the VSCode extension for the ImandraX automated reasoning engine and interactive theorem prover. 
 
 * [ImandraX homepage](https://www.imandra.ai/core)
 * [ImandraX documentation](https://docs.imandra.ai/imandrax/)
+
+<br/>
+
+![ImandraX](assets/readme/dark/main.png)
 
 ## Installing ImandraX
 
