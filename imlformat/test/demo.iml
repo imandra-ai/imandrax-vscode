@@ -60,7 +60,7 @@ g
 (** Comment B. *)
 
 let a =
-  (* Command B'.*)
+  (* Comment B'.*)
   ()
 (* Comment C. *)
 let b = ()
