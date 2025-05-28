@@ -7,6 +7,7 @@ const { group, indent, indentIfBreak, dedent, join, ifBreak, breakParent, line, 
 import { iml2json } from './iml2json.bc';
 import { assert } from 'node:console';
 import { LinkedMap, LSPCancellationError } from 'vscode-languageclient';
+import { toASCII } from 'node:punycode';
 
 export const languages = [
 	{
@@ -104,6 +105,8 @@ function check_undef(x) {
 		assert(e !== undefined && e !== null);
 		if (e instanceof Array)
 			check_undef(e);
+		else
+			assert(!(e instanceof Object) || e.hasOwnProperty("type"));
 	});
 }
 
@@ -546,7 +549,15 @@ function print_pattern_desc(node: AST, options: Options): Doc {
 			//                                          [Some ([], Ppat_tuple [P1; ...; Pn])]
 			//           - [C (type a b) P]  when [args] is [Some ([a; b], P)]
 			//        *)
-			return print_longident_loc(args[0], options); // TODO: args
+			if (args[1]) {
+				let cargs = join([";", line], args[1][0].map(sl => print_string_loc(sl, options)));
+				if (cargs.length > 0)
+					cargs = ["(type", line, cargs, softline, ")"];
+				return f([print_longident_loc(args[0], options), line,
+				print_pattern(pat, options), line, cargs]);
+			}
+			else
+				return print_longident_loc(args[0], options);
 		case "Ppat_variant":
 			// | Ppat_variant of label * pattern option
 			//     (** [Ppat_variant(`A, pat)] represents:
@@ -623,7 +634,7 @@ function print_pattern(node: AST, options: Options): Doc {
 	//    ppat_loc_stack: location_stack;
 	//    ppat_attributes: attributes;  (** [... [\@id1] [\@id2]] *)
 	//   }
-	return f([print_pattern_desc(node.ppat_desc, options), ifnonempty(line, node.ppat_attributes)]);
+	return f([print_pattern_desc(node.ppat_desc, options), ifnonempty(line, print_attributes(node.ppat_attributes, 1, options))]);
 }
 
 function print_value_binding(node: AST, options: Options): Doc {
@@ -644,7 +655,8 @@ function print_expression(node: AST, options: Options, need_pars: boolean): Doc 
 	// 	pexp_loc_stack: location_stack;
 	// 	pexp_attributes: attributes;  (** [... [\@id1] [\@id2]] *)
 	//  }
-	return f([print_expression_desc(node.pexp_desc, options, need_pars), ifnonempty(line, node.pexp_attributes)]);
+	return f([print_expression_desc(node.pexp_desc, options, need_pars),
+	ifnonempty(line, print_attributes(node.pexp_attributes, options))]);
 }
 
 function print_function_param_desc(node: AST, options: Options): Doc {
@@ -793,7 +805,20 @@ function print_extension_constructor_kind(node: AST, options: Options): Doc {
 			//                  {- [c_args] is [[T1; ... ; Tn]],}
 			//                  {- [t_opt] is [Some T0].}}
 			//      *)
-			niy();
+			let existentials = join([";", line], args[0].map(x => print_string_loc(x, options)));
+			let c_args = args[1];
+			let t_opt = args[2];
+			if (existentials.length == 0) {
+				if (c_args.length != 0 && !t_opt)
+					return print_constructor_arguments(c_args, options);
+				else if (c_args.length == 0 && t_opt)
+					print_core_type(t_opt, options);
+				else if (c_args.length == 0 && t_opt)
+					return f([print_constructor_arguments(c_args, options), line, "->", line, print_core_type]);
+				else
+					return f([existentials, line, ".", line, print_constructor_arguments(c_args, options), line, "->", line, print_core_type]);
+			} else
+				niy();
 		case "Pext_rebind":
 			// | Pext_rebind of Longident.t loc
 			// (** [Pext_rebind(D)] re-export the constructor [D] with the new name [C] *)
@@ -812,7 +837,7 @@ function print_extension_constructor(node: AST, options: Options): Doc {
 	// }
 	return f([print_string_loc(node.pext_name, options), line, "of", line,
 	print_extension_constructor_kind(node.pext_kind, options),
-	ifnonempty(line, print_attributes(node.pcd_attributes, 1, options))]);
+	ifnonempty(line, print_attributes(node.pext_attributes, 1, options))]);
 }
 
 function print_flat_list_elems(e: AST, options: Options): Doc[] {
@@ -839,6 +864,20 @@ function print_list(e: AST, options: Options): Doc {
 function print_class_structure(node: AST, options: Options): Doc {
 	niy();
 	return [];
+}
+
+function print_case(node: AST, options: Options): Doc {
+	// {
+	// 	pc_lhs: pattern;
+	// 	pc_guard: expression option;
+	// 	pc_rhs: expression;
+	// }
+	return f([
+		print_pattern(node.pc_lhs, options), line,
+		node.pc_guard ? ["when", line, print_pattern(node.pc_guard, options)] : [],
+		line, "->", line,
+		print_expression(node.pc_rhs, options, false), line,
+	]);
 }
 
 function print_binding_op(node: AST, options: Options): Doc {
@@ -1025,8 +1064,15 @@ function print_expression_desc(node: AST, options: Options, need_pars: boolean):
 			}));
 			return g(["match", indent([line, print_expression(args[0], options, true), line]), "with", line,
 				ifBreak("| ", ""), cs]);
-		// | Pexp_try of expression * case list
-		//     (** [try E0 with P1 -> E1 | ... | Pn -> En] *)
+		case "Pexp_try":
+			// | Pexp_try of expression * case list
+			//     (** [try E0 with P1 -> E1 | ... | Pn -> En] *)
+			return g(["try",
+				indent([line, print_expression(args[0], options, false), line]),
+				"with", line,
+				join([line, "| "], args[1].map(x => {
+					return f([print_case(x, options)]);
+				}))]);
 		case "Pexp_tuple":
 			// | Pexp_tuple of expression list
 			//     (** Expressions [(E1, ..., En)]
@@ -1412,8 +1458,8 @@ function print_type_exception(node: AST, options: Options): Doc {
 	//   ptyexn_loc : Location.t;
 	//   ptyexn_attributes : attributes;  (** [... [\@\@id1] [\@\@id2]] *)
 	// }
-	niy();
-	return [];
+	return f([print_extension_constructor(node.ptyexn_constructor, options),
+	ifnonempty(line, print_attributes(node.ptyexn_attributes, 2, options))]);
 }
 
 function print_structure_item_desc(node: AST, options: Options): Doc {
@@ -1652,7 +1698,9 @@ function print(path: AstPath<Tree>, options: Options, print
 	// (selector?: string | number | Array<string | number> | AstPath<Tree>) => Doc
 ) {
 	return join([hardline, hardline], path.node.top_defs.map(n => {
-		return [print_toplevel_phrase(n, options)];
+		let q = print_toplevel_phrase(n, options);
+		// console.log(q);
+		return [q];
 	}
 	));
 }
