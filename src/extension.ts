@@ -34,8 +34,7 @@ import {
   LanguageClientOptions,
 } from "vscode-languageclient/node";
 
-import CP = require('child_process');
-import Path = require('path');
+import * as Path from 'path';
 
 import { getEnv } from "./environment";
 
@@ -201,7 +200,7 @@ export async function activate(context_: ExtensionContext) {
   });
 }
 
-function update_configuration(event): Promise<void> {
+async function update_configuration(event): Promise<void> {
   if (event == undefined || event.affectsConfiguration('imandrax')) {
     if (event && (
       event.affectsConfiguration('imandrax.lsp.binary') ||
@@ -242,8 +241,10 @@ function diagnostics_for_editor(editor: TextEditor) {
     }
     );
     all_good = all_good.filter(x => { return all_bad.find(y => x.range.start.line == y.range.start.line) == undefined; });
-    editor.setDecorations(decoration_type_good, all_good);
-    editor.setDecorations(decoration_type_bad, all_bad);
+    if (decoration_type_good)
+      editor.setDecorations(decoration_type_good, all_good);
+    if (decoration_type_bad)
+      editor.setDecorations(decoration_type_bad, all_bad);
   }
 }
 
@@ -253,8 +254,8 @@ async function diagnostic_listener(e: DiagnosticChangeEvent) {
     const doc = editor.document;
     if (doc !== undefined) {
       if (doc.languageId == "imandrax") {
-        diagnostics_for_editor(window.activeTextEditor);
-        const file_uri = window.activeTextEditor.document.uri;
+        diagnostics_for_editor(editor);
+        const file_uri = editor.document.uri;
         if (file_uri.scheme == "file")
           req_file_progress(file_uri);
         else
@@ -270,7 +271,7 @@ async function active_editor_listener() {
     const doc = editor.document;
     if (doc !== undefined) {
       if (doc.languageId == "imandrax") {
-        diagnostics_for_editor(window.activeTextEditor);
+        diagnostics_for_editor(editor);
         const file_uri = doc.uri;
         if (file_uri.scheme == "file") {
           if (client !== undefined && client.isRunning())
