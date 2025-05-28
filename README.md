@@ -1,11 +1,13 @@
-![ImandraX](https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/vscode-assets/readme/main.png)
-
 # ImandraX VSCode extension
 
 This is the VSCode extension for the ImandraX automated reasoning engine and interactive theorem prover. 
 
 * [ImandraX homepage](https://www.imandra.ai/core)
 * [ImandraX documentation](https://docs.imandra.ai/imandrax/)
+
+<br/>
+
+![ImandraX](assets/readme/dark/main.png)
 
 ## Installing ImandraX
 
@@ -26,27 +28,43 @@ Once installed, the ImandraX extension will be enabled whenever you open or crea
 If the ImandraX VSCode extension is installed and `imandrax-cli` is not, then you'll
 see something like this the first time you open an `.iml` file:
 
-![Launch installer prompt](https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/vscode-assets/readme/installer-prompt.png)
+<picture>
+  <source srcset="assets/readme/dark/installer-prompt.png" media="(prefers-color-scheme: dark)">
+  <source srcset="assets/readme/light/installer-prompt.png" media="(prefers-color-scheme: light)">
+  <img src="assets/readme/light/installer-prompt.png" alt="Launch installer prompt">
+</picture>
 
 If you launch the installer, then you'll see a progress notification for the duration of the
 install:
 
-![Progress notification](https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/vscode-assets/readme/progress-notification.png)
+<picture>
+  <source srcset="assets/readme/dark/progress-notification.png" media="(prefers-color-scheme: dark)">
+  <source srcset="assets/readme/light/progress-notification.png" media="(prefers-color-scheme: light)">
+  <img src="assets/readme/light/progress-notification.png" alt="Progress notification">
+</picture>
 
 ### Viewing installer logs
 
 The installer is generally silent, but if you want to see the output, it's available
-in [VSCode's output panel](https://code.visualstudio.com/api/extension-capabilities/common-capabilities#output-channel) 
+in [VSCode's output panel](https://code.visualstudio.com/api/extension-capabilities/common-capabilities#output-channel)
 and [log files](https://code.visualstudio.com/updates/v1_20#_extension-logging):
 
-![Log view](https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/vscode-assets/readme/log-view.png)
+<picture>
+  <source srcset="assets/readme/dark/log-view.png" media="(prefers-color-scheme: dark)">
+  <source srcset="assets/readme/light/log-view.png" media="(prefers-color-scheme: light)">
+  <img src="assets/readme/light/log-view.png" alt="Log view">
+</picture>
 
 ### API key configuration
 
 If everything goes well, then you should prompted to enter your API key
 (or, if one was previously configured, to use an existing API key):
 
-![API Key prompt](https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/vscode-assets/readme/api-key-prompt.png)
+<picture>
+  <source srcset="assets/readme/dark/api-key-prompt.png" media="(prefers-color-scheme: dark)">
+  <source srcset="assets/readme/light/api-key-prompt.png" media="(prefers-color-scheme: light)">
+  <img src="assets/readme/light/api-key-prompt.png" alt="API Key prompt">
+</picture>
 
 > Note: API keys are available from https://universe.imandra.ai/user/api-keys.
 
@@ -54,7 +72,11 @@ If everything goes well, then you should prompted to enter your API key
 
 Once the installation is complete, you'll be prompted to reload the window:
 
-![Installation complete](https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/vscode-assets/readme/done.png)
+<picture>
+  <source srcset="assets/readme/dark/done.png" media="(prefers-color-scheme: dark)">
+  <source srcset="assets/readme/light/done.png" media="(prefers-color-scheme: light)">
+  <img src="assets/readme/light/done.png" alt="Installation complete">
+</picture>
 
 After that, you should be able to use ImandraX.
 
