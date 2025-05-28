@@ -1,4 +1,4 @@
-![ImandraX](https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/readme/main.png)
+![ImandraX](https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/vscode-assets/readme/main.png)
 
 # ImandraX VSCode extension
 
@@ -26,12 +26,12 @@ Once installed, the ImandraX extension will be enabled whenever you open or crea
 If the ImandraX VSCode extension is installed and `imandrax-cli` is not, then you'll
 see something like this the first time you open an `.iml` file:
 
-![Launch installer prompt](https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/readme/installer-prompt.png)
+![Launch installer prompt](https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/vscode-assets/readme/installer-prompt.png)
 
 If you launch the installer, then you'll see a progress notification for the duration of the
 install:
 
-![Progress notification](https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/readme/progress-notification.png)
+![Progress notification](https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/vscode-assets/readme/progress-notification.png)
 
 ### Viewing installer logs
 
@@ -39,14 +39,14 @@ The installer is generally silent, but if you want to see the output, it's avail
 in [VSCode's output panel](https://code.visualstudio.com/api/extension-capabilities/common-capabilities#output-channel) 
 and [log files](https://code.visualstudio.com/updates/v1_20#_extension-logging):
 
-![Log view](https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/readme/log-view.png)
+![Log view](https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/vscode-assets/readme/log-view.png)
 
 ### API key configuration
 
 If everything goes well, then you should prompted to enter your API key
 (or, if one was previously configured, to use an existing API key):
 
-![API Key prompt](https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/readme/api-key-prompt.png)
+![API Key prompt](https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/vscode-assets/readme/api-key-prompt.png)
 
 > Note: API keys are available from https://universe.imandra.ai/user/api-keys.
 
@@ -54,7 +54,7 @@ If everything goes well, then you should prompted to enter your API key
 
 Once the installation is complete, you'll be prompted to reload the window:
 
-![Installation complete](https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/readme/done.png)
+![Installation complete](https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/vscode-assets/readme/done.png)
 
 After that, you should be able to use ImandraX.
 
