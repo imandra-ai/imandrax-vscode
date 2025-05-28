@@ -31,7 +31,7 @@ see something like this the first time you open an `.iml` file:
 <picture>
   <source srcset="assets/readme/dark/installer-prompt.png" media="(prefers-color-scheme: dark)">
   <source srcset="assets/readme/light/installer-prompt.png" media="(prefers-color-scheme: light)">
-  <img src="assets/readme/light/installer-prompt.png" alt="Launch installer prompt">
+  <img src="assets/readme/dark/installer-prompt.png" alt="Launch installer prompt">
 </picture>
 
 If you launch the installer, then you'll see a progress notification for the duration of the
@@ -40,7 +40,7 @@ install:
 <picture>
   <source srcset="assets/readme/dark/progress-notification.png" media="(prefers-color-scheme: dark)">
   <source srcset="assets/readme/light/progress-notification.png" media="(prefers-color-scheme: light)">
-  <img src="assets/readme/light/progress-notification.png" alt="Progress notification">
+  <img src="assets/readme/dark/progress-notification.png" alt="Progress notification">
 </picture>
 
 ### Viewing installer logs
@@ -52,7 +52,7 @@ and [log files](https://code.visualstudio.com/updates/v1_20#_extension-logging):
 <picture>
   <source srcset="assets/readme/dark/log-view.png" media="(prefers-color-scheme: dark)">
   <source srcset="assets/readme/light/log-view.png" media="(prefers-color-scheme: light)">
-  <img src="assets/readme/light/log-view.png" alt="Log view">
+  <img src="assets/readme/dark/log-view.png" alt="Log view">
 </picture>
 
 ### API key configuration
@@ -63,7 +63,7 @@ If everything goes well, then you should prompted to enter your API key
 <picture>
   <source srcset="assets/readme/dark/api-key-prompt.png" media="(prefers-color-scheme: dark)">
   <source srcset="assets/readme/light/api-key-prompt.png" media="(prefers-color-scheme: light)">
-  <img src="assets/readme/light/api-key-prompt.png" alt="API Key prompt">
+  <img src="assets/readme/dark/api-key-prompt.png" alt="API Key prompt">
 </picture>
 
 > Note: API keys are available from https://universe.imandra.ai/user/api-keys.
@@ -75,7 +75,7 @@ Once the installation is complete, you'll be prompted to reload the window:
 <picture>
   <source srcset="assets/readme/dark/done.png" media="(prefers-color-scheme: dark)">
   <source srcset="assets/readme/light/done.png" media="(prefers-color-scheme: light)">
-  <img src="assets/readme/light/done.png" alt="Installation complete">
+  <img src="assets/readme/dark/done.png" alt="Installation complete">
 </picture>
 
 After that, you should be able to use ImandraX.
