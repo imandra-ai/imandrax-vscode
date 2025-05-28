@@ -656,7 +656,7 @@ function print_expression(node: AST, options: Options, need_pars: boolean): Doc 
 	// 	pexp_attributes: attributes;  (** [... [\@id1] [\@id2]] *)
 	//  }
 	return f([print_expression_desc(node.pexp_desc, options, need_pars),
-	ifnonempty(line, print_attributes(node.pexp_attributes, options))]);
+	ifnonempty(line, print_attributes(node.pexp_attributes, 1, options))]);
 }
 
 function print_function_param_desc(node: AST, options: Options): Doc {
