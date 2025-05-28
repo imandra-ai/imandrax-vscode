@@ -6,7 +6,6 @@ const { group, indent, indentIfBreak, dedent, join, ifBreak, breakParent, line, 
 
 import { iml2json } from './iml2json.bc';
 import { assert } from 'node:console';
-import { DEFAULT_ENCODING } from 'node:crypto';
 
 export const languages = [
   {
@@ -330,27 +329,31 @@ function print_string_loc(node: AST, options: Options): Doc {
   return node.txt;
 }
 
-function print_attributes(node: AST, level: number, options: Options): Doc {
-  let filter = [
-    "ocaml.comment",
-    "imandra_verify", "imandra_instance", "imandra_theorem",
-    "imandra_eval", "imandra_axiom", "imandra_rule_spec"
-  ];
-  return join(line, node.map(x => {
-    if (filter.find(y => y == x.attr_name.txt))
-      return [];
-    else
-      return print_attribute(x, level, options);
-  }));
+let attribute_filter = [
+  "ocaml.text",
+  "imandra_verify", "imandra_instance", "imandra_theorem",
+  "imandra_eval", "imandra_axiom", "imandra_rule_spec"
+];
+
+function filter_attributes(attrs) {
+  return attrs.filter(x => !attribute_filter.find(y => y == x.attr_name.txt));
 }
 
+function print_attributes(node: AST, level: number, options: Options): Doc {
+  let filtered = filter_attributes(node);
+  return join(line, filtered.map(x => print_attribute(x, level, options)));
+}
+
+function has_attribute(attrs, x): boolean {
+  return attrs.find(a => a.attr_name.txt == x);
+}
 
 function print_comment(node: AST, options: Options) {
   return f(["(*", indent([get_attr_payload_string(node), "*)"]), hardline]);
 }
 
 function print_comments(node: AST, options: Options): Doc {
-  let filtered = node.filter(x => x.attr_name.txt == "ocaml.comment");
+  let filtered = node.filter(x => x.attr_name.txt == "ocaml.text");
   return join(line, filtered.map(x => print_comment(x, options)));
 }
 
@@ -1376,6 +1379,7 @@ function print_attribute(node: AST, level: number, options: Options): Doc {
     case 3: {
       switch (node.attr_name.txt) {
         case "ocaml.text": {
+          // Comments are filtered out, so this branch is dead code.
           if (node.attr_payload[0] = "Pstr") {
             const str = get_attr_payload_string(node);
             return f(["(**", indent(str), "*)"]);
@@ -1402,14 +1406,6 @@ function print_attribute(node: AST, level: number, options: Options): Doc {
   }
   const payload = print_payload(node.attr_payload, options);
   return f(["[", "@".repeat(level), node.attr_name.txt, ifnonempty(line, payload), "]"]);
-}
-
-function has_attribute(attrs, x): boolean {
-  return attrs.find(a => a.attr_name.txt == x);
-}
-
-function filter_attributes(attrs) {
-  return attrs.filter(a => a.attr_name.txt != "imandra_theorem" && a.attr_name.txt != "imandra_instance");
 }
 
 function print_value_description(node: AST, options: Options): Doc {
@@ -1463,7 +1459,7 @@ function print_structure_item_desc(node: AST, options: Options): Doc {
       let r: Doc[] = [];
       const comments = ifnonempty(line, print_comments(args[1], options));
       if (args.length > 1 && has_attribute(args[1], "imandra_eval"))
-        r = [comments, "eval", line, "(", softline, print_expression(args[0], options, false), softline, ")"];
+        r = [comments, "eval", line, "(", softline, print_expression(args[0], options, false), ")"];
       else
         r = [comments, print_expression(args[0], options, false)];
       return f([r, ifnonempty(line, print_attributes(args[1], 3, options))]);
@@ -1514,32 +1510,31 @@ function print_structure_item_desc(node: AST, options: Options): Doc {
         r.push("rec");
       }
       attrs = filter_attributes(attrs);
-      const comments = ifnonempty(line, print_comments(pvb.pvb_attributes, options));
+      const comments = g([print_comments(pvb.pvb_attributes, options)]);
       if (is_instance) {
         // Do this for all lambdas?
-        return g([
-          comments,
+        return [comments, g([
           r, indent([line, "(", softline, "fun", line,
             join(line, pvb.pvb_expr.pexp_desc[1].map(x => print_function_param(x, options))), line,
             "->", line,
             print_function_body(pvb.pvb_expr.pexp_desc[3], options), softline, ")"]),
-          ifnonempty(hardline, print_attributes(attrs, 2, options))]);
+          ifnonempty(hardline, print_attributes(attrs, 2, options))])];
       }
       else if (args[1].length > 0) {
         if (pvb.pvb_expr.pexp_desc[0] == "Pexp_function") {
           // For function definitions we want to hoist the arguments
-          return g([comments, r,
+          return [comments, g([r,
             f([indent([line, print_pattern(pvb.pvb_pat, options), line,
               join(line, pvb.pvb_expr.pexp_desc[1].map(x => print_function_param(x, options))),
             ]),
-              line, "=", line,
-            g([indent([print_function_body(pvb.pvb_expr.pexp_desc[3], options)]),
-            ifnonempty(hardline, print_attributes(attrs, 2, options)),])])]);
+              line, "=",
+            g([indent([line, print_function_body(pvb.pvb_expr.pexp_desc[3], options)]),
+            ifnonempty(hardline, print_attributes(attrs, 2, options)),])])])];
         }
       }
       // Generic version
-      return g([comments, r, indent([line, join([line, "and", line], args[1].map(x => print_value_binding(x, options)))]),
-        ifnonempty(hardline, print_attributes(attrs, 2, options))]);
+      return [comments, f([r, indent([line, join([line, "and", line], args[1].map(x => print_value_binding(x, options)))]),
+        ifnonempty(hardline, print_attributes(attrs, 2, options))])];
     case "Pstr_primitive":
       // | Pstr_primitive of value_description
       // 		(** - [val x: T]
@@ -1691,12 +1686,18 @@ function print(path: AstPath<Tree>, options: Options, print
     let q = print_toplevel_phrase(n, options);
     if (false) {
       if (n[0] == "Ptop_def") {
-        let src = get_source(n[1][0].pstr_loc, n[1][0].pstr_loc, options);
-        console.log(src);
+        let obj: any = n[1][0];
+        if (obj.hasOwnProperty("pstr_loc")) {
+          let src = get_source(obj.pstr_loc, obj.pstr_loc, options);
+          console.log(src);
+        }
       }
       else {
-        let src = get_source(n[1].pdir_loc, n[1].pdir_loc, options);
-        console.log(src);
+        let obj: any = n[1];
+        if (obj.hasOwnProperty("pdir_loc")) {
+          let src = get_source(obj.pdir_loc, obj.pdir_loc, options);
+          console.log(src);
+        }
       }
       console.log(n);
       console.log(q);
