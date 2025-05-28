@@ -53,9 +53,9 @@ async function promptForApiKey() {
 async function promptToReloadWindow() {
   const reloadWindowItem = { title: "Reload window" } as const;
   const items: readonly MessageItem[] = [reloadWindowItem];
-  const itemT = await window.showInformationMessage("ImandraX installed!\nReload window to proceed", ...items);
+  const itemT: MessageItem | undefined = await window.showInformationMessage("ImandraX installed!\nReload window to proceed", ...items);
 
-  if (itemT.title === reloadWindowItem.title) {
+  if (itemT !== undefined && itemT.title === reloadWindowItem.title) {
     commands.executeCommand("workbench.action.reloadWindow");
   }
 }
@@ -65,8 +65,8 @@ async function handleSuccess() {
   await promptToReloadWindow();
 }
 
-async function runInstallerForUnix(itemT: MessageItem, title: string): Promise<void> {
-  if (itemT.title === title) {
+async function runInstallerForUnix(itemT: MessageItem | undefined, title: string): Promise<void> {
+  if (itemT !== undefined && itemT.title === title) {
     return new Promise<void>((resolve, reject) => {
       const url = "https://imandra.ai/get-imandrax.sh";
 
