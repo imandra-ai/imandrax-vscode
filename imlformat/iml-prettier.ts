@@ -6,6 +6,7 @@ const { group, indent, indentIfBreak, dedent, join, ifBreak, breakParent, line, 
 
 import { iml2json } from './iml2json.bc';
 import { assert } from 'node:console';
+import { DEFAULT_ENCODING } from 'node:crypto';
 
 export const languages = [
   {
@@ -330,11 +331,16 @@ function print_string_loc(node: AST, options: Options): Doc {
 }
 
 function print_attributes(node: AST, level: number, options: Options): Doc {
+  let filter = [
+    "ocaml.comment",
+    "imandra_verify", "imandra_instance", "imandra_theorem",
+    "imandra_eval", "imandra_axiom", "imandra_rule_spec"
+  ];
   return join(line, node.map(x => {
-    if (x.attr_name.txt != "ocaml.comment")
-      return print_attribute(x, level, options);
-    else
+    if (filter.find(y => y == x.attr_name.txt))
       return [];
+    else
+      return print_attribute(x, level, options);
   }));
 }
 
@@ -344,12 +350,8 @@ function print_comment(node: AST, options: Options) {
 }
 
 function print_comments(node: AST, options: Options): Doc {
-  return join(line, node.map(x => {
-    if (x.attr_name.txt == "ocaml.comment")
-      return print_comment(x, options);
-    else
-      return [];
-  }));
+  let filtered = node.filter(x => x.attr_name.txt == "ocaml.comment");
+  return join(line, filtered.map(x => print_comment(x, options)));
 }
 
 function print_arg_label(node: AST, options: Options): Doc {
@@ -1041,7 +1043,7 @@ function print_expression_desc(node: AST, options: Options, need_pars: boolean):
     case "Pexp_match":
       // | Pexp_match of expression * case list
       //     (** [match E0 with P1 -> E1 | ... | Pn -> En] *)
-      const cs = join([line, "|", " "], args[1].map(x => {
+      const cs = join([line, "| "], args[1].map(x => {
         return f([print_pattern(x.pc_lhs, options), " ", "->", line, print_expression(x.pc_rhs, options, true)]);
       }));
       return g(["match", indent([line, print_expression(args[0], options, true), line]), "with", line,
@@ -1361,7 +1363,7 @@ function print_module_binding(node: AST, options: Options): Doc {
 
 function get_attr_payload_string(node: AST): Doc {
   // Comments have special string payloads without quotes. Sigh.
-  return join(line, node.attr_payload[1][0].pstr_desc[1].pexp_desc[1].pconst_desc[1].split(" "));
+  return node.attr_payload[1][0].pstr_desc[1].pexp_desc[1].pconst_desc[1];
 }
 
 function print_attribute(node: AST, level: number, options: Options): Doc {
@@ -1461,13 +1463,10 @@ function print_structure_item_desc(node: AST, options: Options): Doc {
       let r: Doc[] = [];
       const comments = ifnonempty(line, print_comments(args[1], options));
       if (args.length > 1 && has_attribute(args[1], "imandra_eval"))
-        r = [comments, "eval", line, print_expression(args[0], options, false)];
+        r = [comments, "eval", line, "(", softline, print_expression(args[0], options, false), softline, ")"];
       else
         r = [comments, print_expression(args[0], options, false)];
-      if (args[1].length == 0)
-        return [r];
-      else
-        return [r, line, print_attributes(args[1], 3, options)];
+      return f([r, ifnonempty(line, print_attributes(args[1], 3, options))]);
     }
     case "Pstr_value":
       // | Pstr_value of rec_flag * value_binding list
@@ -1531,8 +1530,9 @@ function print_structure_item_desc(node: AST, options: Options): Doc {
           // For function definitions we want to hoist the arguments
           return g([comments, r,
             f([indent([line, print_pattern(pvb.pvb_pat, options), line,
-              join(line, pvb.pvb_expr.pexp_desc[1].map(x => print_function_param(x, options))), line,
-              "=", line]),
+              join(line, pvb.pvb_expr.pexp_desc[1].map(x => print_function_param(x, options))),
+            ]),
+              line, "=", line,
             g([indent([print_function_body(pvb.pvb_expr.pexp_desc[3], options)]),
             ifnonempty(hardline, print_attributes(attrs, 2, options)),])])]);
         }
@@ -1540,7 +1540,7 @@ function print_structure_item_desc(node: AST, options: Options): Doc {
       // Generic version
       return g([comments, r, indent([line, join([line, "and", line], args[1].map(x => print_value_binding(x, options)))]),
         ifnonempty(hardline, print_attributes(attrs, 2, options))]);
-    case "Pstr_primitive": // TODO
+    case "Pstr_primitive":
       // | Pstr_primitive of value_description
       // 		(** - [val x: T]
       // 					- [external x: T = "s1" ... "sn" ]*)
@@ -1689,7 +1689,18 @@ function print(path: AstPath<Tree>, options: Options, print
 ) {
   return join([hardline, hardline], path.node.top_defs.map(n => {
     let q = print_toplevel_phrase(n, options);
-    // console.log(q);
+    if (false) {
+      if (n[0] == "Ptop_def") {
+        let src = get_source(n[1][0].pstr_loc, n[1][0].pstr_loc, options);
+        console.log(src);
+      }
+      else {
+        let src = get_source(n[1].pdir_loc, n[1].pdir_loc, options);
+        console.log(src);
+      }
+      console.log(n);
+      console.log(q);
+    }
     return [q];
   }
   ));
