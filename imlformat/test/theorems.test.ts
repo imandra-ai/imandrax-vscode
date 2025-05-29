@@ -7,11 +7,12 @@ test("theorem 1", () => {
     let f x = (x) + (1)
 
 theorem
-   thm1     x y z
-   = ((f  x   ) >
-    x)
-    && ((f  y   ) > y)
-    && ((f  z   ) > z)
+   thm1     x (y : int) z
+   = f  x    >
+    x
+    && f
+      y  > y
+    && f  z > z
     [@@timeout 3600]
   [@@disable f] [@@by [%expand "f"] @> auto]
   [@@by
@@ -23,7 +24,7 @@ theorem
     expect(x).toEqual(`\
 let f x = x + 1
 
-theorem thm1 x y z =
+theorem thm1 x (y : int) z =
   ((f x) > x) && (((f y) > y) && ((f z) > z))
 [@@timeout 3600]
 [@@disable f]
