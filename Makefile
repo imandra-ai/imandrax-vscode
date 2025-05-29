@@ -4,7 +4,7 @@ package-lock.json: package.json
 	npm i
 
 # see https://code.visualstudio.com/api/working-with-extensions/bundling-extension#using-esbuild
-vsix: package-lock.json src/extension.ts
+vsix: package-lock.json src/*.ts
 	npm x vsce package
 
 distrib: vsix
