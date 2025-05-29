@@ -7,7 +7,7 @@ This is the VSCode extension for the ImandraX automated reasoning engine and int
 
 <br/>
 
-![ImandraX](assets/readme/dark/main.png)
+![ImandraX](assets/readme/main.png)
 
 ## Installing ImandraX
 
