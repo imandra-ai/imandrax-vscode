@@ -135,6 +135,12 @@ function ifnonempty(x, d: Doc): Doc {
     return [x, d];
 }
 
+function trim_parentheses(s: string): string {
+  while (s[0] == "(" && s[s.length - 1] == ")")
+    s = s.slice(1, s.length - 1);
+  return s;
+}
+
 function print_longident(node: AST, options: Options): Doc {
   const constructor = node[0];
   const args = node.slice(1);
@@ -189,8 +195,7 @@ function print_constant_desc(node: AST, options: Options): Doc {
       //  Suffixes [g-z][G-Z] are accepted by the parser.
       //  Suffixes are rejected by the typechecker.
       // *)
-      niy();
-
+      return args[1] ? args[0].concat(args[1]) : args[0];
     default:
       throw new Error(`Unexpected node type: ${constructor}`);
   }
@@ -556,8 +561,11 @@ function print_pattern_desc(node: AST, options: Options): Doc {
         let cargs = join([";", line], args[1][0].map(sl => print_string_loc(sl, options)));
         if (cargs.length > 0)
           cargs = ["(type", line, cargs, softline, ")"];
-        return f([print_longident_loc(args[0], options), line,
-        print_pattern(args[1][1], options), line, cargs]);
+        let r = [print_longident_loc(args[0], options), line,
+        print_pattern(args[1][1], options)];
+        if (cargs && cargs.length > 0)
+          r = r.concat([line, cargs]);
+        return f(r);
       }
       else
         return print_longident_loc(args[0], options);
@@ -637,7 +645,9 @@ function print_pattern(node: AST, options: Options): Doc {
   //    ppat_loc_stack: location_stack;
   //    ppat_attributes: attributes;  (** [... [\@id1] [\@id2]] *)
   //   }
-  return f([print_pattern_desc(node.ppat_desc, options), ifnonempty(line, print_attributes(node.ppat_attributes, 1, options))]);
+  let r: Doc[] = [print_pattern_desc(node.ppat_desc, options)];
+  r = r.concat(ifnonempty(line, print_attributes(node.ppat_attributes, 1, options)));
+  return f(r);
 }
 
 function print_value_binding(node: AST, options: Options): Doc {
@@ -875,12 +885,14 @@ function print_case(node: AST, options: Options): Doc {
   // 	pc_guard: expression option;
   // 	pc_rhs: expression;
   // }
-  return f([
-    print_pattern(node.pc_lhs, options), line,
-    node.pc_guard ? ["when", line, print_pattern(node.pc_guard, options)] : [],
+  let r = [print_pattern(node.pc_lhs, options)];
+  if (node.pc_guard)
+    r = r.concat(["when", line, print_pattern(node.pc_guard, options)]);
+  r = r.concat([
     line, "->", line,
-    print_expression(node.pc_rhs, options, false), line,
+    print_expression(node.pc_rhs, options, false)
   ]);
+  return f(r);
 }
 
 function print_binding_op(node: AST, options: Options): Doc {
@@ -1035,7 +1047,7 @@ function print_expression_desc(node: AST, options: Options, need_pars: boolean):
       else if (is_zconst(obj, children) || is_qconst(obj, children)) {
         // Keep the source formatting so as not to break integer/real constants.
         const cloc = children[0][1].pexp_loc;
-        return get_source(cloc, cloc, options);
+        return trim_parentheses(get_source(cloc, cloc, options));
       }
       else
         return f([need_pars ? "(" : "",
@@ -1235,7 +1247,7 @@ function print_expression_desc(node: AST, options: Options, need_pars: boolean):
       return print_letop(args[0], options);
     case "Pexp_extension":
       // | Pexp_extension of extension  (** [[%id]] *)
-      return f(["%", print_extension(args[0], options)]);
+      return f(["[%", print_extension(args[0], options), "]"]);
     case "Pexp_unreachable":
       // | Pexp_unreachable  (** [.] *)
       return ".";
@@ -1313,11 +1325,10 @@ function print_type_kind(node: AST, options: Options): Doc {
     case "Ptype_record":
       // | Ptype_record of label_declaration list  (** Invariant: non-empty list *)
       return f(["{",
-        indent([line, join([";", line], args[0].map(x => {
-          return f([x.pld_name.txt, line, ":", line, print_label_declaration(x, options)]);
-        })),
-          ";", line,
-          "}"])]);
+        indent([line, join([";", line], args[0].map(x =>
+          f([x.pld_name.txt, line, ":", line, print_label_declaration(x, options)])
+        )),
+          ";", line, "}"])]);
     case "Ptype_open":
       // | Ptype_open
       niy();
