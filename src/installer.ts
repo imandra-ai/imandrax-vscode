@@ -29,9 +29,9 @@ async function promptForApiKey() {
   const skip = { label: "Skip configuring API key for now" };
 
   // only show useExisting if one actually exists
-  const makeItems = (others: QuickPickItem[]) => (existingApiKey ? [useExisting] : []).concat(others);
+  const makeItems = (others: QuickPickItem[]) => (existingApiKey ? [useExisting] : [skip]).concat(others);
 
-  const items: readonly QuickPickItem[] = makeItems([goToIu, pasteNow, skip]);
+  const items: readonly QuickPickItem[] = makeItems([goToIu, pasteNow]);
 
   const itemT = await window.showQuickPick(items, options);
 

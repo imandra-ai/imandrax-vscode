@@ -1,3 +1,4 @@
+import * as environmentConfig from "./environmentConfig";
 import * as installer from "./installer";
 
 import {
@@ -10,8 +11,6 @@ import {
   EventEmitter,
   ExtensionContext,
   languages,
-  MessageItem,
-  ProgressLocation,
   Range,
   StatusBarAlignment,
   StatusBarItem,
@@ -35,8 +34,6 @@ import {
 
 import CP = require('child_process');
 import Path = require('path');
-
-import { getEnv } from "./environment";
 
 const MAX_RESTARTS: number = 10;
 
@@ -307,9 +304,9 @@ async function req_file_progress(uri: Uri) {
 
 export async function start() {
   // Start language server
-  const env = getEnv();
+  const ec = environmentConfig.get();
 
-  if (env.binAbsPath.status === "missingPath") {
+  if (ec.binAbsPath.status === "missingPath") {
     const args = { revealSetting: { key: "imandrax.lsp.binary", edit: true } };
     const openUri = Uri.parse(
       `command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
@@ -317,11 +314,15 @@ export async function start() {
 
     await installer.promptToInstall(openUri);
   }
-  else if (env.binAbsPath.status === "onWindows") {
-    window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL.`);
+  else if (ec.binAbsPath.status === "onWindows") {
+    const item = { title: "Go to docs" };
+    const itemT = await window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL`, item);
+    if (itemT?.title === item.title) {
+      env.openExternal(await env.asExternalUri(Uri.parse("https://code.visualstudio.com/docs/remote/wsl-tutorial")));
+    }
   }
   else {
-    const serverOptions: Executable = { command: env.binAbsPath.path, args: env.serverArgs, options: { env: env.mergedEnv } };
+    const serverOptions: Executable = { command: ec.binAbsPath.path, args: ec.serverArgs, options: { env: ec.mergedEnv } };
 
     // Options to control the language client
     const clientOptions: LanguageClientOptions = {
