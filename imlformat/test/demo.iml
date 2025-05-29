@@ -6,7 +6,7 @@ let
 let
  g y =
           (y *.
-      1.23)
+      1.23e-4g +. 3.14)
 
 theorem
    f_gt     x

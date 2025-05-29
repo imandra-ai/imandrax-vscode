@@ -1,8 +1,3 @@
-import * as fs from 'node:fs';
-import { Buffer } from 'node:buffer';
-
-import * as prettier from 'prettier';
-import * as iml_prettier from './iml-prettier';
 import * as fmt from './imlformat.format';
 
 // Run me like so:

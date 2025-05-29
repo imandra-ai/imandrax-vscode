@@ -4,14 +4,20 @@ import { Buffer } from 'node:buffer';
 import * as prettier from 'prettier';
 import * as iml_prettier from './iml-prettier';
 
-export async function format(text : string): Promise<string> {
+export async function format(text: string): Promise<string> {
   try {
-    let formatted = await prettier.format(text, {
-      semi: false,
-      parser: "iml-parse",
-      plugins: [iml_prettier],
-    });
-    return formatted;
+    const config_file = await prettier.resolveConfigFile();
+    let options: prettier.Options | null = null;
+    if (config_file)
+      options = await prettier.resolveConfig(config_file);
+    else {
+      options = {
+        semi: false
+      }
+    }
+    options.parser = "iml-parse";
+    options.plugins = [iml_prettier];
+    return await prettier.format(text, options);
   }
   catch (e: any) {
     console.log("Prettier error: " + e.toString() + "\n" + e.stack.toString());
