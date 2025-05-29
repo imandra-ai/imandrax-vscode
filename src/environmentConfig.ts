@@ -50,7 +50,7 @@ function getPlatformConfiguration(): PlatformConfiguration {
   return { onWindows, inRemoteWsl };
 }
 
-export function getEnv(): ImandraXLspConfiguration {
+export function get(): ImandraXLspConfiguration {
   const config = workspace.getConfiguration("imandrax");
   const binary = config.lsp.binary;
   const serverArgs = config.lsp.arguments;
