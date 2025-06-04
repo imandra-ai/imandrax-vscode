@@ -76,8 +76,8 @@ async function setBinaryPaths(openUri: Uri) {
   const config = workspace.getConfiguration('imandrax');
   const binaryPath = Path.join(homeDir, '.local', 'bin', 'imandrax-cli');
 
-  await config.update('lsp.binary', binaryPath, true);
-  await config.update('terminal.binary', binaryPath, true);
+  await config.update('lsp.binary', binaryPath, ConfigurationTarget.Global);
+  await config.update('terminal.binary', binaryPath, ConfigurationTarget.Global);
 }
 
 async function handleSuccess(openUri: Uri) {
