@@ -1,7 +1,8 @@
 import * as ApiKey from './apiKey';
-import * as Which from "which";
-import { commands, env, MessageItem, ProgressLocation, QuickPickItem, QuickPickOptions, Uri, window } from "vscode";
 import { exec } from 'child_process';
+import * as Path from 'path';
+import * as Which from "which";
+import { commands, env, MessageItem, ProgressLocation, QuickPickItem, QuickPickOptions, Uri, window, workspace, ConfigurationTarget } from "vscode";
 
 async function getApiKeyInput() {
   const result = await window.showInputBox({
@@ -60,7 +61,27 @@ async function promptToReloadWindow() {
   }
 }
 
-async function handleSuccess() {
+async function setBinaryPaths(openUri: Uri) {
+  const homeDir = process.env.HOME;
+  if (!homeDir) {
+    window.showErrorMessage(
+      `Could not determine your home directory. ` +
+      `Set 'lsp.binary' and 'terminal.binary' to the full path` +
+      `where imandrax-cli has been installed:\n` +
+      `[Workspace Settings](${openUri})`
+    );
+    return;
+  }
+
+  const config = workspace.getConfiguration('imandrax');
+  const binaryPath = Path.join(homeDir, '.local', 'bin', 'imandrax-cli');
+
+  await config.update('lsp.binary', binaryPath, ConfigurationTarget.Global);
+  await config.update('terminal.binary', binaryPath, ConfigurationTarget.Global);
+}
+
+async function handleSuccess(openUri: Uri) {
+  await setBinaryPaths(openUri);
   await promptForApiKey();
   await promptToReloadWindow();
 }
@@ -88,8 +109,8 @@ async function runInstallerForUnix(itemT: MessageItem, title: string): Promise<v
 
       const out = window.createOutputChannel('ImandraX installer', { log: true });
 
-      const child = exec(`(set -e      
-        ${getCmdPrefix()} ${url} | sh -s -- -y); 
+      const child = exec(`(set -e
+        ${getCmdPrefix()} ${url} | sh -s -- -y);
         EC=$? && sleep .5 && exit $EC`);
 
       child.stdout?.on('data', chunk => out.append(chunk.toString()));
@@ -114,7 +135,7 @@ export async function promptToInstall(openUri: Uri) {
         title: "Installing ImandraX"
       },
       () => runInstallerForUnix(itemT, launchInstallerItem.title)).then(
-        handleSuccess,
+        () => handleSuccess(openUri),
         async (reason) => { await window.showErrorMessage(`ImandraX install failed\n ${reason}`); }
       );
   }

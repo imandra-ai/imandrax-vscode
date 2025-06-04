@@ -10,7 +10,7 @@
     "theme": "dark"
   },
   "license": "MIT",
-  "version": "0.0.33",
+  "version": "0.0.34",
   "repository": {
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
@@ -40,13 +40,13 @@
           "description": "Traces the communication between VS Code and the language server."
         },
         "imandrax.lsp.binary": {
-          "scope": "window",
+          "scope": "machine-overridable",
           "type": "string",
           "default": "imandrax-cli",
           "description": "Path to the ImandraX LSP CLI binary"
         },
         "imandrax.lsp.arguments": {
-          "scope": "window",
+          "scope": "machine-overridable",
           "type": "array",
           "items": {
             "type": "string"
@@ -59,19 +59,19 @@
           "description": "Additional commandline arguments for the ImandraX language server"
         },
         "imandrax.lsp.environment": {
-          "scope": "window",
+          "scope": "machine-overridable",
           "type": "object",
           "default": {},
           "description": "Additional environment variables for the ImandraX language server"
         },
         "imandrax.terminal.binary": {
-          "scope": "window",
+          "scope": "machine-overridable",
           "type": "string",
           "default": "imandrax-cli",
           "description": "Path to the ImandraX interactive terminal binary"
         },
         "imandrax.terminal.arguments": {
-          "scope": "window",
+          "scope": "machine-overridable",
           "type": "array",
           "items": {
             "type": "string"

@@ -1,8 +1,7 @@
 import * as Which from "which";
 import {
   env,
-  workspace,
-  WorkspaceConfiguration
+  workspace
 } from "vscode";
 
 interface PlatformConfiguration {
