@@ -2,7 +2,7 @@ import * as ApiKey from './apiKey';
 import { exec } from 'child_process';
 import * as Path from 'path';
 import * as Which from "which";
-import { commands, env, MessageItem, ProgressLocation, QuickPickItem, QuickPickOptions, Uri, window, workspace } from "vscode";
+import { commands, env, MessageItem, ProgressLocation, QuickPickItem, QuickPickOptions, Uri, window, workspace, ConfigurationTarget } from "vscode";
 
 async function getApiKeyInput() {
   const result = await window.showInputBox({
