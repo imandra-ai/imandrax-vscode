@@ -1,4 +1,9 @@
+import * as commands_ from './commands';
+import * as extension_ from './extension_';
 import * as installer from "./installer";
+import * as lsp_client from './lsp_client';
+import * as vfs from './vfs';
+
 
 import {
   commands,
@@ -41,31 +46,14 @@ import { getEnv } from "./environment";
 const MAX_RESTARTS: number = 10;
 
 let context: ExtensionContext = undefined;
-let clientRestarts: number = 0;
-let client: LanguageClient = undefined;
+const client: LanguageClient = undefined;
 let showFullIDs: boolean = false;
-let next_terminal_id = 0;
-let model_count = 0;
 let decoration_type_good = undefined;
 let decoration_type_bad = undefined;
 let file_progress_sbi: StatusBarItem = undefined;
 let file_progress_text: string = "No tasks";
 
-class VFSContentProvider implements TextDocumentContentProvider {
-  onDidChangeEmitter = new EventEmitter<Uri>();
-  onDidChange = this.onDidChangeEmitter.event;
-
-  async provideTextDocumentContent(uri: Uri): Promise<string> {
-    if (uri.authority == undefined || uri.authority == "") {
-      const fst = uri.path.split("/");
-      const auth = (fst[0] == "") ? fst[1] : fst[0];
-      uri = uri.with({ authority: auth });
-    }
-    return await client.sendRequest<string>("$imandrax/req-vfs-file", { "uri": uri });
-  }
-}
-
-let vfs_provider: VFSContentProvider = undefined;
+const extensionUri = Uri.parse("");
 
 export function activate(context_: ExtensionContext) {
   context = context_;
@@ -86,9 +74,17 @@ export function activate(context_: ExtensionContext) {
     }
   });
 
+
+
+  // todo seb check these params
+  const restart_params: lsp_client.RestartParams = {
+    initial: false,
+    extensionUri: extensionUri
+  };
+
   // Register commands
   const restart_cmd = "imandrax.restart_language_server";
-  const restart_handler = () => { restart(); };
+  const restart_handler = () => { lsp_client.restart(restart_params); };
   context.subscriptions.push(commands.registerCommand(restart_cmd, restart_handler));
 
   const check_all_cmd = "imandrax.check_all";
@@ -104,7 +100,7 @@ export function activate(context_: ExtensionContext) {
   context.subscriptions.push(commands.registerCommand(toggle_full_ids_cmd, toggle_full_ids_handler));
 
   const create_terminal_cmd = "imandrax.create_terminal";
-  const create_terminal_handler = () => { create_terminal(undefined); };
+  const create_terminal_handler = () => { commands_.create_terminal(undefined); };
   context.subscriptions.push(commands.registerCommand(create_terminal_cmd, create_terminal_handler));
 
   const terminal_eval_selection_cmd = "imandrax.terminal_eval_selection";
@@ -126,7 +122,7 @@ export function activate(context_: ExtensionContext) {
   };
   context.subscriptions.push(commands.registerCommand(open_vfs_file_cmd, open_vfs_file_handler));
 
-  vfs_provider = new VFSContentProvider();
+  const vfs_provider = new vfs.VFSContentProvider();
   context.subscriptions.push(workspace.registerTextDocumentContentProvider("imandrax-vfs", vfs_provider));
 
   const open_goal_state_cmd = "imandrax.open_goal_state";
@@ -180,31 +176,10 @@ export function activate(context_: ExtensionContext) {
   file_progress_sbi.show();
 
   workspace.onDidChangeConfiguration(event => {
-    update_configuration(event);
+    extension_.update_configuration(extensionUri, event);
   });
 
-  restart(true);
-}
-
-function update_configuration(event): Promise<void> {
-  if (event == undefined || event.affectsConfiguration('imandrax')) {
-    if (event && (
-      event.affectsConfiguration('imandrax.lsp.binary') ||
-      event.affectsConfiguration('imandrax.lsp.arguments') ||
-      event.affectsConfiguration('imandrax.lsp.environment')))
-      restart(client == undefined);
-
-    if (client && client.isRunning()) {
-      const config = workspace.getConfiguration("imandrax");
-      return client.sendNotification("workspace/didChangeConfiguration", {
-        "settings":
-        {
-          "show-full-ids": showFullIDs,
-          "goal-state-show-proven": config.lsp.showProvenGoals
-        }
-      });
-    }
-  }
+  lsp_client.restart({ initial: client == undefined, extensionUri: extensionUri });
 }
 
 function diagnostics_for_editor(editor: TextEditor) {
@@ -305,88 +280,8 @@ async function req_file_progress(uri: Uri) {
     }, _ => { /* Fine, we'll get it the next time. */ });
 }
 
-export async function start() {
-  // Start language server
-  const env = getEnv();
 
-  if (env.binAbsPath.status === "missingPath") {
-    const args = { revealSetting: { key: "imandrax.lsp.binary", edit: true } };
-    const openUri = Uri.parse(
-      `command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
-    );
 
-    await installer.promptToInstall(openUri);
-  }
-  else if (env.binAbsPath.status === "onWindows") {
-    window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL.`);
-  }
-  else {
-    const serverOptions: Executable = { command: env.binAbsPath.path, args: env.serverArgs, options: { env: env.mergedEnv } };
-
-    // Options to control the language client
-    const clientOptions: LanguageClientOptions = {
-      // Register the server for plain text documents
-      documentSelector: [{ scheme: "file", language: "imandrax" }],
-      stdioEncoding: "utf-8",
-      connectionOptions: {
-        maxRestartCount: MAX_RESTARTS,
-      },
-      synchronize: {
-        fileEvents: workspace.createFileSystemWatcher("**/*.iml")
-      }
-    };
-
-    // Create the language client and start the client.
-    client = new LanguageClient(
-      "imandrax_lsp",
-      "ImandraX LSP",
-      serverOptions,
-      clientOptions
-    );
-
-    client.onRequest("$imandrax/interact-model", (params) => { interact_model(params); });
-
-    client.onRequest("$imandrax/copy-model", (params) => { copy_model(params); });
-
-    client.onRequest("$imandrax/visualize-decomp", (params) => { visualize_decomp(params); });
-
-    client.onNotification("$imandrax/vfs-file-changed", async (params) => {
-      const uri = Uri.parse(params["uri"]);
-      vfs_provider.onDidChangeEmitter.fire(uri);
-    });
-
-    // Start the client. This will also launch the server.
-    client.start().catch(ex => { console.log(`Exception thrown while starting LSP client/server: ${ex}`); }).then(
-      _ => { update_configuration(undefined); }
-    );
-  }
-}
-
-// Sleep for the number of seconds
-async function sleep(time_ms: number) {
-  return new Promise(resolve => setTimeout(resolve, time_ms));
-}
-
-export async function restart(initial: boolean = false) {
-  if (initial && client == undefined)
-    console.log("Starting ImandraX LSP server");
-  else {
-    clientRestarts += 1;
-    console.log(`Restarting Imandrax LSP server (attempt ${clientRestarts})`);
-
-    // Try to shut down gracefully.
-    if (client && client.isRunning())
-      await client.stop().catch(ex => console.log(`Exception thrown while stopping LSP client/server: ${ex}`));
-
-    client = undefined;
-
-    window.activeTextEditor.setDecorations(decoration_type_good, []);
-    window.activeTextEditor.setDecorations(decoration_type_bad, []);
-
-    sleep(500); // Give it a bit of time to avoid races on the log file.
-  }
-  return start();
-}
 
 export function deactivate(): Thenable<void> | undefined {
   if (!client) {
@@ -421,21 +316,6 @@ export function toggle_full_ids(): Thenable<void> | undefined {
   }
 }
 
-function create_terminal(cwd) {
-  const config = workspace.getConfiguration("imandrax");
-
-  let name = "ImandraX";
-  if (next_terminal_id++ > 0)
-    name += ` #${next_terminal_id}`;
-
-  if (cwd == undefined && workspace != undefined && workspace.workspaceFolders != undefined)
-    cwd = workspace.workspaceFolders[0].uri.path;
-
-  const options: TerminalOptions = { name: name, shellPath: config.terminal.binary, shellArgs: config.terminal.arguments, cwd: cwd };
-  const t = window.createTerminal(options);
-  t.show();
-  return t;
-}
 
 function terminal_eval_selection(): boolean {
   const editor = window.activeTextEditor;
@@ -449,97 +329,6 @@ function terminal_eval_selection(): boolean {
   return true;
 }
 
-function interact_model(params) {
-  const config = workspace.getConfiguration("imandrax");
-
-  const uri = Uri.parse(params["uri"]);
-  const models = params["models"];
-
-  const wsf = workspace.getWorkspaceFolder(uri);
-
-  let cwd;
-  let filename;
-
-  if (wsf == undefined) {
-    cwd = Path.dirname(uri.path);
-    filename = Path.basename(uri.path);
-  } else {
-    cwd = wsf.uri.path;
-    const rel = Path.relative(wsf.uri.path, Path.dirname(uri.path));
-    filename = Path.join(rel, Path.basename(uri.path));
-  }
-
-  let file_mod_name = Path.basename(uri.path, Path.extname(uri.path));
-  file_mod_name = file_mod_name.charAt(0).toUpperCase() + file_mod_name.slice(1);
-
-  const t = create_terminal(cwd);
-
-  models.forEach(async model_mod_name => {
-    if (config.terminal.freshModelModules)
-      model_mod_name = model_mod_name.replace("module M", "module M" + (model_count++).toString());
-    t.sendText(`[@@@import ${file_mod_name}, "${filename}"];;\n`);
-    t.sendText(`open ${file_mod_name};;\n`);
-    t.sendText(model_mod_name + ";;\n");
-  });
-
-  t.show();
-}
-
-function copy_model(params) {
-  const models = params["models"];
-  let str = "";
-  models.join();
-  models.forEach(async m => {
-    str += m;
-  });
-  env.clipboard.writeText(str);
-}
-
-function visualize_decomp(params) {
-  const decomps = params["decomps"];
-
-  let body: string = "";
-  const sources: string[] = [];
-
-  for (const d of decomps) {
-    const source = d["source"];
-    body += `<h1>Decomposition of <span class="code">${source}</span></h1>`;
-    body += d["decomp"];
-    sources.push(source);
-  }
-
-  const sources_str = sources.join(", ");
-
-  const panel = window.createWebviewPanel("imandrax-decomp", `Decomposition of ${sources_str}`, ViewColumn.One, {
-    enableScripts: true, localResourceRoots: [
-      Uri.joinPath(context.extensionUri, "assets")
-    ],
-    enableCommandUris: true,
-  });
-
-  const style_path = Uri.joinPath(context.extensionUri, "assets", "decomp-style.css");
-  const style_uri = panel.webview.asWebviewUri(style_path);
-
-  const voronoi_path = Uri.joinPath(context.extensionUri, "assets", "voronoi.js");
-  const voronoi_uri = panel.webview.asWebviewUri(voronoi_path);
-
-  const html = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<link rel="stylesheet" href="${style_uri}">
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
-	<script src="${voronoi_uri}"></script>
-</head>
-<body>
-${body}
-</body>
-</html>`;
-
-  // console.log(`DECOMP HTML: ${html}`);
-
-  panel.webview.html = html;
-}
 
 function clear_cache() {
   if (client && client.isRunning())
