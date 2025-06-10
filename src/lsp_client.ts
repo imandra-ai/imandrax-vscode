@@ -1,4 +1,5 @@
 import * as commands_ from './commands';
+import * as decorations from './decorations';
 import * as vfs_provider from './vfs_provider';
 
 import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-languageclient/node';
@@ -9,8 +10,6 @@ const MAX_RESTARTS: number = 10;
 
 // export let client: LanguageClient = undefined;
 export let clientRestarts: number = 0;
-export const decoration_type_good = undefined;
-export const decoration_type_bad = undefined;
 
 export interface RestartParams {
   initial: boolean;
@@ -26,6 +25,7 @@ export class LspClient {
   private readonly serverOptions: Executable;
   private client: LanguageClient;
   private readonly vfsProvider: vfs_provider.VFSContentProvider;
+  private isInitial = () => { return this.client == undefined; };
 
   getClient() {
     return this.client;
@@ -46,6 +46,9 @@ export class LspClient {
 
   // Start language server
   async start(params: { extensionUri: Uri }): Promise<void> {
+    if (this.isInitial()) {
+      console.log("Starting ImandraX LSP server");
+    }
     // Options to control the language client
     const clientOptions: LanguageClientOptions = {
       // Register the server for plain text documents
@@ -88,9 +91,7 @@ export class LspClient {
   }
 
   async restart(params: RestartParams) {
-    if (params.initial && this.client == undefined)
-      console.log("Starting ImandraX LSP server");
-    else {
+    if (!this.isInitial()) {
       clientRestarts += 1;
       console.log(`Restarting Imandrax LSP server (attempt ${clientRestarts})`);
 
@@ -100,8 +101,8 @@ export class LspClient {
 
       this.client = undefined;
 
-      window.activeTextEditor.setDecorations(decoration_type_good, []);
-      window.activeTextEditor.setDecorations(decoration_type_bad, []);
+      window.activeTextEditor.setDecorations(decorations.decoration_type_good, []);
+      window.activeTextEditor.setDecorations(decorations.decoration_type_bad, []);
 
       sleep(500); // Give it a bit of time to avoid races on the log file.
     }
