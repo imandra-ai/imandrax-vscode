@@ -1,9 +1,8 @@
 import * as commands_ from './commands';
-import * as vfs from './vfs';
+import * as vfs_provider from './vfs_provider';
 
 import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-languageclient/node';
 import { Uri, window, workspace } from 'vscode';
-import { getEnv } from './environment';
 
 
 const MAX_RESTARTS: number = 10;
@@ -26,19 +25,23 @@ async function sleep(time_ms: number) {
 export class LspClient {
   private readonly serverOptions: Executable;
   private client: LanguageClient;
-  private readonly vfs_provider:vfs.VFSContentProvider;
+  private readonly vfsProvider: vfs_provider.VFSContentProvider;
 
   getClient() {
     return this.client;
   }
 
-  constructor(lspClientConfig,vfs_provider:vfs.VFSContentProvider) {
+  getVfsProvider() {
+    return this.vfsProvider;
+  }
+
+  constructor(lspClientConfig) {
     this.serverOptions = {
       command: lspClientConfig.binAbsPath.path,
       args: lspClientConfig.serverArgs,
       options: { env: lspClientConfig.mergedEnv }
     };
-    this.vfs_provider=vfs_provider;
+    this.vfsProvider = new vfs_provider.VFSContentProvider(this.getClient);
   }
 
   // Start language server
@@ -75,7 +78,7 @@ export class LspClient {
     this.client.onNotification("$imandrax/vfs-file-changed",
       async (params) => {
         const uri = Uri.parse(params["uri"]);
-        params.vfs_provider.onDidChangeEmitter.fire(uri);
+        this.vfsProvider.onDidChangeEmitter.fire(uri);
       });
 
     // Start the client. This will also launch the server.

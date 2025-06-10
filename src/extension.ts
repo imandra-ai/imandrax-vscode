@@ -2,7 +2,6 @@ import * as commands_ from './commands';
 import * as environment from './environment';
 import * as installer from './installer';
 import * as lsp_client from './lsp_client';
-import * as vfs from './vfs';
 
 import {
   commands,
@@ -47,10 +46,7 @@ let file_progress_text: string = "No tasks";
 const extensionUri = Uri.parse("");
 
 const lspConfig = environment.getEnv();
-// uh oh
-const lspClient = new lsp_client.LspClient(lspConfig,vfs_provider);
-const vfs_provider = new vfs.VFSContentProvider(lspClient);
-
+const lspClient = new lsp_client.LspClient(lspConfig);
 
 export function activate(context_: ExtensionContext) {
   context = context_;
@@ -117,7 +113,7 @@ export function activate(context_: ExtensionContext) {
   };
   context.subscriptions.push(commands.registerCommand(open_vfs_file_cmd, open_vfs_file_handler));
 
-  context.subscriptions.push(workspace.registerTextDocumentContentProvider("imandrax-vfs", vfs_provider));
+  context.subscriptions.push(workspace.registerTextDocumentContentProvider("imandrax-vfs", lspClient.getVfsProvider()));
 
   const open_goal_state_cmd = "imandrax.open_goal_state";
   const open_goal_state_handler = async () => {

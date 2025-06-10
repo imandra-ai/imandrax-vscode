@@ -1,15 +1,14 @@
-import * as lsp_client from './lsp_client';
-
 import { EventEmitter, TextDocumentContentProvider, Uri } from 'vscode';
+import { LanguageClient } from 'vscode-languageclient/node';
 
 
 export class VFSContentProvider implements TextDocumentContentProvider {
   onDidChangeEmitter = new EventEmitter<Uri>();
   onDidChange = this.onDidChangeEmitter.event;
-  private readonly lspClient: lsp_client.LspClient;
+  private readonly getClient: () => LanguageClient;
 
-  constructor(lspClient) {
-    this.lspClient = lspClient;
+  constructor(getClient: () => LanguageClient) {
+    this.getClient = getClient;
   }
 
   async provideTextDocumentContent(uri: Uri): Promise<string> {
@@ -18,8 +17,6 @@ export class VFSContentProvider implements TextDocumentContentProvider {
       const auth = (fst[0] == "") ? fst[1] : fst[0];
       uri = uri.with({ authority: auth });
     }
-    return await this.lspClient.getClient().sendRequest<string>("$imandrax/req-vfs-file", { "uri": uri });
+    return await this.getClient().sendRequest<string>("$imandrax/req-vfs-file", { "uri": uri });
   }
 }
-
-// export const vfs_provider: VFSContentProvider = new VFSContentProvider();
