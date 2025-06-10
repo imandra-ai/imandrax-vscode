@@ -1,9 +1,8 @@
 import * as commands_ from './commands';
-import * as extension_ from './extension_';
-import * as installer from "./installer";
+import * as environment from './environment';
+import * as installer from './installer';
 import * as lsp_client from './lsp_client';
 import * as vfs from './vfs';
-
 
 import {
   commands,
@@ -12,17 +11,12 @@ import {
   DiagnosticChangeEvent,
   DiagnosticSeverity,
   env,
-  EventEmitter,
   ExtensionContext,
   languages,
-  MessageItem,
-  ProgressLocation,
   Range,
   StatusBarAlignment,
   StatusBarItem,
-  TerminalOptions,
   TextDocument,
-  TextDocumentContentProvider,
   TextEdit,
   TextEditor,
   ThemeColor,
@@ -33,15 +27,12 @@ import {
 } from "vscode";
 
 import {
-  Executable,
   LanguageClient,
-  LanguageClientOptions,
 } from "vscode-languageclient/node";
 
 import CP = require('child_process');
 import Path = require('path');
 
-import { getEnv } from "./environment";
 
 const MAX_RESTARTS: number = 10;
 
@@ -54,6 +45,12 @@ let file_progress_sbi: StatusBarItem = undefined;
 let file_progress_text: string = "No tasks";
 
 const extensionUri = Uri.parse("");
+
+const lspConfig = environment.getEnv();
+// uh oh
+const lspClient = new lsp_client.LspClient(lspConfig,vfs_provider);
+const vfs_provider = new vfs.VFSContentProvider(lspClient);
+
 
 export function activate(context_: ExtensionContext) {
   context = context_;
@@ -74,8 +71,6 @@ export function activate(context_: ExtensionContext) {
     }
   });
 
-
-
   // todo seb check these params
   const restart_params: lsp_client.RestartParams = {
     initial: false,
@@ -84,7 +79,7 @@ export function activate(context_: ExtensionContext) {
 
   // Register commands
   const restart_cmd = "imandrax.restart_language_server";
-  const restart_handler = () => { lsp_client.restart(restart_params); };
+  const restart_handler = () => { lspClient.restart(restart_params); };
   context.subscriptions.push(commands.registerCommand(restart_cmd, restart_handler));
 
   const check_all_cmd = "imandrax.check_all";
@@ -122,7 +117,6 @@ export function activate(context_: ExtensionContext) {
   };
   context.subscriptions.push(commands.registerCommand(open_vfs_file_cmd, open_vfs_file_handler));
 
-  const vfs_provider = new vfs.VFSContentProvider();
   context.subscriptions.push(workspace.registerTextDocumentContentProvider("imandrax-vfs", vfs_provider));
 
   const open_goal_state_cmd = "imandrax.open_goal_state";
@@ -176,10 +170,10 @@ export function activate(context_: ExtensionContext) {
   file_progress_sbi.show();
 
   workspace.onDidChangeConfiguration(event => {
-    extension_.update_configuration(extensionUri, event);
+    lspClient.update_configuration(extensionUri, event);
   });
 
-  lsp_client.restart({ initial: client == undefined, extensionUri: extensionUri });
+  lspClient.restart({ initial: client == undefined, extensionUri: extensionUri });
 }
 
 function diagnostics_for_editor(editor: TextEditor) {
@@ -281,17 +275,6 @@ async function req_file_progress(uri: Uri) {
 }
 
 
-
-
-export function deactivate(): Thenable<void> | undefined {
-  if (!client) {
-    return undefined;
-  }
-  console.log("Deactivating ImandraX LSP server");
-  if (client.isRunning())
-    client.stop().catch(ex => console.log(`Exception thrown while stopping LSP client/server: ${ex}`));
-}
-
 export function check_all(): Thenable<void> | undefined {
   if (!client) {
     return undefined;
@@ -316,7 +299,6 @@ export function toggle_full_ids(): Thenable<void> | undefined {
   }
 }
 
-
 function terminal_eval_selection(): boolean {
   const editor = window.activeTextEditor;
   const selection = editor.selection;
@@ -329,9 +311,27 @@ function terminal_eval_selection(): boolean {
   return true;
 }
 
-
 function clear_cache() {
   if (client && client.isRunning())
     client.sendRequest("workspace/executeCommand", { "command": "clear-cache", "arguments": [] });
   return true;
+}
+
+export async function start() {
+  const env = environment.getEnv();
+
+  if (env.binAbsPath.status === "missingPath") {
+    const args = { revealSetting: { key: "imandrax.lsp.binary", edit: true } };
+    const openUri = Uri.parse(
+      `command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
+    );
+
+    await installer.promptToInstall(openUri);
+  }
+  else if (env.binAbsPath.status === "onWindows") {
+    window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL.`);
+  }
+  else {
+    await lspClient.start({ extensionUri });
+  }
 }

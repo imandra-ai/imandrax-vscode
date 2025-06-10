@@ -1,6 +1,4 @@
 import * as commands_ from './commands';
-import * as extension_ from './extension_';
-import * as installer from './installer';
 import * as vfs from './vfs';
 
 import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-languageclient/node';
@@ -10,30 +8,41 @@ import { getEnv } from './environment';
 
 const MAX_RESTARTS: number = 10;
 
-export let client: LanguageClient = undefined;
+// export let client: LanguageClient = undefined;
 export let clientRestarts: number = 0;
 export const decoration_type_good = undefined;
 export const decoration_type_bad = undefined;
 
-export async function start(params: { extensionUri: Uri }) {
-  const { extensionUri } = params;
+export interface RestartParams {
+  initial: boolean;
+  extensionUri: Uri
+}
+
+// Sleep for the number of seconds
+async function sleep(time_ms: number) {
+  return new Promise(resolve => setTimeout(resolve, time_ms));
+}
+
+export class LspClient {
+  private readonly serverOptions: Executable;
+  private client: LanguageClient;
+  private readonly vfs_provider:vfs.VFSContentProvider;
+
+  getClient() {
+    return this.client;
+  }
+
+  constructor(lspClientConfig,vfs_provider:vfs.VFSContentProvider) {
+    this.serverOptions = {
+      command: lspClientConfig.binAbsPath.path,
+      args: lspClientConfig.serverArgs,
+      options: { env: lspClientConfig.mergedEnv }
+    };
+    this.vfs_provider=vfs_provider;
+  }
+
   // Start language server
-  const env = getEnv();
-
-  if (env.binAbsPath.status === "missingPath") {
-    const args = { revealSetting: { key: "imandrax.lsp.binary", edit: true } };
-    const openUri = Uri.parse(
-      `command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
-    );
-
-    await installer.promptToInstall(openUri);
-  }
-  else if (env.binAbsPath.status === "onWindows") {
-    window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL.`);
-  }
-  else {
-    const serverOptions: Executable = { command: env.binAbsPath.path, args: env.serverArgs, options: { env: env.mergedEnv } };
-
+  async start(params: { extensionUri: Uri }): Promise<void> {
     // Options to control the language client
     const clientOptions: LanguageClientOptions = {
       // Register the server for plain text documents
@@ -48,60 +57,82 @@ export async function start(params: { extensionUri: Uri }) {
     };
 
     // Create the language client and start the client.
-    client = new LanguageClient(
+    this.client = new LanguageClient(
       "imandrax_lsp",
       "ImandraX LSP",
-      serverOptions,
+      this.serverOptions,
       clientOptions
     );
 
-    client.onRequest("$imandrax/interact-model", (params) => { commands_.interact_model(params); });
+    const { extensionUri } = params;
 
-    client.onRequest("$imandrax/copy-model", (params) => { commands_.copy_model(params); });
-
-    client.onRequest("$imandrax/visualize-decomp", (params) => { commands_.visualize_decomp(extensionUri, params); });
-
-    client.onNotification("$imandrax/vfs-file-changed", async (params) => {
-      const uri = Uri.parse(params["uri"]);
-      vfs.vfs_provider.onDidChangeEmitter.fire(uri);
-    });
+    this.client.onRequest("$imandrax/interact-model",
+      (params) => { commands_.interact_model(params); });
+    this.client.onRequest("$imandrax/copy-model",
+      (params) => { commands_.copy_model(params); });
+    this.client.onRequest("$imandrax/visualize-decomp",
+      (params) => { commands_.visualize_decomp(extensionUri, params); });
+    this.client.onNotification("$imandrax/vfs-file-changed",
+      async (params) => {
+        const uri = Uri.parse(params["uri"]);
+        params.vfs_provider.onDidChangeEmitter.fire(uri);
+      });
 
     // Start the client. This will also launch the server.
-    client.start().catch(ex => { console.log(`Exception thrown while starting LSP client/server: ${ex}`); }).then(
-      _ => { extension_.update_configuration(extensionUri, undefined); }
+    this.client.start().catch(ex => { console.log(`Exception thrown while starting LSP client/server: ${ex}`); }).then(
+      _ => { this.update_configuration(extensionUri, undefined); }
     );
   }
-}
 
-export interface RestartParams {
-  initial: boolean;
-  extensionUri: Uri
-}
+  async restart(params: RestartParams) {
+    if (params.initial && this.client == undefined)
+      console.log("Starting ImandraX LSP server");
+    else {
+      clientRestarts += 1;
+      console.log(`Restarting Imandrax LSP server (attempt ${clientRestarts})`);
 
-// Sleep for the number of seconds
-async function sleep(time_ms: number) {
-  return new Promise(resolve => setTimeout(resolve, time_ms));
-}
+      // Try to shut down gracefully.
+      if (this.client && this.client.isRunning())
+        await this.client.stop().catch(ex => console.log(`Exception thrown while stopping LSP client/server: ${ex}`));
 
+      this.client = undefined;
 
-export async function restart(params: RestartParams) {
-  if (params.initial && client == undefined)
-    console.log("Starting ImandraX LSP server");
-  else {
-    clientRestarts += 1;
-    console.log(`Restarting Imandrax LSP server (attempt ${clientRestarts})`);
+      window.activeTextEditor.setDecorations(decoration_type_good, []);
+      window.activeTextEditor.setDecorations(decoration_type_bad, []);
 
-    // Try to shut down gracefully.
-    if (client && client.isRunning())
-      await client.stop().catch(ex => console.log(`Exception thrown while stopping LSP client/server: ${ex}`));
-
-    client = undefined;
-
-    window.activeTextEditor.setDecorations(decoration_type_good, []);
-    window.activeTextEditor.setDecorations(decoration_type_bad, []);
-
-    sleep(500); // Give it a bit of time to avoid races on the log file.
+      sleep(500); // Give it a bit of time to avoid races on the log file.
+    }
+    return this.start({ extensionUri: params.extensionUri });
   }
-  return start({ extensionUri: params.extensionUri });
-}
 
+  deactivate(): Thenable<void> | undefined {
+    if (!this.client) {
+      return undefined;
+    }
+    console.log("Deactivating ImandraX LSP server");
+    if (this.client.isRunning())
+      this.client.stop().catch(ex => console.log(`Exception thrown while stopping LSP client/server: ${ex}`));
+  }
+
+  update_configuration(extensionUri: Uri, event): Promise<void> {
+    if (event == undefined || event.affectsConfiguration('imandrax')) {
+      const client = this.client;
+      if (event && (
+        event.affectsConfiguration('imandrax.lsp.binary') ||
+        event.affectsConfiguration('imandrax.lsp.arguments') ||
+        event.affectsConfiguration('imandrax.lsp.environment')))
+        this.restart({ initial: client == undefined, extensionUri: extensionUri });
+
+      if (client && client.isRunning()) {
+        const config = workspace.getConfiguration("imandrax");
+        return client.sendNotification("workspace/didChangeConfiguration", {
+          "settings":
+          {
+            "show-full-ids": commands_.showFullIDs,
+            "goal-state-show-proven": config.lsp.showProvenGoals
+          }
+        });
+      }
+    }
+  }
+}
