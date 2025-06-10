@@ -44,7 +44,7 @@ let extensionUri = undefined;
 
 const lspConfig = environment.getEnv();
 const lspClient = new lsp_client.LspClient(lspConfig);
-const client: LanguageClient = lspClient.getClient();
+const getClient: () => LanguageClient = () => { return lspClient.getClient(); };
 
 export async function activate(context: ExtensionContext) {
   console.log("activate()");
@@ -60,9 +60,6 @@ export async function activate(context: ExtensionContext) {
   } else if (env.binAbsPath.status === "onWindows") {
     window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL.`);
   } else {
-
-    // context = context_;
-
     extensionUri = context;
 
     // Register formatter
@@ -81,9 +78,7 @@ export async function activate(context: ExtensionContext) {
       }
     });
 
-    // todo seb check these params
     const restart_params: lsp_client.RestartParams = {
-      initial: lspClient.getClient() == undefined,
       extensionUri: extensionUri
     };
 
@@ -93,7 +88,7 @@ export async function activate(context: ExtensionContext) {
     context.subscriptions.push(commands.registerCommand(restart_cmd, restart_handler));
 
     const check_all_cmd = "imandrax.check_all";
-    const check_all_handler = () => { check_all(); };
+    const check_all_handler = () => { checkAll(); };
     context.subscriptions.push(commands.registerCommand(check_all_cmd, check_all_handler));
 
     const browse_cmd = "imandrax.browse";
@@ -141,8 +136,8 @@ export async function activate(context: ExtensionContext) {
 
     const reset_goal_state_cmd = "imandrax.reset_goal_state";
     const reset_goal_state_handler = () => {
-      if (client && client.isRunning())
-        client.sendRequest("workspace/executeCommand", { "command": "reset-goal-state", "arguments": [] });
+      if (getClient() && getClient().isRunning())
+        getClient().sendRequest("workspace/executeCommand", { "command": "reset-goal-state", "arguments": [] });
       return true;
     };
     context.subscriptions.push(commands.registerCommand(reset_goal_state_cmd, reset_goal_state_handler));
@@ -224,8 +219,8 @@ async function active_editor_listener() {
         diagnostics_for_editor(window.activeTextEditor);
         const file_uri = doc.uri;
         if (file_uri.scheme == "file") {
-          if (client !== undefined && client.isRunning())
-            client.sendNotification("$imandrax/active-document", { "uri": file_uri.path });
+          if (getClient() !== undefined && getClient().isRunning())
+            getClient().sendNotification("$imandrax/active-document", { "uri": file_uri.path });
           req_file_progress(file_uri);
         }
         else
@@ -238,8 +233,8 @@ async function active_editor_listener() {
 }
 
 async function req_file_progress(uri: Uri) {
-  if (client && client.isRunning())
-    client.sendRequest<string>("$imandrax/req-file-progress", { "uri": uri.path }).then((rsp) => {
+  if (getClient() && getClient().isRunning())
+    getClient().sendRequest<string>("$imandrax/req-file-progress", { "uri": uri.path }).then((rsp) => {
       const task_stats = rsp["task_stats"];
       if (task_stats == null) file_progress_sbi.hide(); else {
         try {
@@ -271,16 +266,13 @@ async function req_file_progress(uri: Uri) {
     }, _ => { /* Fine, we'll get it the next time. */ });
 }
 
-export function check_all(): Thenable<void> | undefined {
-  if (!client) {
-    console.log("check_all().client undefined");
+function checkAll(): Thenable<void> | undefined {
+  if (!getClient()) {
     return undefined;
-
   }
-  console.log("cheeck_all().client defined");
   const file_uri = window.activeTextEditor.document.uri;
-  if (client && client.isRunning() && file_uri.scheme == "file")
-    client.sendRequest("workspace/executeCommand", { "command": "check-all", "arguments": [file_uri.toString()] });
+  if (getClient() && getClient().isRunning() && file_uri.scheme == "file")
+    getClient().sendRequest("workspace/executeCommand", { "command": "check-all", "arguments": [file_uri.toString()] });
 }
 
 function browse(uri: string): Thenable<boolean> | undefined {
@@ -292,9 +284,9 @@ function browse(uri: string): Thenable<boolean> | undefined {
 }
 
 function toggle_full_ids(): Thenable<void> | undefined {
-  if (client && client.isRunning()) {
+  if (getClient() && getClient().isRunning()) {
     showFullIDs = !showFullIDs;
-    return client.sendNotification("workspace/didChangeConfiguration", { "settings": { "show-full-ids": showFullIDs } });
+    return getClient().sendNotification("workspace/didChangeConfiguration", { "settings": { "show-full-ids": showFullIDs } });
   }
 }
 
@@ -311,7 +303,7 @@ function terminal_eval_selection(): boolean {
 }
 
 function clear_cache() {
-  if (client && client.isRunning())
-    client.sendRequest("workspace/executeCommand", { "command": "clear-cache", "arguments": [] });
+  if (getClient() && getClient().isRunning())
+    getClient().sendRequest("workspace/executeCommand", { "command": "clear-cache", "arguments": [] });
   return true;
 }

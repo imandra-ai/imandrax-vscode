@@ -12,7 +12,6 @@ const MAX_RESTARTS: number = 10;
 export let clientRestarts: number = 0;
 
 export interface RestartParams {
-  initial: boolean;
   extensionUri: Uri
 }
 
@@ -125,7 +124,7 @@ export class LspClient {
         event.affectsConfiguration('imandrax.lsp.binary') ||
         event.affectsConfiguration('imandrax.lsp.arguments') ||
         event.affectsConfiguration('imandrax.lsp.environment')))
-        this.restart({ initial: client == undefined, extensionUri: extensionUri });
+        this.restart({ extensionUri: extensionUri });
 
       if (client && client.isRunning()) {
         const config = workspace.getConfiguration("imandrax");
