@@ -1,4 +1,4 @@
-import * as commands_ from './commands';
+import * as commands from './commands/commands';
 import * as decorations from './decorations';
 import * as environment from './environment';
 import * as formatter from './formatter';
@@ -36,7 +36,7 @@ export async function activate(context: ExtensionContext) {
   } else {
     formatter.register();
 
-    commands_.register(context, lspClient);
+    commands.register.f(context, lspClient);
 
     decorations.initialize(context);
 

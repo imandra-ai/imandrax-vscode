@@ -1,4 +1,4 @@
-import * as commands_ from './commands';
+import * as commands_ from './commands/commands';
 import * as decorations from './decorations';
 import * as vfs_provider from './vfs_provider';
 
@@ -131,7 +131,7 @@ export class LspClient {
         return client.sendNotification("workspace/didChangeConfiguration", {
           "settings":
           {
-            "show-full-ids": commands_.showFullIDs,
+            "show-full-ids": commands_.showFullIds,
             "goal-state-show-proven": config.lsp.showProvenGoals
           }
         });
