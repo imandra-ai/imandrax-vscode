@@ -510,6 +510,9 @@ function print_arg_label(node: AST, options: Options): Doc {
   //   Nolabel
   // | Labelled of string (** [label:T -> ...] *)
   // | Optional of string (** [?label:T -> ...] *)
+  if (node instanceof Array && node.length > 0)
+    // Sometimes these can be arrays?
+    node = node[0];
   switch (node) {
     case "Nolabel":
       return [];
@@ -570,10 +573,7 @@ function print_core_type_desc(node: AST, options: Options): Doc {
         r.push(")");
         r.push(line);
       }
-      if (r.length > 0)
-        return f([r, print_longident_loc(args[0], options)]);
-      else
-        return f([print_longident_loc(args[0], options)]);
+      return f(r.concat(print_longident_loc(args[0], options)));
     }
     // | Ptyp_object of object_field list * closed_flag
     //     (** [Ptyp_object([ l1:T1; ...; ln:Tn ], flag)] represents:
@@ -649,7 +649,9 @@ function print_core_type(node: AST, options: Options): Doc {
   //  ptyp_loc_stack: location_stack;
   //  ptyp_attributes: attributes;  (** [... [\@id1] [\@id2]] *)
   // }
-  return f([print_core_type_desc(node.ptyp_desc, options), ifnonempty(line, print_attributes(node.ptyp_attributes, 1, options))]);
+  return f([
+    print_core_type_desc(node.ptyp_desc, options),
+    ifnonempty(line, print_attributes(node.ptyp_attributes, 1, options))]);
 }
 
 function print_label(node: AST, options: Options): Doc {
@@ -899,7 +901,10 @@ function print_function_body(node: AST, options: Options): Doc {
       //       or disabling a warning.
       //   *)
       // (** See the comment on {{!expression_desc.Pexp_function}[Pexp_function]}. *)
-      niy();
+      let cs = join([line, "|", line], args[0].map(c => print_case(c, options)));
+      return f([
+        ifBreak("| ", ""), cs,
+        ifnonempty(line, print_attributes(args[2], 1, options))]);
     default:
       throw new Error(`Unexpected node type: ${constructor}`);
   }
@@ -1189,8 +1194,7 @@ function print_expression_desc(node: AST, options: Options, precedence: number):
         const cloc = op_args[0][1].pexp_loc;
         return trim_parentheses(get_source(cloc, cloc, options));
       }
-      else
-      {
+      else {
         op_args.map(x => assert(x[0] == "Nolabel"));
         switch (op_info.fixity) {
           case Fixity.Infix: {
@@ -1505,7 +1509,7 @@ function print_constructor_arguments(node: AST, options: Options): Doc {
       //                             and [args = Pcstr_record [...]],
       // - [C: {...} -> T0]         when [res = Some T0],
       //                             and [args = Pcstr_record [...]].
-      niy();
+      return f(["{", indent([line, join([";", line], args[0].map(x => print_label_declaration(x, options))), ";"]), line, "}"]);
     default:
       throw new Error(`Unexpected node type: ${constructor}`);
   }
@@ -1520,7 +1524,14 @@ function print_constructor_declaration(node: AST, options: Options): Doc {
   //  pcd_loc: Location.t;
   //  pcd_attributes: attributes;  (** [C of ... [\@id1] [\@id2]] *)
   // }
-  return [print_constructor_arguments(node.pcd_args, options), ifnonempty(line, print_attributes(node.pcd_attributes, 1, options))]; // TODO: rest
+  let r: Doc = [];
+  if (node.pcd_args[1].length == 0)
+    r = f([node.pcd_name.txt]);
+  else
+    r = f([
+      print_string_loc(node.pcd_name, options), line, "of", line,
+      print_constructor_arguments(node.pcd_args, options)]);
+  return f([r, ifnonempty(line, print_attributes(node.pcd_attributes, 1, options))])
 }
 
 function print_label_declaration(node: AST, options: Options): Doc {
@@ -1531,7 +1542,11 @@ function print_label_declaration(node: AST, options: Options): Doc {
   // 	pld_loc: Location.t;
   // 	pld_attributes: attributes;  (** [l : T [\@id1] [\@id2]] *)
   //  }
-  return [print_core_type(node.pld_type, options), ifnonempty(line, print_attributes(node.pld_attributes, 1, options))];
+  // TODO: mutable
+  return f([
+    print_string_loc(node.pld_name, options), line, ":", line,
+    print_core_type(node.pld_type, options),
+    ifnonempty(line, print_attributes(node.pld_attributes, 1, options))]);
 }
 
 function print_type_kind(node: AST, options: Options): Doc {
@@ -1543,20 +1558,16 @@ function print_type_kind(node: AST, options: Options): Doc {
       return [];
     case "Ptype_variant":
       // | Ptype_variant of constructor_declaration list
-      return f([ifBreak("| ", ""), join([line, "| "], args[0].map(x => {
-        if (x.pcd_args[1].length == 0)
-          return x.pcd_name.txt;
-        else
-          return f([x.pcd_name.txt, line, "of", line, print_constructor_declaration(x, options)]);
-      }
+      return f([ifBreak("| ", ""), join([line, "| "], args[0].map(x =>
+        print_constructor_declaration(x, options)
       ))]);
     case "Ptype_record":
       // | Ptype_record of label_declaration list  (** Invariant: non-empty list *)
       return f(["{",
-        indent([line, join([";", line], args[0].map(x =>
-          f([x.pld_name.txt, line, ":", line, print_label_declaration(x, options)])
-        )),
-          ";", line, "}"])]);
+        indent([line,
+          join([";", line], args[0].map(x => print_label_declaration(x, options))),
+          ";", line,
+          "}"])]);
     case "Ptype_open":
       // | Ptype_open
       niy();
@@ -1804,7 +1815,7 @@ function print_structure_item_desc(node: AST, options: Options): Doc {
       niy();
     case "Pstr_open":
       // | Pstr_open of open_declaration  (** [open X] *)
-      niy();
+      return f(["open", line, print_open_declaration(args[0], options)]);
     case "Pstr_class":
       // | Pstr_class of class_declaration list
       // 		(** [class c1 = ... and ... and cn = ...] *)
