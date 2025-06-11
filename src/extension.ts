@@ -22,12 +22,12 @@ import {
 
 import CP = require('child_process');
 
-const lspConfig = environment.getEnv();
-const lspClient = new lsp_client.LspClient(lspConfig);
-const getClient: () => LanguageClient = () => { return lspClient.getClient(); };
 
 export async function activate(context: ExtensionContext) {
-  console.log("activate()");
+  const lspConfig = environment.getEnv();
+  const lspClient = new lsp_client.LspClient(lspConfig);
+  const getClient: () => LanguageClient = () => { return lspClient.getClient(); };
+
   const env = environment.getEnv();
 
   if (env.binAbsPath.status === "missingPath") {
