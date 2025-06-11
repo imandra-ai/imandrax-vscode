@@ -22,7 +22,7 @@ import {
 
 import CP = require('child_process');
 
-let extensionUri : string | undefined = undefined;
+let extensionUri : Uri | undefined = undefined;
 
 const lspConfig = environment.getEnv();
 const lspClient = new lsp_client.LspClient(lspConfig);
