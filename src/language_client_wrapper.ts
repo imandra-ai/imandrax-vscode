@@ -5,6 +5,8 @@ import * as vfs_provider from './vfs_provider';
 import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-languageclient/node';
 import { Uri, window, workspace } from 'vscode';
 
+import { FoundPathConfig } from './language_client_configuration';
+
 
 const MAX_RESTARTS: number = 10;
 
@@ -34,7 +36,7 @@ export class LanguageClientWrapper {
     return this.vfsProvider;
   }
 
-  constructor(languageClientConfig) {
+  constructor(languageClientConfig: FoundPathConfig) {
     this.serverOptions = {
       command: languageClientConfig.binAbsPath.path,
       args: languageClientConfig.serverArgs,

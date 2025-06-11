@@ -20,20 +20,11 @@ import {
 
 export async function activate(context: ExtensionContext) {
   const languageClientConfig = language_client_configuration.get();
-  const languageClientWrapper = new language_client_wrapper.LanguageClientWrapper(languageClientConfig);
-  const getClient: () => LanguageClient = () => { return languageClientWrapper.getClient(); };
 
-  const env = language_client_configuration.get();
+  if (language_client_configuration.isFoundPath(languageClientConfig)) {
+    const languageClientWrapper = new language_client_wrapper.LanguageClientWrapper(languageClientConfig);
+    const getClient: () => LanguageClient = () => { return languageClientWrapper.getClient(); };
 
-  if (env.binAbsPath.status === "missingPath") {
-    const args = { revealSetting: { key: "imandrax.lsp.binary", edit: true } };
-    const openUri = Uri.parse(
-      `command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
-    );
-    await installer.promptToInstall(openUri);
-  } else if (env.binAbsPath.status === "onWindows") {
-    window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL.`);
-  } else {
     formatter.register();
 
     commands.register.f(context, languageClientWrapper);
@@ -49,6 +40,13 @@ export async function activate(context: ExtensionContext) {
 
     languageClientWrapper.start({ extensionUri: context.extensionUri });
   }
+  else if (languageClientConfig.binAbsPath.status === "missingPath") {
+    const args = { revealSetting: { key: "imandrax.lsp.binary", edit: true } };
+    const openUri = Uri.parse(
+      `command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
+    );
+    await installer.promptToInstall(openUri);
+  } else if (languageClientConfig.binAbsPath.status === "onWindows") {
+    window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL.`);
+  }
 }
-
-
