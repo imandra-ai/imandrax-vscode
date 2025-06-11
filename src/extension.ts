@@ -63,7 +63,8 @@ export async function activate(context: ExtensionContext) {
 
     decorations.initialize(context);
 
-    const foo = new listeners.Listeners(context, getClient);
+    const listenersInstance = new listeners.Listeners(context, getClient);
+    listenersInstance.register();
 
     workspace.onDidChangeConfiguration(event => {
       lspClient.update_configuration(extensionUri, event);

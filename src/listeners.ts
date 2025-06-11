@@ -103,7 +103,7 @@ export class Listeners {
     }
   }
 
-  async active_editor_listener(getClient) {
+  async active_editor_listener() {
     const editor = window.activeTextEditor;
     if (editor !== undefined) {
       const doc = editor.document;
@@ -126,7 +126,7 @@ export class Listeners {
   }
 
   public register() {
-    languages.onDidChangeDiagnostics(this.diagnostic_listener, undefined, []);
-    window.onDidChangeActiveTextEditor(this.active_editor_listener, undefined, []);
+    languages.onDidChangeDiagnostics((e) => { this.diagnostic_listener(e); }, undefined, []);
+    window.onDidChangeActiveTextEditor(() => { this.active_editor_listener(); }, undefined, []);
   }
 }
