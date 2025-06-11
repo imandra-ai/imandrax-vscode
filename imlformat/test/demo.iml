@@ -3,6 +3,11 @@ let
   x = (x +
   1)
 
+let z = - 1
+let q = - 1.0
+
+let l = 1 :: []
+
 let
  g y =
           (y *.
@@ -20,6 +25,8 @@ instance (fun x
   -> (x
   > 0)
   )
+
+let f x = if x = 2 then 3 else if x = 4 then 5 else 6
 
 eval
    (f 0);;
@@ -62,6 +69,10 @@ g
 ~(y:real)
 =
   42
+
+let f x =
+  let y = x + 1 in
+  y - 1
 
 
 (* Comment A. *)

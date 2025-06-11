@@ -13,8 +13,12 @@ theorem
     && f
       y  > y
     && f  z > z
-    [@@timeout 3600]
-  [@@disable f] [@@by [%expand "f"] @> auto]
+    [@@timeout
+      3600 ]
+  [@@disable   f ] [@@by
+  [%expand "f"]
+      @>
+   auto]
   [@@by
     some
       other
@@ -25,7 +29,7 @@ theorem
 let f x = x + 1
 
 theorem thm1 x (y : int) z =
-  ((f x) > x) && (((f y) > y) && ((f z) > z))
+  f x > x && f y > y && f z > z
 [@@timeout 3600]
 [@@disable f]
 [@@by [%expand "f"] @> auto]
