@@ -1,6 +1,28 @@
+
 import { expect, test } from '@jest/globals';
 
 import { format } from "../imlformat.format";
+
+test("constants", () => {
+  format(`
+let a = 1
+let b = (- 1)
+let c = 1.0
+let d = (- 1.0)
+let e = "abc"
+`).then(x =>
+    expect(x).toEqual(`\
+let a = 1
+
+let b = -1
+
+let c = 1.0
+
+let d = -1.0
+
+let e = "abc"`))
+})
+
 
 test("function", () => {
   format(`
@@ -21,7 +43,7 @@ theorem
    = ((f  x   ) >
     x)
 `).then(x =>
-    expect(x).toEqual(`theorem f_gt x = (f x) > x`))
+    expect(x).toEqual(`theorem f_gt x = f x > x`))
 })
 
 test("eval", () => {
@@ -64,4 +86,9 @@ test("directive", () => {
    "def";;
 `).then(x =>
     expect(x).toEqual(`#somedirective "def";;`))
+})
+
+test("operator precedence", () => {
+  format(`let f x y = ((x - 1) * (y + 1)) + 1`)
+    .then(x => expect(x).toEqual(`let f x y = (x - 1) * (y + 1) + 1`))
 })
