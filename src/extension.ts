@@ -1,10 +1,10 @@
 import * as commands from './commands/commands';
 import * as decorations from './decorations';
-import * as environment from './environment';
 import * as formatter from './formatter';
 import * as installer from './installer';
+import * as language_client_configuration from './language_client_configuration';
+import * as language_client_wrapper from './language_client_wrapper';
 import * as listeners from './listeners';
-import * as lsp_client from './lsp_client';
 
 import {
   ExtensionContext,
@@ -19,11 +19,11 @@ import {
 
 
 export async function activate(context: ExtensionContext) {
-  const lspConfig = environment.getEnv();
-  const lspClient = new lsp_client.LspClient(lspConfig);
-  const getClient: () => LanguageClient = () => { return lspClient.getClient(); };
+  const languageClientConfig = language_client_configuration.get();
+  const languageClientWrapper = new language_client_wrapper.LanguageClientWrapper(languageClientConfig);
+  const getClient: () => LanguageClient = () => { return languageClientWrapper.getClient(); };
 
-  const env = environment.getEnv();
+  const env = language_client_configuration.get();
 
   if (env.binAbsPath.status === "missingPath") {
     const args = { revealSetting: { key: "imandrax.lsp.binary", edit: true } };
@@ -36,7 +36,7 @@ export async function activate(context: ExtensionContext) {
   } else {
     formatter.register();
 
-    commands.register.f(context, lspClient);
+    commands.register.f(context, languageClientWrapper);
 
     decorations.initialize(context);
 
@@ -44,10 +44,10 @@ export async function activate(context: ExtensionContext) {
     listenersInstance.register();
 
     workspace.onDidChangeConfiguration(event => {
-      lspClient.update_configuration(context.extensionUri, event);
+      languageClientWrapper.update_configuration(context.extensionUri, event);
     });
 
-    lspClient.start({ extensionUri: context.extensionUri });
+    languageClientWrapper.start({ extensionUri: context.extensionUri });
   }
 }
 

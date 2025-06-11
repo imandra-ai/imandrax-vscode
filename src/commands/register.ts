@@ -1,13 +1,13 @@
 import * as implementations from './implementations';
 
 import { commands, ExtensionContext, languages, Uri, ViewColumn, window, workspace } from 'vscode';
-import { LspClient } from '../lsp_client';
+import { LanguageClientWrapper } from '../language_client_wrapper';
 
-export function f(context: ExtensionContext, lspClient: LspClient) {
-  const getClient = () => { return lspClient.getClient(); };
+export function f(context: ExtensionContext, languageClientWrapper: LanguageClientWrapper) {
+  const getClient = () => { return languageClientWrapper.getClient(); };
 
   const restart_cmd = "imandrax.restart_language_server";
-  const restart_handler = () => { lspClient.restart({ extensionUri: context.extensionUri }); };
+  const restart_handler = () => { languageClientWrapper.restart({ extensionUri: context.extensionUri }); };
   context.subscriptions.push(commands.registerCommand(restart_cmd, restart_handler));
 
   const check_all_cmd = "imandrax.check_all";
@@ -46,7 +46,7 @@ export function f(context: ExtensionContext, lspClient: LspClient) {
 
   context.subscriptions.push(commands.registerCommand(open_vfs_file_cmd, open_vfs_file_handler));
 
-  context.subscriptions.push(workspace.registerTextDocumentContentProvider("imandrax-vfs", lspClient.getVfsProvider()));
+  context.subscriptions.push(workspace.registerTextDocumentContentProvider("imandrax-vfs", languageClientWrapper.getVfsProvider()));
 
   const open_goal_state_cmd = "imandrax.open_goal_state";
   const open_goal_state_handler = async () => {

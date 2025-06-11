@@ -20,7 +20,7 @@ async function sleep(time_ms: number) {
   return new Promise(resolve => setTimeout(resolve, time_ms));
 }
 
-export class LspClient {
+export class LanguageClientWrapper {
   private readonly serverOptions: Executable;
   private client: LanguageClient;
   private readonly vfsProvider: vfs_provider.VFSContentProvider;
@@ -34,11 +34,11 @@ export class LspClient {
     return this.vfsProvider;
   }
 
-  constructor(lspClientConfig) {
+  constructor(languageClientConfig) {
     this.serverOptions = {
-      command: lspClientConfig.binAbsPath.path,
-      args: lspClientConfig.serverArgs,
-      options: { env: lspClientConfig.mergedEnv }
+      command: languageClientConfig.binAbsPath.path,
+      args: languageClientConfig.serverArgs,
+      options: { env: languageClientConfig.mergedEnv }
     };
     this.vfsProvider = new vfs_provider.VFSContentProvider(this.getClient);
   }
