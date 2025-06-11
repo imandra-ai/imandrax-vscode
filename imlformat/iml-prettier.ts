@@ -1275,7 +1275,7 @@ function print_expression_desc(node: AST, options: Options, precedence: number):
       //   *)
       const id = print_longident_loc(args[0], options);
       if (id == '::' && args[1] && args[1].pexp_desc[0] == "Pexp_tuple") {
-        return f(print_list(args[1], options));
+        return print_list(args[1], options);
       } else {
         let r = [id];
         if (args[1])
