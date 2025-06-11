@@ -1,16 +1,13 @@
 import * as commands_ from './commands';
 import * as decorations from './decorations';
 import * as environment from './environment';
+import * as formatter from './formatter';
 import * as installer from './installer';
 import * as listeners from './listeners';
 import * as lsp_client from './lsp_client';
 
 import {
   ExtensionContext,
-  languages,
-  Range,
-  TextDocument,
-  TextEdit,
   Uri,
   window,
   workspace
@@ -19,8 +16,6 @@ import {
 import {
   LanguageClient,
 } from "vscode-languageclient/node";
-
-import CP = require('child_process');
 
 
 export async function activate(context: ExtensionContext) {
@@ -39,21 +34,7 @@ export async function activate(context: ExtensionContext) {
   } else if (env.binAbsPath.status === "onWindows") {
     window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL.`);
   } else {
-    // Register formatter
-    languages.registerDocumentFormattingEditProvider("imandrax", {
-      provideDocumentFormattingEdits(document: TextDocument): TextEdit[] {
-        const config = workspace.getConfiguration("imandrax");
-        const cmd_args: string[] = config.lsp.formatter;
-        if (!cmd_args || cmd_args.length == 0)
-          return [];
-        else {
-          const out = CP.execSync(cmd_args.join(" ") + " " + document.fileName);
-          const rng = new Range(0, 0, document.lineCount, 0);
-          document.validateRange(rng);
-          return [TextEdit.replace(rng, out.toString())];
-        }
-      }
-    });
+    formatter.register();
 
     commands_.register(context, lspClient);
 
