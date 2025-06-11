@@ -22,8 +22,6 @@ import {
 
 import CP = require('child_process');
 
-let extensionUri : Uri | undefined = undefined;
-
 const lspConfig = environment.getEnv();
 const lspClient = new lsp_client.LspClient(lspConfig);
 const getClient: () => LanguageClient = () => { return lspClient.getClient(); };
@@ -41,8 +39,6 @@ export async function activate(context: ExtensionContext) {
   } else if (env.binAbsPath.status === "onWindows") {
     window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL.`);
   } else {
-    extensionUri = context;
-
     // Register formatter
     languages.registerDocumentFormattingEditProvider("imandrax", {
       provideDocumentFormattingEdits(document: TextDocument): TextEdit[] {
@@ -67,10 +63,10 @@ export async function activate(context: ExtensionContext) {
     listenersInstance.register();
 
     workspace.onDidChangeConfiguration(event => {
-      lspClient.update_configuration(extensionUri, event);
+      lspClient.update_configuration(context.extensionUri, event);
     });
 
-    lspClient.start({ extensionUri: extensionUri });
+    lspClient.start({ extensionUri: context.extensionUri });
   }
 }
 
