@@ -1,4 +1,4 @@
-import * as ApiKey from './apiKey';
+import * as ApiKey from './api_key';
 
 import * as Path from 'path';
 import * as Which from "which";
