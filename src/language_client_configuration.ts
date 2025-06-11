@@ -9,11 +9,13 @@ interface PlatformConfiguration {
   inRemoteWsl: boolean;
 }
 
+type FoundPathInner = {
+  status: "foundPath"
+  path: string
+}
+
 type BinAbsPath =
-  | {
-    status: "foundPath"
-    path: string
-  }
+  | FoundPathInner
   | {
     status: "onWindows"
   }
@@ -28,7 +30,7 @@ export interface ImandraXLanguageClientConfiguration {
 }
 
 export interface FoundPathConfig extends ImandraXLanguageClientConfiguration {
-  binAbsPath: { status: "foundPath"; path: string };
+  binAbsPath: FoundPathInner;
 }
 
 export function isFoundPath(
