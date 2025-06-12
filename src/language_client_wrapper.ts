@@ -42,7 +42,7 @@ export class LanguageClientWrapper {
       args: languageClientConfig.serverArgs,
       options: { env: languageClientConfig.mergedEnv }
     };
-    this.vfsProvider = new vfs_provider.VFSContentProvider(this.getClient);
+    this.vfsProvider = new vfs_provider.VFSContentProvider(() => { return this.getClient(); });
   }
 
   // Start language server
