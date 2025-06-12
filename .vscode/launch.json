@@ -3,6 +3,19 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Extension Tests",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "--extensionTestsPath=${workspaceFolder}/src/out/test/extension.test.js"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/src/out/test/**/*.js"
+      ]
+    },
+    {
       "type": "extensionHost",
       "request": "launch",
       "name": "Launch Client",
