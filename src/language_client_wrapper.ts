@@ -10,14 +10,12 @@ import { FoundPathConfig } from './language_client_configuration';
 
 const MAX_RESTARTS: number = 10;
 
-// export let client: LanguageClient = undefined;
 export let clientRestarts: number = 0;
 
 export interface RestartParams {
   extensionUri: Uri
 }
 
-// Sleep for the number of seconds
 async function sleep(time_ms: number) {
   return new Promise(resolve => setTimeout(resolve, time_ms));
 }
