@@ -227,7 +227,7 @@
     "typescript": "^5.2.2",
     "typescript-eslint": "^8.34.1",
     "imandrax-api": "file:vendor/imandrax-api/src/ts/lib",
-    "ts-node": "^10.9.2",
-    "imlformat": "file:imlformat"
+    "imlformat": "file:imlformat",
+    "ts-node": "^10.9.2"
   }
 }
