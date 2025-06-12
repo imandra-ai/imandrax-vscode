@@ -206,10 +206,10 @@
     "@vscode/test-cli": "^0.0.10",
     "esbuild": "^0.25.3",
     "eslint": "^9.25.1",
-    "mocha": "^11.0.0",
-    "typescript": "^5.2.2",
     "imandrax-api": "file:vendor/imandrax-api/src/ts/lib",
+    "imlformat": "file:imlformat",
+    "mocha": "^11.0.0",
     "ts-node": "^10.9.2",
-    "imlformat": "file:imlformat"
+    "typescript": "^5.2.2"
   }
 }
