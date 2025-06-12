@@ -147,7 +147,8 @@
       },
       {
         "command": "imandrax.browse",
-        "title": "ImandraX: Browse tasks"
+        "title": "ImandraX: Browse tasks (Debug mode)",
+        "enablement": "config.imandrax.debugMode == true"
       },
       {
         "command": "imandrax.toggle_full_ids",
