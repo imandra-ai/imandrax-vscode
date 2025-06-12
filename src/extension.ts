@@ -5,6 +5,7 @@ import * as installer from './installer';
 import * as language_client_configuration from './language_client_configuration';
 import * as language_client_wrapper from './language_client_wrapper';
 import * as listeners from './listeners';
+import * as vscode from 'vscode';
 
 import {
   ExtensionContext,
@@ -12,6 +13,7 @@ import {
   window,
   workspace
 } from "vscode";
+
 
 import {
   LanguageClient,
@@ -38,7 +40,7 @@ export async function activate(context: ExtensionContext) {
       languageClientWrapper.update_configuration(context.extensionUri, event);
     });
 
-    languageClientWrapper.start({ extensionUri: context.extensionUri });
+    await languageClientWrapper.start({ extensionUri: context.extensionUri });
   }
   else if (languageClientConfig.binPathAvailability.status === "missingPath") {
     const args = { revealSetting: { key: "imandrax.lsp.binary", edit: true } };
@@ -49,4 +51,6 @@ export async function activate(context: ExtensionContext) {
   } else if (languageClientConfig.binPathAvailability.status === "onWindows") {
     window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL.`);
   }
+
+  return process.env.NODE_ENV === 'test' ? context : undefined;
 }

@@ -70,4 +70,5 @@ export function f(context: ExtensionContext, languageClientWrapper: LanguageClie
     return true;
   };
   context.subscriptions.push(commands.registerCommand(reset_goal_state_cmd, reset_goal_state_handler));
+
 }
