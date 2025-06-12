@@ -37,7 +37,13 @@
             "verbose"
           ],
           "default": "off",
-          "description": "Traces the communication between VS Code and the language server."
+          "description": "Traces the communication between VS Code and the language server"
+        },
+        "imandrax.debugMode": {
+          "scope": "window",
+          "type": "boolean",
+          "default": false,
+          "description": "Enables running some commands directly from the Command Palette"
         },
         "imandrax.lsp.binary": {
           "scope": "machine-overridable",
@@ -161,7 +167,8 @@
       },
       {
         "command": "imandrax.open_vfs_file",
-        "title": "Imandrax: Open VFS file"
+        "title": "Imandrax: Open VFS file (Debug mode)",
+        "enablement": "config.imandrax.debugMode == true"
       },
       {
         "command": "imandrax.open_goal_state",
