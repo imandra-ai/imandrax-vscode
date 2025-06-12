@@ -8,11 +8,6 @@ import * as language_client_wrapper from '../language_client_wrapper';
 import * as vscode from 'vscode';
 
 suite('Extension Test Suite', () => {
-  const f = language_client_configuration.get();
-  if (language_client_configuration.isFoundPath(f)) {
-    const x = new language_client_wrapper.LanguageClientWrapper(f);
-    console.log(x);
-  }
   suiteTeardown(() => {
     vscode.window.showInformationMessage('All tests done!');
   });
@@ -20,5 +15,14 @@ suite('Extension Test Suite', () => {
   test('Sample test', () => {
     assert.strictEqual(-1, [1, 2, 3].indexOf(5));
     assert.strictEqual(-1, [1, 2, 3].indexOf(0));
+  });
+
+  test('client starts', async () => {
+    const conf = language_client_configuration.get();
+    if (language_client_configuration.isFoundPath(conf)) {
+      const x = new language_client_wrapper.LanguageClientWrapper(conf);
+      await x.start({ extensionUri: vscode.Uri.parse("") });
+      assert(x.getClient() != undefined);
+    }
   });
 });
