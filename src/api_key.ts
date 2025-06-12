@@ -19,7 +19,7 @@ function getApiKeyFileUri(): Uri {
   return Uri.joinPath(configDir, API_KEY_FILE);
 }
 
-export async function get(): Promise<string | null> {
+export async function get(): Promise<string | undefined> {
   const userHome = Uri.file(homedir());
   return (process.env.IMANDRA_API_KEY ||
     (await readOptionalFile(

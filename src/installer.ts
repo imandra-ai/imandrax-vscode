@@ -23,7 +23,7 @@ async function getApiKeyInput() {
 async function promptForApiKey() {
   const options: QuickPickOptions = { title: 'Choose how to configure your API key', ignoreFocusOut: true };
 
-  const existingApiKey: string | null = await ApiKey.get();
+  const existingApiKey: string | undefined = await ApiKey.get();
 
   // items
   const useExisting = { label: "Use already configured API key" };
