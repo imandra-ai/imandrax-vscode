@@ -1,3 +1,6 @@
+[@@@import ABC, "abc.iml"]
+[@@@import "def.iml"]
+
 let
  f
   x = (x +
