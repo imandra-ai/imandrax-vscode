@@ -14,7 +14,7 @@ type FoundPathInner = {
   path: string
 }
 
-type BinAbsPath =
+type BinPathAvailability =
   | FoundPathInner
   | {
     status: "onWindows"
@@ -24,22 +24,22 @@ type BinAbsPath =
   }
 
 export interface ImandraXLanguageClientConfiguration {
-  serverArgs,
-  mergedEnv,
-  binAbsPath: BinAbsPath,
+  serverArgs: any,
+  mergedEnv: any,
+  binPathAvailability: BinPathAvailability,
 }
 
 export interface FoundPathConfig extends ImandraXLanguageClientConfiguration {
-  binAbsPath: FoundPathInner;
+  binPathAvailability: FoundPathInner;
 }
 
 export function isFoundPath(
   cfg: ImandraXLanguageClientConfiguration
 ): cfg is FoundPathConfig {
-  return cfg.binAbsPath.status === "foundPath";
+  return cfg.binPathAvailability.status === "foundPath";
 }
 
-function getBinAbsPath(platform_configuration: PlatformConfiguration, binary: string): BinAbsPath {
+function getBinPathAvailability(platform_configuration: PlatformConfiguration, binary: string): BinPathAvailability {
   if ((!platform_configuration.onWindows)
     || (platform_configuration.onWindows && platform_configuration.inRemoteWsl)) {
     const path = Which.sync(binary, { nothrow: true });
@@ -72,7 +72,7 @@ export function get(): ImandraXLanguageClientConfiguration | FoundPathConfig {
 
   const platformConfiguration = getPlatformConfiguration();
 
-  const binAbsPath = getBinAbsPath(platformConfiguration, binary);
+  const binPathAvailability = getBinPathAvailability(platformConfiguration, binary);
 
-  return binAbsPath.status == 'foundPath' ? { serverArgs, mergedEnv, binAbsPath } as FoundPathConfig : { serverArgs, mergedEnv, binAbsPath };
+  return binPathAvailability.status == 'foundPath' ? { serverArgs, mergedEnv, binPathAvailability: binPathAvailability } as FoundPathConfig : { serverArgs, mergedEnv, binPathAvailability: binPathAvailability };
 }

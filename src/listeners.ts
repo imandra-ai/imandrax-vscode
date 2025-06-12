@@ -9,7 +9,7 @@ export class Listeners {
   file_progress_sbi: StatusBarItem;
   getClient: () => LanguageClient;
 
-  constructor(context: ExtensionContext, getClient) {
+  constructor(context: ExtensionContext, getClient: () => LanguageClient) {
     // todo seb should this be here, or in commands?
     const fileProgressCmdId = "file-progress-cmd";
     context.subscriptions.push(commands.registerCommand(fileProgressCmdId, () => {
@@ -54,7 +54,7 @@ export class Listeners {
 
   async req_file_progress(uri: Uri) {
     if (this.getClient() && this.getClient().isRunning())
-      this.getClient().sendRequest<string>("$imandrax/req-file-progress", { "uri": uri.path }).then((rsp) => {
+      this.getClient().sendRequest<string>("$imandrax/req-file-progress", { "uri": uri.path }).then((rsp: any) => {
         const task_stats = rsp["task_stats"];
         if (task_stats == null) this.file_progress_sbi.hide(); else {
           try {
@@ -92,8 +92,8 @@ export class Listeners {
       const doc = editor.document;
       if (doc !== undefined) {
         if (doc.languageId == "imandrax") {
-          this.diagnostics_for_editor(window.activeTextEditor);
-          const file_uri = window.activeTextEditor.document.uri;
+          this.diagnostics_for_editor(editor);
+          const file_uri = editor.document.uri;
           if (file_uri.scheme == "file")
             this.req_file_progress(file_uri);
           else
@@ -109,7 +109,7 @@ export class Listeners {
       const doc = editor.document;
       if (doc !== undefined) {
         if (doc.languageId == "imandrax") {
-          this.diagnostics_for_editor(window.activeTextEditor);
+          this.diagnostics_for_editor(editor);
           const file_uri = doc.uri;
           if (file_uri.scheme == "file") {
             if (this.getClient() !== undefined && this.getClient().isRunning())

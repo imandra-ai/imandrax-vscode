@@ -2,8 +2,8 @@ import * as commands_ from './commands/commands';
 import * as decorations from './decorations';
 import * as vfs_provider from './vfs_provider';
 
+import { ConfigurationChangeEvent, Uri, window, workspace } from 'vscode';
 import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-languageclient/node';
-import { Uri, window, workspace } from 'vscode';
 
 import { FoundPathConfig } from './language_client_configuration';
 
@@ -24,7 +24,7 @@ async function sleep(time_ms: number) {
 
 export class LanguageClientWrapper {
   private readonly serverOptions: Executable;
-  private client: LanguageClient;
+  private client!: LanguageClient;
   private readonly vfsProvider: vfs_provider.VFSContentProvider;
   private isInitial = () => { return this.client == undefined; };
 
@@ -38,7 +38,7 @@ export class LanguageClientWrapper {
 
   constructor(languageClientConfig: FoundPathConfig) {
     this.serverOptions = {
-      command: languageClientConfig.binAbsPath.path,
+      command: languageClientConfig.binPathAvailability.path,
       args: languageClientConfig.serverArgs,
       options: { env: languageClientConfig.mergedEnv }
     };
@@ -100,10 +100,10 @@ export class LanguageClientWrapper {
       if (this.client && this.client.isRunning())
         await this.client.stop().catch(ex => console.log(`Exception thrown while stopping LSP client/server: ${ex}`));
 
-      this.client = undefined;
+      this.client = undefined!;
 
-      window.activeTextEditor.setDecorations(decorations.decoration_type_good, []);
-      window.activeTextEditor.setDecorations(decorations.decoration_type_bad, []);
+      window.activeTextEditor?.setDecorations(decorations.decoration_type_good, []);
+      window.activeTextEditor?.setDecorations(decorations.decoration_type_bad, []);
 
       sleep(500); // Give it a bit of time to avoid races on the log file.
     }
@@ -119,7 +119,7 @@ export class LanguageClientWrapper {
       this.client.stop().catch(ex => console.log(`Exception thrown while stopping LSP client/server: ${ex}`));
   }
 
-  update_configuration(extensionUri: Uri, event): Promise<void> {
+  update_configuration(extensionUri: Uri, event: ConfigurationChangeEvent | undefined) {
     if (event == undefined || event.affectsConfiguration('imandrax')) {
       const client = this.client;
       if (event && (

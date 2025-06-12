@@ -38,7 +38,7 @@ async function promptForApiKey() {
 
   const itemT = await window.showQuickPick(items, options);
 
-  switch (itemT.label) {
+  switch (itemT?.label) {
     case goToIu.label:
       env.openExternal(await env.asExternalUri(Uri.parse("https://universe.imandra.ai/user/api-keys")));
       getApiKeyInput();

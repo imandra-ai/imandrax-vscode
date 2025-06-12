@@ -60,17 +60,17 @@ export function interact_model(params: { [key: string]: any; }) {
   t.show();
 }
 
-export function copy_model(params) {
+export function copy_model(params: { [x: string]: any; }) {
   const models = params["models"];
   let str = "";
   models.join();
-  models.forEach(async m => {
+  models.forEach(async (m: string) => {
     str += m;
   });
   env.clipboard.writeText(str);
 }
 
-export function visualize_decomp(extensionUri, params) {
+export function visualize_decomp(extensionUri: Uri, params: { [x: string]: any; }) {
   const decomps = params["decomps"];
 
   let body: string = "";
@@ -120,8 +120,8 @@ export function checkAll(getClient: () => LanguageClient) {
   if (!getClient()) {
     return undefined;
   }
-  const file_uri = window.activeTextEditor.document.uri;
-  if (getClient() && getClient().isRunning() && file_uri.scheme == "file")
+  const file_uri = window.activeTextEditor?.document.uri;
+  if (getClient() && getClient().isRunning() && file_uri?.scheme == "file")
     getClient().sendRequest("workspace/executeCommand", { "command": "check-all", "arguments": [file_uri.toString()] });
 }
 
@@ -142,7 +142,7 @@ export function toggle_full_ids(getClient: () => LanguageClient): Thenable<void>
 
 export function terminal_eval_selection(): boolean {
   const editor = window.activeTextEditor;
-  const selection = editor.selection;
+  const selection = editor?.selection;
   if (selection && !selection.isEmpty) {
     const selectionRange = new Range(selection.start.line, selection.start.character, selection.end.line, selection.end.character);
     const highlighted = editor.document.getText(selectionRange);

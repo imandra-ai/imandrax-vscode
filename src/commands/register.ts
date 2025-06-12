@@ -60,7 +60,13 @@ export function f(context: ExtensionContext, languageClientWrapper: LanguageClie
   const reset_goal_state_cmd = "imandrax.reset_goal_state";
   const reset_goal_state_handler = () => {
     if (getClient() && getClient().isRunning())
-      getClient().sendRequest("workspace/executeCommand", { "command": "reset-goal-state", "arguments": [] });
+      try {
+        getClient().sendRequest("workspace/executeCommand", { "command": "reset-goal-state", "arguments": [] });
+      }
+      catch (e) {
+        console.log("caught something!");
+        console.log(e);
+      }
     return true;
   };
   context.subscriptions.push(commands.registerCommand(reset_goal_state_cmd, reset_goal_state_handler));

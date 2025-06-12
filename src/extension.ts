@@ -40,13 +40,13 @@ export async function activate(context: ExtensionContext) {
 
     languageClientWrapper.start({ extensionUri: context.extensionUri });
   }
-  else if (languageClientConfig.binAbsPath.status === "missingPath") {
+  else if (languageClientConfig.binPathAvailability.status === "missingPath") {
     const args = { revealSetting: { key: "imandrax.lsp.binary", edit: true } };
     const openUri = Uri.parse(
       `command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
     );
     await installer.promptToInstall(openUri);
-  } else if (languageClientConfig.binAbsPath.status === "onWindows") {
+  } else if (languageClientConfig.binPathAvailability.status === "onWindows") {
     window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL.`);
   }
 }
