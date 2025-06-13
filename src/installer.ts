@@ -1,8 +1,10 @@
-import * as ApiKey from './apiKey';
-import { exec } from 'child_process';
+import * as ApiKey from './api_key';
+
 import * as Path from 'path';
 import * as Which from "which";
-import { commands, env, MessageItem, ProgressLocation, QuickPickItem, QuickPickOptions, Uri, window, workspace, ConfigurationTarget } from "vscode";
+
+import { commands, ConfigurationTarget, env, MessageItem, ProgressLocation, QuickPickItem, QuickPickOptions, Uri, window, workspace } from "vscode";
+import { exec } from 'child_process';
 
 async function getApiKeyInput() {
   const result = await window.showInputBox({
@@ -21,7 +23,7 @@ async function getApiKeyInput() {
 async function promptForApiKey() {
   const options: QuickPickOptions = { title: 'Choose how to configure your API key', ignoreFocusOut: true };
 
-  const existingApiKey: string | null = await ApiKey.get();
+  const existingApiKey: string | undefined = await ApiKey.get();
 
   // items
   const useExisting = { label: "Use already configured API key" };
@@ -36,7 +38,7 @@ async function promptForApiKey() {
 
   const itemT = await window.showQuickPick(items, options);
 
-  switch (itemT.label) {
+  switch (itemT?.label) {
     case goToIu.label:
       env.openExternal(await env.asExternalUri(Uri.parse("https://universe.imandra.ai/user/api-keys")));
       getApiKeyInput();
@@ -93,12 +95,12 @@ async function runInstallerForUnix(itemT: MessageItem, title: string): Promise<v
 
       const getCmdPrefix = () => {
         const wgetPath = Which.sync("wget", { nothrow: true });
-        if (wgetPath != "" && wgetPath != null) {
+        if (wgetPath !== "" && wgetPath !== null) {
           return "wget -qO-";
         }
         else {
           const curlPath = Which.sync("curl", { nothrow: true });
-          if (curlPath != "" && curlPath != null) {
+          if (curlPath !== "" && curlPath !== null) {
             return "curl -fsSL";
           }
           else {
