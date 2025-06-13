@@ -18,21 +18,37 @@ suite('Commands Test Suite', () => {
     language_client_wrapper = (global as any).testLanguageClientWrapper;
   });
 
-  test(['given extension just started,',
+  test([
+    'given extension just started,',
     'create terminal should increase',
     'the window.terminals.length by 1'
   ].join(' '), () => {
+    const term_count = vscode.window.terminals.length;
+
+    // act
+    vscode.commands.executeCommand('imandrax.create_terminal');
+
+    // assert
+    assert(vscode.window.terminals.length == term_count + 1);
+  });
+
+  test([
+    'given client is not undefined,',
+    'restart language server should',
+    'cause the result of getClient()',
+    'to return a new client and',
+    'fail the triple equals test'
+  ].join(' '), async () => {
     // arrange
-    assert(extensionContext != undefined);
-    if (extensionContext) {
-      const term_count = vscode.window.terminals.length;
+    const client = language_client_wrapper?.getClient();
 
-      // act
-      vscode.commands.executeCommand('imandrax.create_terminal');
+    // act
+    await vscode.commands.executeCommand('imandrax.restart_language_server');
 
-      // assert
-      assert(vscode.window.terminals.length == term_count + 1);
-    }
+    // assert
+    assert(client);
+    assert(language_client_wrapper?.getClient());
+    assert(client !== language_client_wrapper?.getClient());
   });
 
   test([
