@@ -1,4 +1,6 @@
 import * as assert from 'assert';
+import * as language_client_wrapper from '../language_client_wrapper';
+
 import * as vscode from 'vscode';
 
 suite('Commands Test Suite', () => {
@@ -7,11 +9,13 @@ suite('Commands Test Suite', () => {
   });
 
   let extensionContext: vscode.ExtensionContext | undefined;
+  let language_client_wrapper: language_client_wrapper.LanguageClientWrapper | undefined;
   suiteSetup(async () => {
     process.env.NODE_ENV = 'test';
     const ext = vscode.extensions.getExtension('imandra.imandrax');
     await ext!.activate();
     extensionContext = (global as any).testExtensionContext;
+    language_client_wrapper = (global as any).testLanguageClientWrapper;
   });
 
   test('given extension just started, create terminal should increase the window.terminals.length by 1', () => {
@@ -25,6 +29,22 @@ suite('Commands Test Suite', () => {
 
       // assert
       assert(vscode.window.terminals.length == term_count + 1);
+    }
+  });
+
+  test('given extension just started, restart language server should cause the result of getClient() to fail the triple equals test', () => {
+    // arrange
+    assert(extensionContext != undefined);
+    if (extensionContext) {
+      const client = language_client_wrapper?.getClient();
+
+      // act
+      vscode.commands.executeCommand('imandrax.restart_language_server');
+
+      // assert
+      assert(client);
+      assert(language_client_wrapper?.getClient());
+      assert(client !== language_client_wrapper?.getClient());
     }
   });
 });

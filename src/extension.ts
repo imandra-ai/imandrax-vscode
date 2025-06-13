@@ -40,6 +40,10 @@ export async function activate(context: ExtensionContext) {
     });
 
     await languageClientWrapper.start({ extensionUri: context.extensionUri });
+    
+    if (process.env.NODE_ENV === 'test') {
+      (global as any).testLanguageClientWrapper = languageClientWrapper;
+    }
   }
   else if (languageClientConfig.binPathAvailability.status === "missingPath") {
     const args = { revealSetting: { key: "imandrax.lsp.binary", edit: true } };
