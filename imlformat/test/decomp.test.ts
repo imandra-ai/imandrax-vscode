@@ -3,7 +3,7 @@ import { expect, test } from '@jest/globals';
 import { format } from "../imlformat.format";
 
 test("decomp 1", () => {
-  format(`
+  return format(`
 let g x =
   if x > 22 then 9
   else 100 + x
