@@ -3,7 +3,7 @@ import { expect, test } from '@jest/globals';
 import { format } from "../imlformat.format";
 
 test("theorem 1", () => {
-  format(`
+  return format(`
     let f x = (x) + (1)
 
 theorem

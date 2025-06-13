@@ -4,7 +4,7 @@ import { expect, test } from '@jest/globals';
 import { format } from "../imlformat.format";
 
 test("constants", () => {
-  format(`
+  return format(`
 let a = 1
 let b = (- 1)
 let c = 1.0
@@ -25,7 +25,7 @@ let e = "abc"`))
 
 
 test("function", () => {
-  format(`
+  return format(`
 let
 g
 ?(x)
@@ -37,7 +37,7 @@ g
 })
 
 test("theorem", () => {
-  format(`
+  return format(`
 theorem
    f_gt     x
    = ((f  x   ) >
@@ -47,7 +47,7 @@ theorem
 })
 
 test("eval", () => {
-  format(`
+  return format(`
 eval (
 f 0)
    ;;
@@ -56,7 +56,7 @@ f 0)
 })
 
 test("variant type", () => {
-  format(`
+  return format(`
 type
   u = A |
 B
@@ -65,7 +65,7 @@ B
 })
 
 test("record type", () => {
-  format(`
+  return format(`
 type
   t =
     { a: int; b : float; c :int; d : float;
@@ -81,7 +81,7 @@ type t =
 })
 
 test("directive", () => {
-  format(`
+  return format(`
   #somedirective
    "def";;
 `).then(x =>
@@ -89,6 +89,6 @@ test("directive", () => {
 })
 
 test("operator precedence", () => {
-  format(`let f x y = ((x - 1) * (y + 1)) + 1`)
+  return format(`let f x y = ((x - 1) * (y + 1)) + 1`)
     .then(x => expect(x).toEqual(`let f x y = (x - 1) * (y + 1) + 1`))
 })

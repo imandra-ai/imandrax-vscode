@@ -3,7 +3,7 @@ import { expect, test } from '@jest/globals';
 import { format } from "../imlformat.format";
 
 test("instance 1", () => {
-  format(`
+  return format(`
   let c n =
   if n <= 0 then
     false
@@ -20,7 +20,7 @@ instance (c)`))
 });
 
 test("instance 2", () => {
-  format(`
+  return format(`
 instance (
   fun x
   ->

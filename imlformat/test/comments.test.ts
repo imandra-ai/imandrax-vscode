@@ -3,7 +3,7 @@ import { expect, test } from '@jest/globals';
 import { format } from "../imlformat.format";
 
 test("Comment 1", () => {
-  format(`
+  return format(`
 (* This is a comment *)
 let f = 1
 `).then(x =>
@@ -13,7 +13,7 @@ let f = 1`))
 })
 
 test("Comment 2", () => {
-  format(`
+  return format(`
 let f = 1
 (* This is a comment *)
 `).then(x =>
@@ -23,7 +23,7 @@ let f = 1`))
 })
 
 test("Docstring 1", () => {
-  format(`
+  return format(`
 (** This is a docstring *)
 let f = 1
 `).then(x =>
@@ -33,7 +33,7 @@ let f = 1
 })
 
 test("Floating docstring", () => {
-  format(`
+  return format(`
   let f
   =
   1
