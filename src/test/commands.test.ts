@@ -18,7 +18,10 @@ suite('Commands Test Suite', () => {
     language_client_wrapper = (global as any).testLanguageClientWrapper;
   });
 
-  test('given extension just started, create terminal should increase the window.terminals.length by 1', () => {
+  test(['given extension just started,',
+    'create terminal should increase',
+    'the window.terminals.length by 1'
+  ].join(' '), () => {
     // arrange
     assert(extensionContext != undefined);
     if (extensionContext) {
@@ -32,14 +35,20 @@ suite('Commands Test Suite', () => {
     }
   });
 
-  test('given extension just started, restart language server should cause the result of getClient() to fail the triple equals test', () => {
+  test([
+    'given client is not undefined,',
+    'restart language server should',
+    'cause the result of getClient()',
+    'to return a new client and',
+    'fail the triple equals test'
+  ].join(' '), async () => {
     // arrange
     assert(extensionContext != undefined);
     if (extensionContext) {
       const client = language_client_wrapper?.getClient();
 
       // act
-      vscode.commands.executeCommand('imandrax.restart_language_server');
+      await vscode.commands.executeCommand('imandrax.restart_language_server');
 
       // assert
       assert(client);
