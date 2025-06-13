@@ -1,19 +1,23 @@
 {
 	"compilerOptions": {
-		"module": "commonjs",
-		"target": "es2020",
+		"module": "CommonJS",
+		"target": "ES2020",
 		"lib": [
-			"es2020"
+			"ES2020"
 		],
 		"outDir": "src/out",
 		"rootDir": "src",
-		"sourceMap": true
+		"sourceMap": true,
+		"composite": true,
 	},
-	"include": [
-		"src"
-	],
+	"include": [],
 	"exclude": [
 		"node_modules",
 		".vscode-test"
+	],
+	"references": [
+		{
+			"path": "imlformat/tsconfig.json"
+		}
 	]
 }

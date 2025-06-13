@@ -10,8 +10,6 @@ import {
   EventEmitter,
   ExtensionContext,
   languages,
-  MessageItem,
-  ProgressLocation,
   Range,
   StatusBarAlignment,
   StatusBarItem,
@@ -24,7 +22,8 @@ import {
   Uri,
   ViewColumn,
   window,
-  workspace
+  workspace,
+  TextEditorDecorationType
 } from "vscode";
 
 import {
@@ -33,22 +32,24 @@ import {
   LanguageClientOptions,
 } from "vscode-languageclient/node";
 
-import CP = require('child_process');
-import Path = require('path');
+import * as Path from 'path';
 
 import { getEnv } from "./environment";
 
+import * as prettier from 'prettier';
+import * as iml_prettier from 'imlformat/iml-prettier';
+
 const MAX_RESTARTS: number = 10;
 
-let context: ExtensionContext = undefined;
+let context: ExtensionContext;
 let clientRestarts: number = 0;
-let client: LanguageClient = undefined;
+let client: LanguageClient | undefined = undefined;
 let showFullIDs: boolean = false;
 let next_terminal_id = 0;
 let model_count = 0;
-let decoration_type_good = undefined;
-let decoration_type_bad = undefined;
-let file_progress_sbi: StatusBarItem = undefined;
+let decoration_type_good: TextEditorDecorationType | undefined = undefined;
+let decoration_type_bad: TextEditorDecorationType | undefined = undefined;
+let file_progress_sbi: StatusBarItem;
 let file_progress_text: string = "No tasks";
 
 class VFSContentProvider implements TextDocumentContentProvider {
@@ -56,6 +57,9 @@ class VFSContentProvider implements TextDocumentContentProvider {
   onDidChange = this.onDidChangeEmitter.event;
 
   async provideTextDocumentContent(uri: Uri): Promise<string> {
+    if (!client)
+      return "";
+
     if (uri.authority == undefined || uri.authority == "") {
       const fst = uri.path.split("/");
       const auth = (fst[0] == "") ? fst[1] : fst[0];
@@ -65,26 +69,11 @@ class VFSContentProvider implements TextDocumentContentProvider {
   }
 }
 
-let vfs_provider: VFSContentProvider = undefined;
+let vfs_provider: VFSContentProvider;
 
-export function activate(context_: ExtensionContext) {
+
+export async function activate(context_: ExtensionContext) {
   context = context_;
-
-  // Register formatter
-  languages.registerDocumentFormattingEditProvider("imandrax", {
-    provideDocumentFormattingEdits(document: TextDocument): TextEdit[] {
-      const config = workspace.getConfiguration("imandrax");
-      const cmd_args: string[] = config.lsp.formatter;
-      if (!cmd_args || cmd_args.length == 0)
-        return [];
-      else {
-        const out = CP.execSync(cmd_args.join(" ") + " " + document.fileName);
-        const rng = new Range(0, 0, document.lineCount, 0);
-        document.validateRange(rng);
-        return [TextEdit.replace(rng, out.toString())];
-      }
-    }
-  });
 
   // Register commands
   const restart_cmd = "imandrax.restart_language_server";
@@ -184,9 +173,32 @@ export function activate(context_: ExtensionContext) {
   });
 
   restart(true);
+
+  languages.registerDocumentFormattingEditProvider('imandrax', {
+    async provideDocumentFormattingEdits(document: TextDocument): Promise<TextEdit[]> {
+      try {
+        let formatted = "";
+
+        formatted = await prettier.format(document.getText(), {
+          semi: false,
+          parser: "iml-parse",
+          plugins: [iml_prettier],
+        });
+
+        var start = document.lineAt(0);
+        var end = document.lineAt(document.lineCount - 1);
+        var range = new Range(start.range.start, end.range.end);
+
+        return [TextEdit.replace(range, formatted)];
+      } catch (e) {
+        console.log(`Formatting error: ${e}`);
+      }
+      return [];
+    }
+  });
 }
 
-function update_configuration(event): Promise<void> {
+async function update_configuration(event): Promise<void> {
   if (event == undefined || event.affectsConfiguration('imandrax')) {
     if (event && (
       event.affectsConfiguration('imandrax.lsp.binary') ||
@@ -227,8 +239,10 @@ function diagnostics_for_editor(editor: TextEditor) {
     }
     );
     all_good = all_good.filter(x => { return all_bad.find(y => x.range.start.line == y.range.start.line) == undefined; });
-    editor.setDecorations(decoration_type_good, all_good);
-    editor.setDecorations(decoration_type_bad, all_bad);
+    if (decoration_type_good)
+      editor.setDecorations(decoration_type_good, all_good);
+    if (decoration_type_bad)
+      editor.setDecorations(decoration_type_bad, all_bad);
   }
 }
 
@@ -238,8 +252,8 @@ async function diagnostic_listener(e: DiagnosticChangeEvent) {
     const doc = editor.document;
     if (doc !== undefined) {
       if (doc.languageId == "imandrax") {
-        diagnostics_for_editor(window.activeTextEditor);
-        const file_uri = window.activeTextEditor.document.uri;
+        diagnostics_for_editor(editor);
+        const file_uri = editor.document.uri;
         if (file_uri.scheme == "file")
           req_file_progress(file_uri);
         else
@@ -255,7 +269,7 @@ async function active_editor_listener() {
     const doc = editor.document;
     if (doc !== undefined) {
       if (doc.languageId == "imandrax") {
-        diagnostics_for_editor(window.activeTextEditor);
+        diagnostics_for_editor(editor);
         const file_uri = doc.uri;
         if (file_uri.scheme == "file") {
           if (client !== undefined && client.isRunning())
@@ -380,8 +394,12 @@ export async function restart(initial: boolean = false) {
 
     client = undefined;
 
-    window.activeTextEditor.setDecorations(decoration_type_good, []);
-    window.activeTextEditor.setDecorations(decoration_type_bad, []);
+    if (window.activeTextEditor) {
+      if (decoration_type_good)
+        window.activeTextEditor.setDecorations(decoration_type_good, []);
+      if (decoration_type_bad)
+        window.activeTextEditor.setDecorations(decoration_type_bad, []);
+    }
 
     sleep(500); // Give it a bit of time to avoid races on the log file.
   }
@@ -398,7 +416,7 @@ export function deactivate(): Thenable<void> | undefined {
 }
 
 export function check_all(): Thenable<void> | undefined {
-  if (!client) {
+  if (!client || !window.activeTextEditor) {
     return undefined;
   }
   const file_uri = window.activeTextEditor.document.uri;
@@ -438,13 +456,15 @@ function create_terminal(cwd) {
 }
 
 function terminal_eval_selection(): boolean {
-  const editor = window.activeTextEditor;
-  const selection = editor.selection;
-  if (selection && !selection.isEmpty) {
-    const selectionRange = new Range(selection.start.line, selection.start.character, selection.end.line, selection.end.character);
-    const highlighted = editor.document.getText(selectionRange);
-    if (window.activeTerminal != undefined)
-      window.activeTerminal.sendText(highlighted);
+  if (window.activeTextEditor) {
+    const editor = window.activeTextEditor;
+    const selection = editor.selection;
+    if (selection && !selection.isEmpty) {
+      const selectionRange = new Range(selection.start.line, selection.start.character, selection.end.line, selection.end.character);
+      const highlighted = editor.document.getText(selectionRange);
+      if (window.activeTerminal != undefined)
+        window.activeTerminal.sendText(highlighted);
+    }
   }
   return true;
 }
