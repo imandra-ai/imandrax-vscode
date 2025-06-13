@@ -8,7 +8,7 @@ suite('Extension Test Suite', () => {
     vscode.window.showInformationMessage('All tests done!');
   });
 
-  test('given valid platform and config, the language client starts', async () => {
+  test('given valid platform and config, the language client should start', async () => {
     const conf = language_client_configuration.get();
     if (language_client_configuration.isFoundPath(conf)) {
       const x = new language_client_wrapper.LanguageClientWrapper(conf);
