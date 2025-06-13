@@ -19,9 +19,6 @@
   "engines": {
     "vscode": "^1.96.2"
   },
-  "activationEvents": [
-    "onCommand:imandrax.restart_lsp_server"
-  ],
   "main": "./out/main",
   "contributes": {
     "configuration": {
@@ -182,13 +179,13 @@
     ]
   },
   "scripts": {
-    "compile": "tsc -b",
-    "watch": "tsc -b -w",
+    "build": "tsc -b",
+    "build-watch": "tsc -b -w",
     "lint": "eslint ./src --ext .ts,.tsx",
     "vscode:prepublish": "npm run esbuild-base -- --minify",
-    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node",
     "esbuild": "npm run esbuild-base -- --sourcemap",
     "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node",
     "test": "vscode-test"
   },
   "dependencies": {

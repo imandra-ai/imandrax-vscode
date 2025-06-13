@@ -8,6 +8,7 @@ import * as listeners from './listeners';
 
 import {
   ExtensionContext,
+  ExtensionMode,
   Uri,
   window,
   workspace
@@ -41,7 +42,7 @@ export async function activate(context: ExtensionContext) {
 
     await languageClientWrapper.start({ extensionUri: context.extensionUri });
     
-    if (process.env.NODE_ENV === 'test') {
+    if (context.extensionMode === ExtensionMode.Test) {
       (global as any).testLanguageClientWrapper = languageClientWrapper;
     }
   }
@@ -55,7 +56,7 @@ export async function activate(context: ExtensionContext) {
     window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL.`);
   }
 
-  if (process.env.NODE_ENV === 'test') {
+  if (context.extensionMode === ExtensionMode.Test) {
     (global as any).testExtensionContext = context;
   }
 }

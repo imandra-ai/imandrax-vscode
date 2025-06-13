@@ -11,9 +11,6 @@ suite('Commands Test Suite', () => {
   let extensionContext: vscode.ExtensionContext | undefined;
   let language_client_wrapper: language_client_wrapper.LanguageClientWrapper | undefined;
   suiteSetup(async () => {
-    process.env.NODE_ENV = 'test';
-    const ext = vscode.extensions.getExtension('imandra.imandrax');
-    await ext!.activate();
     extensionContext = (global as any).testExtensionContext;
     language_client_wrapper = (global as any).testLanguageClientWrapper;
   });
