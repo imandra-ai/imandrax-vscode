@@ -8,11 +8,13 @@ suite('Commands Test Suite', () => {
 
   let extensionContext: vscode.ExtensionContext | undefined;
   suiteSetup(async () => {
+    process.env.NODE_ENV = 'test';
     const ext = vscode.extensions.getExtension('imandra.imandrax');
-    extensionContext = await ext!.activate() as vscode.ExtensionContext;
+    await ext!.activate();
+    extensionContext = (global as any).testExtensionContext;
   });
 
-  test('given extension just started, create terminal increases the window.terminals.length by 1', () => {
+  test('given extension just started, create terminal should increase the window.terminals.length by 1', () => {
     // arrange
     assert(extensionContext != undefined);
     if (extensionContext) {
