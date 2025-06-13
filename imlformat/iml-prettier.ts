@@ -280,6 +280,15 @@ function op_info_of_expr(expr): PrecedenceInfo {
     case "Pexp_match": return operator_precedence_info("match");
     case "Pexp_function": return operator_precedence_info("fun");
     case "Pexp_try": return operator_precedence_info("try");
+    case "Pexp_tuple": return operator_precedence_info(",");
+    default: return operator_precedence_info(undefined);
+  }
+};
+
+function op_info_of_pat(p): PrecedenceInfo {
+  switch (p.ppat_desc[0]) {
+    case "Ppat_lazy": return operator_precedence_info("lazy");
+    case "Ppat_tuple": return operator_precedence_info(",");
     default: return operator_precedence_info(undefined);
   }
 };
@@ -321,7 +330,9 @@ function print_longident_loc(node: AST, options: Options): Doc {
 }
 
 function par_if(c: boolean, x: Doc): Doc[] {
-  return c ? ["(", x, ")"] : [x];
+  let needs_space = x instanceof Array && typeof (x[0]) == "string" && x[0].startsWith("*");
+  let l = needs_space ? line : softline;
+  return c ? ["(", l, x, l, ")"] : [x];
 }
 
 function print_constant_desc(node: AST, options: Options): Doc {
@@ -718,7 +729,7 @@ function print_pattern_desc(node: AST, options: Options): Doc {
       //     (** Patterns [(P1, ..., Pn)].
       //          Invariant: [n >= 2]
       //       *)
-      return f(["(", softline, join([",", line], args[0].map(x => print_pattern(x, options))), softline, ")"]);
+      return f([join([",", line], args[0].map(x => print_pattern(x, options)))]);
     case "Ppat_construct":
       // | Ppat_construct of Longident.t loc * (string loc list * pattern) option
       //     (** [Ppat_construct(C, args)] represents:
@@ -728,13 +739,16 @@ function print_pattern_desc(node: AST, options: Options): Doc {
       //                                          [Some ([], Ppat_tuple [P1; ...; Pn])]
       //           - [C (type a b) P]  when [args] is [Some ([a; b], P)]
       //        *)
-      if (args[1]) {
+      if (args[1] instanceof Array && args[1].length > 0) {
         let op_ident = longident2string(args[0].txt);
         let op_info = operator_precedence_info(op_ident);
         if (op_info.notation == Notation.Infix) {
           assert(args[1][1].ppat_desc[0] == "Ppat_tuple");
           let [l, r] = args[1][1].ppat_desc[1];
-          return [print_pattern(l, options), line, op_info.name, line, print_pattern(r, options)];
+          if (op_info.name == "::")
+            return print_pattern_list(args[1][1], options);
+          else
+            return [print_pattern(l, options), line, op_info.name, line, print_pattern(r, options)];
         }
         else {
           let cargs = join([";", line], args[1][0].map(sl => print_string_loc(sl, options)));
@@ -769,7 +783,7 @@ function print_pattern_desc(node: AST, options: Options): Doc {
       const r = join([";", line], args[0].map(x => f([print_longident_loc(x[0], options), line, "=", line, print_pattern(x[1], options)])));
       if (!args[1] || args[1] == "Open")
         r.push([";", line, "_"]);
-      return r;
+      return ["{", line, ...r, line, "}"];
     case "Ppat_array":
       // | Ppat_array of pattern list  (** Pattern [[| P1; ...; Pn |]] *)
       return f(["[|", line, join([";", line], args[0].map(x => print_pattern(x, options))), line, "|]"]);
@@ -825,9 +839,9 @@ function print_pattern(node: AST, options: Options): Doc {
   //    ppat_loc_stack: location_stack;
   //    ppat_attributes: attributes;  (** [... [\@id1] [\@id2]] *)
   //   }
-  let r: Doc[] = [print_pattern_desc(node.ppat_desc, options)];
-  r = r.concat(ifnonempty(line, print_attributes(node.ppat_attributes, 1, options)));
-  return f(r);
+  return f([
+    print_pattern_desc(node.ppat_desc, options),
+    ...ifnonempty(line, print_attributes(node.ppat_attributes, 1, options))]);
 }
 
 function print_value_binding(node: AST, options: Options): Doc {
@@ -838,7 +852,10 @@ function print_value_binding(node: AST, options: Options): Doc {
   //   pvb_attributes: attributes;
   //   pvb_loc: Location.t;
   // }(** [let pat : type_constraint = exp] *)
-  return f([print_pattern(node.pvb_pat, options), line, "=", line, ...print_expression(node.pvb_expr, options)]);
+  return f([
+    print_pattern(node.pvb_pat, options),
+    line, "=", line,
+    ...print_expression(node.pvb_expr, options)]);
 }
 
 function print_expression(node: AST, options: Options): Doc[] {
@@ -876,17 +893,23 @@ function print_function_param_desc(node: AST, options: Options): Doc {
       //     Note: If [E0] is provided, only
       //     {{!Asttypes.arg_label.Optional}[Optional]} is allowed.
       // *)
+      let op_info_arg = op_info_of_pat(args[2]);
+      let is_lower = op_info_arg.precedence < apply_precedence();
       switch (args[0][0]) {
-        case "Nolabel":
-          return print_pattern(args[2], options);
+        case "Nolabel": {
+          return par_if(is_lower, print_pattern(args[2], options));
+        }
         case "Labelled":
-          return f(["~", print_pattern(args[2], options)]);
+          return f(["~", par_if(is_lower, print_pattern(args[2], options))]);
         case "Optional": {
           let exp0 = args[1];
           if (!exp0)
-            return f(["?", print_pattern(args[2], options)]);
+            return f(["?", par_if(is_lower, print_pattern(args[2], options))]);
           else
-            return f(["?", "(", print_pattern(args[2], options), line, "=", ...print_expression(exp0, options), ")"]);
+            return f(["?",
+              "(", par_if(is_lower, print_pattern(args[2], options)),
+              line, "=", line,
+              ...print_expression(exp0, options), ")"]);
         }
         default:
           return print_pattern(args[2], options);
@@ -1048,22 +1071,33 @@ function print_extension_constructor(node: AST, options: Options): Doc {
 function print_flat_list_elems(e: AST, options: Options): Doc[] {
   const d0 = print_expression(e.pexp_desc[1][0], options);
   const e1 = e.pexp_desc[1][1];
-  if (e1.pexp_desc[0] == "Pexp_construct" &&
-    e1.pexp_desc[1].txt[1] == "[]")
+  if (e1.pexp_desc[0] == "Pexp_construct" && e1.pexp_desc[1].txt[1] == "[]")
     return d0;
-  else if (e1.pexp_desc[0] == "Pexp_construct" &&
-    e1.pexp_desc[1].txt[1] == "::") {
-    const rest = print_flat_list_elems(e1.pexp_desc[2], options);
-    return d0.concat(rest);
-  }
-  else {
+  else if (e1.pexp_desc[0] == "Pexp_construct" && e1.pexp_desc[1].txt[1] == "::")
+    return [d0, ...print_flat_list_elems(e1.pexp_desc[2], options)];
+  else
     return [d0, ...print_expression(e1, options)];
-  }
 }
 
 function print_list(e: AST, options: Options): Doc {
   const es = print_flat_list_elems(e, options);
   return f(["[", join([";", line], es), "]"]);
+}
+
+function print_flat_list_pattern_elems(p: AST, options: Options): Doc[] {
+  const d0 = print_pattern(p.ppat_desc[1][0], options);
+  const e1 = p.ppat_desc[1][1];
+  if (e1.ppat_desc[0] == "Ppat_construct" && e1.ppat_desc[1].txt[1] == "[]")
+    return [d0];
+  else if (e1.ppat_desc[0] == "Ppat_construct" && e1.ppat_desc[1].txt[1] == "::")
+    return [d0, ...print_flat_list_pattern_elems(e1.ppat_desc[2][1], options)];
+  else
+    return [d0, print_pattern(e1, options)];
+}
+
+function print_pattern_list(p: AST, options: Options): Doc {
+  const ps = print_flat_list_pattern_elems(p, options);
+  return f(["[", join([";", line], ps), "]"]);
 }
 
 function print_class_structure(node: AST, options: Options): Doc {
@@ -1149,16 +1183,44 @@ function is_qconst(obj: any, children: any): boolean {
   return false;
 }
 
-function is_apply_with_args(x: any): boolean {
+function is_apply_with_args(x: AST): boolean {
   return x.pexp_desc[0] == "Pexp_apply" && x.pexp_desc[2].length > 0;
 }
 
-function is_neg_const(x: any): boolean {
+function is_construct_with_args(x: AST): boolean {
+  return x.pexp_desc[0] == "Pexp_construct" && x.pexp_desc[2] !== null;
+}
+
+function is_neg_const(x: AST): boolean {
   return x.pexp_desc[0] == "Pexp_constant" &&
     ((x.pexp_desc[1].pconst_desc[0] == "Pconst_float" ||
       x.pexp_desc[1].pconst_desc[0] == "Pconst_integer")
       &&
       Number(x.pexp_desc[1].pconst_desc[1]) < 0);
+}
+
+function is_infix_op(x: AST): boolean {
+  let is_id = x.pexp_desc[0] == "Pexp_ident";
+  if (is_id) {
+    let op = longident2string(x.pexp_desc[1].txt);
+    let op_info = operator_precedence_info(op);
+    return op_info.notation == Notation.Infix;
+  }
+  return false;
+}
+
+function is_infix_op_pattern(x: AST): boolean {
+  let is_var = x.ppat_desc[0] == "Ppat_var";
+  if (is_var) {
+    let op = x.ppat_desc[1].txt;
+    let op_info = operator_precedence_info(op);
+    return op_info.notation == Notation.Infix;
+  }
+  return false;
+}
+
+function is_empty_list(x: AST): boolean {
+  return x.ppat_desc[0] == "Ppat_construct" && longident2string(x.ppat_desc[1].txt) == "[]";
 }
 
 function print_expression_desc(node: AST, options: Options): Doc {
@@ -1285,7 +1347,7 @@ function print_expression_desc(node: AST, options: Options): Doc {
                 ...par_if(
                   op_info_arg.precedence < op_info.precedence ||
                   (op_info_arg.precedence == op_info.precedence &&
-                    (is_apply_with_args(arg[1]) || is_neg_const(arg[1]))),
+                    (is_apply_with_args(arg[1]) || is_construct_with_args(arg[1]) || is_neg_const(arg[1]) || is_infix_op(arg[1]))),
                   print_expression(arg[1], options))];
             }));
             return f([op_info.name, indent([line, ...r])]);
@@ -1340,7 +1402,7 @@ function print_expression_desc(node: AST, options: Options): Doc {
 
       //          Invariant: [n >= 2]
       //       *)
-      return f(["(", softline, join([",", line], args[0].map(x => print_expression(x, options))), softline, ")"]);
+      return f([join([",", line], args[0].map(x => print_expression(x, options)))]);
     case "Pexp_construct": {
       // | Pexp_construct of Longident.t loc * expression option
       // (** [Pexp_construct(C, exp)] represents:
@@ -1356,9 +1418,13 @@ function print_expression_desc(node: AST, options: Options): Doc {
         if (args[1]) {
           let op_info = operator_precedence_info(undefined);
           let op_info_arg = op_info_of_expr(args[1]);
-          r = r.concat([line, ...par_if(
-            op_info_arg.precedence < op_info.precedence ||
-            (op_info_arg.precedence == op_info.precedence && (is_apply_with_args(args[1]) || is_neg_const(args[1]))), print_expression(args[1], options))]);
+          r = r.concat([
+            line,
+            ...par_if(
+              op_info_arg.precedence < op_info.precedence ||
+              (op_info_arg.precedence == op_info.precedence &&
+                (is_apply_with_args(args[1]) || is_construct_with_args(args[1]) || is_neg_const(args[1]))),
+              print_expression(args[1], options))]);
         }
         return f(r);
       }
@@ -1404,11 +1470,11 @@ function print_expression_desc(node: AST, options: Options): Doc {
       // | Pexp_ifthenelse of expression * expression * expression option
       //     (** [if E1 then E2 else E3] *)
       return g(["if",
-        indent([line, ...print_expression(args[0], options)]),
-        line, "then",
-        indent([line, ...print_expression(args[1], options)]),
-        line, "else",
-        indent([line, ...print_expression(args[2], options)])]);
+        indent(f([line, ...print_expression(args[0], options), line])),
+        "then",
+        indent(g([line, ...print_expression(args[1], options), line])),
+        "else",
+        indent(g([line, ...print_expression(args[2], options)]))]);
     case "Pexp_sequence":
       // | Pexp_sequence of expression * expression  (** [E1; E2] *)
       return [...print_expression(args[0], options), ";", line, print_expression(args[1], options)];
@@ -1640,11 +1706,12 @@ function print_type_kind(node: AST, options: Options): Doc {
       ))]);
     case "Ptype_record":
       // | Ptype_record of label_declaration list  (** Invariant: non-empty list *)
-      return f(["{",
-        indent([line,
-          join([";", line], args[0].map(x => print_label_declaration(x, options))),
-          ";", line,
-          "}"])]);
+      return g([
+        "{",
+        line,
+        join([";", line], args[0].map(x => print_label_declaration(x, options))),
+        ";",
+        dedent([line, "}"])]);
     case "Ptype_open":
       // | Ptype_open
       niy();
@@ -1667,9 +1734,11 @@ function print_type_declaration(node: AST, options: Options): Doc {
   // 	ptype_loc: Location.t;
   //  }
   return f([
-    indent([node.ptype_name.txt, " ", "=", ...ifnonempty(line, print_type_kind(node.ptype_kind, options)),
-    ...(node.ptype_manifest ? [line, print_core_type(node.ptype_manifest, options)] : []),
-    ...ifnonempty(line, print_attributes(node.ptype_attributes, 2, options))])]); // TODO: rest
+    print_string_loc(node.ptype_name, options), " ",
+    g([
+      ...ifnonempty(["= "], print_type_kind(node.ptype_kind, options)),
+      ...ifnonempty(["= "], (node.ptype_manifest ? [print_core_type(node.ptype_manifest, options)] : [])),
+      ...ifnonempty(line, print_attributes(node.ptype_attributes, 2, options))])]); // TODO: rest
 }
 
 function print_module_expr(node: AST, options: Options): Doc {
@@ -1868,7 +1937,7 @@ function print_structure_item_desc(node: AST, options: Options): Doc {
         let params = pvb.pvb_expr.pexp_desc[1];
         let fundef = pvb.pvb_expr.pexp_desc[3];
         return [comments, f([r,
-          f([indent([line, print_pattern(pvb.pvb_pat, options), line,
+          f([indent([line, ...par_if(is_infix_op_pattern(pvb.pvb_pat), print_pattern(pvb.pvb_pat, options)), line,
             ...join(line, params.map(x => print_function_param(x, options))),
           ]),
             line, "=",
