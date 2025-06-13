@@ -4,13 +4,15 @@ import { Buffer } from 'node:buffer';
 import * as prettier from 'prettier';
 import * as iml_prettier from './iml-prettier';
 
-export async function format(text: string, config_root: string = null): Promise<string> {
+export async function format(text: string, config_root: string | null = null): Promise<string> {
   try {
-    const config_file = await prettier.resolveConfigFile(config_root);
     let options: prettier.Options | null = null;
-    if (config_file)
-      options = await prettier.resolveConfig(config_file);
-    else {
+    if (config_root) {
+      const config_file = await prettier.resolveConfigFile(config_root);
+      if (config_file)
+        options = await prettier.resolveConfig(config_file);
+    }
+    if (!options) {
       options = {
         semi: false
       };
@@ -21,6 +23,7 @@ export async function format(text: string, config_root: string = null): Promise<
   }
   catch (e: any) {
     console.log("Prettier error: " + e.toString() + "\n" + e.stack.toString());
+    return "";
   }
 }
 
