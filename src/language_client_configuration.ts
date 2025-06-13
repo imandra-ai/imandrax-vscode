@@ -43,7 +43,7 @@ function getBinPathAvailability(platform_configuration: PlatformConfiguration, b
   if ((!platform_configuration.onWindows)
     || (platform_configuration.onWindows && platform_configuration.inRemoteWsl)) {
     const path = Which.sync(binary, { nothrow: true });
-    if (path != "" && path != null) {
+    if (path !== "" && path !== null) {
       return { status: "foundPath", path };
     }
     else {
@@ -74,5 +74,5 @@ export function get(): ImandraXLanguageClientConfiguration | FoundPathConfig {
 
   const binPathAvailability = getBinPathAvailability(platformConfiguration, binary);
 
-  return binPathAvailability.status == 'foundPath' ? { serverArgs, mergedEnv, binPathAvailability: binPathAvailability } as FoundPathConfig : { serverArgs, mergedEnv, binPathAvailability: binPathAvailability };
+  return binPathAvailability.status === 'foundPath' ? { serverArgs, mergedEnv, binPathAvailability: binPathAvailability } as FoundPathConfig : { serverArgs, mergedEnv, binPathAvailability: binPathAvailability };
 }

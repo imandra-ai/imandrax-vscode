@@ -1,7 +1,6 @@
+import * as Path from 'path';
+
 import { commands, env, Range, TerminalOptions, Uri, ViewColumn, window, workspace } from 'vscode';
-
-
-import Path = require('path');
 import { LanguageClient } from 'vscode-languageclient/node';
 
 let next_terminal_id = 0;
@@ -12,11 +11,13 @@ export function create_terminal(cwd: string | undefined) {
   const config = workspace.getConfiguration("imandrax");
 
   let name = "ImandraX";
-  if (next_terminal_id++ > 0)
+  if (next_terminal_id++ > 0) {
     name += ` #${next_terminal_id}`;
+  }
 
-  if (cwd == undefined && workspace != undefined && workspace.workspaceFolders != undefined)
+  if (cwd === undefined && workspace !== undefined && workspace.workspaceFolders !== undefined) {
     cwd = workspace.workspaceFolders[0].uri.path;
+  }
 
   const options: TerminalOptions = { name: name, shellPath: config.terminal.binary, shellArgs: config.terminal.arguments, cwd: cwd };
   const t = window.createTerminal(options);
@@ -35,7 +36,7 @@ export function interact_model(params: { [key: string]: any; }) {
   let cwd: string;
   let filename: string;
 
-  if (wsf == undefined) {
+  if (wsf === undefined) {
     cwd = Path.dirname(uri.path);
     filename = Path.basename(uri.path);
   } else {
@@ -50,8 +51,9 @@ export function interact_model(params: { [key: string]: any; }) {
   const t = create_terminal(cwd);
 
   models.forEach(async (model_mod_name: string) => {
-    if (config.terminal.freshModelModules)
+    if (config.terminal.freshModelModules) {
       model_mod_name = model_mod_name.replace("module M", "module M" + (model_count++).toString());
+    }
     t.sendText(`[@@@import ${file_mod_name}, "${filename}"];;\n`);
     t.sendText(`open ${file_mod_name};;\n`);
     t.sendText(model_mod_name + ";;\n");
@@ -121,16 +123,18 @@ export function checkAll(getClient: () => LanguageClient) {
     return undefined;
   }
   const file_uri = window.activeTextEditor?.document.uri;
-  if (getClient() && getClient().isRunning() && file_uri?.scheme == "file")
+  if (getClient() && getClient().isRunning() && file_uri?.scheme === "file") {
     getClient().sendRequest("workspace/executeCommand", { "command": "check-all", "arguments": [file_uri.toString()] });
+  }
 }
 
 export function browse(uri: string): Thenable<boolean> | undefined {
   const config = workspace.getConfiguration("imandrax");
-  if (config.useSimpleBrowser)
+  if (config.useSimpleBrowser) {
     return commands.executeCommand("simpleBrowser.api.open", uri);
-  else
+  } else {
     return env.openExternal(uri as any);
+  }
 }
 
 export function toggle_full_ids(getClient: () => LanguageClient): Thenable<void> | undefined {
@@ -146,14 +150,16 @@ export function terminal_eval_selection(): boolean {
   if (selection && !selection.isEmpty) {
     const selectionRange = new Range(selection.start.line, selection.start.character, selection.end.line, selection.end.character);
     const highlighted = editor.document.getText(selectionRange);
-    if (window.activeTerminal != undefined)
+    if (window.activeTerminal !== undefined) {
       window.activeTerminal.sendText(highlighted);
+    }
   }
   return true;
 }
 
 export function clear_cache(getClient: () => LanguageClient) {
-  if (getClient() && getClient().isRunning())
+  if (getClient() && getClient().isRunning()) {
     getClient().sendRequest("workspace/executeCommand", { "command": "clear-cache", "arguments": [] });
+  }
   return true;
 }

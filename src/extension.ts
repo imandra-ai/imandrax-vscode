@@ -2,8 +2,8 @@ import * as commands from './commands/commands';
 import * as decorations from './decorations';
 import * as formatter from './formatter';
 import * as installer from './installer';
-import * as language_client_configuration from './language_client_configuration';
-import * as language_client_wrapper from './language_client_wrapper';
+import * as languageClientConfiguration from './language_client_configuration';
+import * as languageClientWrapper from './language_client_wrapper';
 import * as listeners from './listeners';
 
 import {
@@ -14,22 +14,21 @@ import {
   workspace
 } from "vscode";
 
-
 import {
   LanguageClient,
 } from "vscode-languageclient/node";
 
 
 export async function activate(context: ExtensionContext) {
-  const languageClientConfig = language_client_configuration.get();
+  const languageClientConfig = languageClientConfiguration.get();
 
-  if (language_client_configuration.isFoundPath(languageClientConfig)) {
-    const languageClientWrapper = new language_client_wrapper.LanguageClientWrapper(languageClientConfig);
-    const getClient: () => LanguageClient = () => { return languageClientWrapper.getClient(); };
+  if (languageClientConfiguration.isFoundPath(languageClientConfig)) {
+    const languageClientWrapper_ = new languageClientWrapper.LanguageClientWrapper(languageClientConfig);
+    const getClient: () => LanguageClient = () => { return languageClientWrapper_.getClient(); };
 
     formatter.register();
 
-    commands.register.f(context, languageClientWrapper);
+    commands.register.f(context, languageClientWrapper_);
 
     decorations.initialize(context);
 
@@ -37,13 +36,13 @@ export async function activate(context: ExtensionContext) {
     listenersInstance.register();
 
     workspace.onDidChangeConfiguration(event => {
-      languageClientWrapper.update_configuration(context.extensionUri, event);
+      languageClientWrapper_.update_configuration(context.extensionUri, event);
     });
 
-    await languageClientWrapper.start({ extensionUri: context.extensionUri });
-    
+    await languageClientWrapper_.start({ extensionUri: context.extensionUri });
+
     if (context.extensionMode === ExtensionMode.Test) {
-      (global as any).testLanguageClientWrapper = languageClientWrapper;
+      (global as any).testLanguageClientWrapper = languageClientWrapper_;
     }
   }
   else if (languageClientConfig.binPathAvailability.status === "missingPath") {

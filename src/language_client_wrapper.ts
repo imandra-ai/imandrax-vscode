@@ -1,16 +1,14 @@
-import * as commands_ from './commands/commands';
+import * as commands from './commands/commands';
 import * as decorations from './decorations';
-import * as vfs_provider from './vfs_provider';
+import * as vfsProvider from './vfs_provider';
 
-import { ConfigurationChangeEvent, Uri, window, workspace } from 'vscode';
+import { ConfigurationChangeEvent, ExtensionContext, ExtensionMode, Uri, window, workspace } from 'vscode';
 import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-languageclient/node';
 
 import { FoundPathConfig } from './language_client_configuration';
 
 
 const MAX_RESTARTS: number = 10;
-
-export let clientRestarts: number = 0;
 
 export interface RestartParams {
   extensionUri: Uri
@@ -23,15 +21,22 @@ async function sleep(time_ms: number) {
 export class LanguageClientWrapper {
   private readonly serverOptions: Executable;
   private client!: LanguageClient;
-  private readonly vfsProvider: vfs_provider.VFSContentProvider;
-  private isInitial = () => { return this.client == undefined; };
+  private readonly vfsProvider_: vfsProvider.VFSContentProvider;
+  private restartCount = 0;
+  private isInitial = () => { return this.client === undefined; };
+
+  getRestartCount(context: ExtensionContext) {
+    if (context.extensionMode === ExtensionMode.Test) {
+      return this.restartCount;
+    }
+  }
 
   getClient() {
     return this.client;
   }
 
   getVfsProvider() {
-    return this.vfsProvider;
+    return this.vfsProvider_;
   }
 
   constructor(languageClientConfig: FoundPathConfig) {
@@ -40,7 +45,7 @@ export class LanguageClientWrapper {
       args: languageClientConfig.serverArgs,
       options: { env: languageClientConfig.mergedEnv }
     };
-    this.vfsProvider = new vfs_provider.VFSContentProvider(() => { return this.getClient(); });
+    this.vfsProvider_ = new vfsProvider.VFSContentProvider(() => { return this.getClient(); });
   }
 
   // Start language server
@@ -72,15 +77,15 @@ export class LanguageClientWrapper {
     const { extensionUri } = params;
 
     this.client.onRequest("$imandrax/interact-model",
-      (params) => { commands_.interact_model(params); });
+      (params) => { commands.interact_model(params); });
     this.client.onRequest("$imandrax/copy-model",
-      (params) => { commands_.copy_model(params); });
+      (params) => { commands.copy_model(params); });
     this.client.onRequest("$imandrax/visualize-decomp",
-      (params) => { commands_.visualize_decomp(extensionUri, params); });
+      (params) => { commands.visualize_decomp(extensionUri, params); });
     this.client.onNotification("$imandrax/vfs-file-changed",
       async (params) => {
         const uri = Uri.parse(params["uri"]);
-        this.vfsProvider.onDidChangeEmitter.fire(uri);
+        this.vfsProvider_.onDidChangeEmitter.fire(uri);
       });
 
     // Start the client. This will also launch the server.
@@ -91,13 +96,13 @@ export class LanguageClientWrapper {
 
   async restart(params: RestartParams) {
     if (!this.isInitial()) {
-      clientRestarts += 1;
-      console.log(`Restarting Imandrax LSP server (attempt ${clientRestarts})`);
+      this.restartCount += 1;
+      console.log(`Restarting Imandrax LSP server (attempt ${this.restartCount})`);
 
       // Try to shut down gracefully.
-      if (this.client && this.client.isRunning())
+      if (this.client && this.client.isRunning()) {
         await this.client.stop().catch(ex => console.log(`Exception thrown while stopping LSP client/server: ${ex}`));
-
+      }
       this.client = undefined!;
 
       window.activeTextEditor?.setDecorations(decorations.decoration_type_good, []);
@@ -113,25 +118,27 @@ export class LanguageClientWrapper {
       return undefined;
     }
     console.log("Deactivating ImandraX LSP server");
-    if (this.client.isRunning())
+    if (this.client.isRunning()) {
       this.client.stop().catch(ex => console.log(`Exception thrown while stopping LSP client/server: ${ex}`));
+    }
   }
 
   update_configuration(extensionUri: Uri, event: ConfigurationChangeEvent | undefined) {
-    if (event == undefined || event.affectsConfiguration('imandrax')) {
+    if (event === undefined || event.affectsConfiguration('imandrax')) {
       const client = this.client;
       if (event && (
         event.affectsConfiguration('imandrax.lsp.binary') ||
         event.affectsConfiguration('imandrax.lsp.arguments') ||
-        event.affectsConfiguration('imandrax.lsp.environment')))
+        event.affectsConfiguration('imandrax.lsp.environment'))) {
         this.restart({ extensionUri: extensionUri });
+      }
 
       if (client && client.isRunning()) {
         const config = workspace.getConfiguration("imandrax");
         return client.sendNotification("workspace/didChangeConfiguration", {
           "settings":
           {
-            "show-full-ids": commands_.showFullIds,
+            "show-full-ids": commands.showFullIds,
             "goal-state-show-proven": config.lsp.showProvenGoals
           }
         });

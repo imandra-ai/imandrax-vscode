@@ -1,5 +1,6 @@
+import * as Path from 'path';
+
 import { DecorationRenderOptions, ExtensionContext, TextEditorDecorationType, window } from 'vscode';
-import Path = require('path');
 
 export let decoration_type_good: TextEditorDecorationType;
 export let decoration_type_bad: TextEditorDecorationType;

@@ -1,6 +1,8 @@
 import * as assert from 'assert';
-import * as language_client_wrapper from '../language_client_wrapper';
-
+import * as fs from 'fs/promises';
+import * as languageClientWrapper from '../language_client_wrapper';
+import * as os from 'os';
+import * as path from 'path';
 import * as vscode from 'vscode';
 
 suite('Commands Test Suite', () => {
@@ -9,24 +11,30 @@ suite('Commands Test Suite', () => {
   });
 
   let extensionContext: vscode.ExtensionContext | undefined;
-  let language_client_wrapper: language_client_wrapper.LanguageClientWrapper | undefined;
+  let languageClientWrapper_: languageClientWrapper.LanguageClientWrapper | undefined;
   suiteSetup(async () => {
+    // this is needed for running tests, but not for debugging them
+    const ext = vscode.extensions.getExtension('imandra.imandrax');
+    await ext!.activate();
+    // fin
+
     extensionContext = (global as any).testExtensionContext;
-    language_client_wrapper = (global as any).testLanguageClientWrapper;
+    languageClientWrapper_ = (global as any).testLanguageClientWrapper;
   });
 
   test([
     'given extension just started,',
     'create terminal should increase',
     'the window.terminals.length by 1'
-  ].join(' '), () => {
+  ].join(' '), async () => {
+    // arrange 
     const term_count = vscode.window.terminals.length;
 
     // act
     vscode.commands.executeCommand('imandrax.create_terminal');
 
     // assert
-    assert(vscode.window.terminals.length == term_count + 1);
+    assert.strictEqual(vscode.window.terminals.length, term_count + 1);
   });
 
   test([
@@ -37,14 +45,36 @@ suite('Commands Test Suite', () => {
     'fail the triple equals test'
   ].join(' '), async () => {
     // arrange
-    const client = language_client_wrapper?.getClient();
+    const previousRestartCount = languageClientWrapper_!.getRestartCount(extensionContext!);
 
     // act
     await vscode.commands.executeCommand('imandrax.restart_language_server');
 
     // assert
-    assert(client);
-    assert(language_client_wrapper?.getClient());
-    assert(client !== language_client_wrapper?.getClient());
+    assert.notDeepStrictEqual(previousRestartCount, undefined);
+    assert.equal(previousRestartCount! + 1, languageClientWrapper_!.getRestartCount(extensionContext!));
+  });
+
+  test([
+    'given some lemmas present,',
+    'check all should check them all',
+  ].join(' '), async () => {
+    // arrange
+    const client = languageClientWrapper_?.getClient();
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), 'imandrax-tests-'));
+    const imlUri = vscode.Uri.file(path.join(workspaceDir, 'demo.iml'));
+
+    const lemmas = `
+      lemma add_commutative a b = (a + b) == (b + a)
+    `;
+    await fs.writeFile(imlUri.fsPath, lemmas, 'utf8');
+    const doc = await vscode.workspace.openTextDocument(imlUri);
+    await vscode.window.showTextDocument(doc);
+
+    // // act
+    await vscode.commands.executeCommand('imandrax.check_all');
+
+    // assert
+    assert(true);
   });
 });

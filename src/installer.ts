@@ -95,12 +95,12 @@ async function runInstallerForUnix(itemT: MessageItem, title: string): Promise<v
 
       const getCmdPrefix = () => {
         const wgetPath = Which.sync("wget", { nothrow: true });
-        if (wgetPath != "" && wgetPath != null) {
+        if (wgetPath !== "" && wgetPath !== null) {
           return "wget -qO-";
         }
         else {
           const curlPath = Which.sync("curl", { nothrow: true });
-          if (curlPath != "" && curlPath != null) {
+          if (curlPath !== "" && curlPath !== null) {
             return "curl -fsSL";
           }
           else {

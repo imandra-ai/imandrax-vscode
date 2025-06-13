@@ -1,3 +1,8 @@
 # Note
 
-You should be running both `npm -b -w` and `npm run esbuild-base -- --sourcemap`
+Before running the tests, always run
+
+```sh
+npm run build
+npm run esbuild
+```
