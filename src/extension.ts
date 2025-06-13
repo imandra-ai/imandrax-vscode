@@ -34,6 +34,9 @@ export async function activate(context: ExtensionContext) {
 
     const listenersInstance = new listeners.Listeners(context, getClient);
     listenersInstance.register();
+    if (context.extensionMode === ExtensionMode.Test) {
+      (global as any).testListeners = listenersInstance;
+    }
 
     workspace.onDidChangeConfiguration(event => {
       languageClientWrapper_.update_configuration(context.extensionUri, event);

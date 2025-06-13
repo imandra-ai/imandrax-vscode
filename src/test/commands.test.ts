@@ -65,7 +65,7 @@ suite('Commands Test Suite', () => {
     const imlUri = vscode.Uri.file(path.join(workspaceDir, 'demo.iml'));
 
     const lemmas = `
-      lemma add_commutative a b = (a + b) == (b + a)
+      lemma add_commutative a b = (a + b) = (b + a)
     `;
     await fs.writeFile(imlUri.fsPath, lemmas, 'utf8');
     const doc = await vscode.workspace.openTextDocument(imlUri);
@@ -75,6 +75,7 @@ suite('Commands Test Suite', () => {
     await vscode.commands.executeCommand('imandrax.check_all');
 
     // assert
-    assert(true);
+    // turns out there's no api for getting active decorations, so i'll need to track them myself
+    assert(false);
   });
 });
