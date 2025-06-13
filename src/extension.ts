@@ -5,7 +5,6 @@ import * as installer from './installer';
 import * as language_client_configuration from './language_client_configuration';
 import * as language_client_wrapper from './language_client_wrapper';
 import * as listeners from './listeners';
-import * as vscode from 'vscode';
 
 import {
   ExtensionContext,
@@ -52,5 +51,7 @@ export async function activate(context: ExtensionContext) {
     window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL.`);
   }
 
-  return process.env.NODE_ENV === 'test' ? context : undefined;
+  if (process.env.NODE_ENV === 'test') {
+    (global as any).testExtensionContext = context;
+  }
 }
