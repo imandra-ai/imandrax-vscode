@@ -50,26 +50,4 @@ suite('Commands Test Suite', () => {
     assert(language_client_wrapper?.getClient());
     assert(client !== language_client_wrapper?.getClient());
   });
-
-  test([
-    'given client is not undefined,',
-    'restart language server should',
-    'cause the result of getClient()',
-    'to return a new client and',
-    'fail the triple equals test'
-  ].join(' '), async () => {
-    // arrange
-    assert(extensionContext != undefined);
-    if (extensionContext) {
-      const client = language_client_wrapper?.getClient();
-
-      // act
-      await vscode.commands.executeCommand('imandrax.restart_language_server');
-
-      // assert
-      assert(client);
-      assert(language_client_wrapper?.getClient());
-      assert(client !== language_client_wrapper?.getClient());
-    }
-  });
 });
