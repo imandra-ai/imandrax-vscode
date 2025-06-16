@@ -1,11 +1,13 @@
-import * as commands from './commands/commands';
-import * as decorations from './decorations';
-import * as vfsProvider from './vfs_provider';
+import * as commands from '../commands/commands';
+import * as decorations from '../decorations';
+import * as vfsProvider from '../vfs_provider';
 
 import { ConfigurationChangeEvent, ExtensionContext, ExtensionMode, Uri, window, workspace } from 'vscode';
 import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-languageclient/node';
 
-import { FoundPathConfig } from './language_client_configuration';
+import { FoundPathConfig } from './configuration';
+
+export * as configuration from './configuration';
 
 
 const MAX_RESTARTS: number = 10;
@@ -18,7 +20,7 @@ async function sleep(time_ms: number) {
   return new Promise(resolve => setTimeout(resolve, time_ms));
 }
 
-export class LanguageClientWrapper {
+export class ImandraxLanguageClient {
   private readonly serverOptions: Executable;
   private client!: LanguageClient;
   private readonly vfsProvider_: vfsProvider.VFSContentProvider;

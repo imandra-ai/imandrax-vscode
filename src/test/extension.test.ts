@@ -1,6 +1,6 @@
 import * as assert from 'assert';
-import * as languageClientConfiguration from '../language_client_configuration';
-import * as languageClientWrapper from '../language_client_wrapper';
+import * as languageClientConfiguration from '../imandrax_language_client/configuration';
+import * as languageClientWrapper from '../imandrax_language_client/imandrax_language_client';
 import * as vscode from 'vscode';
 
 suite('Extension Test Suite', () => {
@@ -11,7 +11,7 @@ suite('Extension Test Suite', () => {
   test('given valid platform and config, the language client should start', async () => {
     const conf = languageClientConfiguration.get();
     if (languageClientConfiguration.isFoundPath(conf)) {
-      const x = new languageClientWrapper.LanguageClientWrapper(conf);
+      const x = new languageClientWrapper.ImandraxLanguageClient(conf);
       await x.start({ extensionUri: vscode.Uri.parse("") });
       assert(x.getClient() !== undefined);
     }

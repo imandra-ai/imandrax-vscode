@@ -2,8 +2,7 @@ import * as commands from './commands/commands';
 import * as decorations from './decorations';
 import * as formatter from './formatter';
 import * as installer from './installer';
-import * as languageClientConfiguration from './language_client_configuration';
-import * as languageClientWrapper from './language_client_wrapper';
+import * as imandraxLanguageClient from './imandrax_language_client/imandrax_language_client';
 import * as listeners from './listeners';
 
 import {
@@ -20,10 +19,10 @@ import {
 
 
 export async function activate(context: ExtensionContext) {
-  const languageClientConfig = languageClientConfiguration.get();
+  const languageClientConfig = imandraxLanguageClient.configuration.get();
 
-  if (languageClientConfiguration.isFoundPath(languageClientConfig)) {
-    const languageClientWrapper_ = new languageClientWrapper.LanguageClientWrapper(languageClientConfig);
+  if (imandraxLanguageClient.configuration.isFoundPath(languageClientConfig)) {
+    const languageClientWrapper_ = new imandraxLanguageClient.ImandraxLanguageClient(languageClientConfig);
     const getClient: () => LanguageClient = () => { return languageClientWrapper_.getClient(); };
 
     formatter.register();

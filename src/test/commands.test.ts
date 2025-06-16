@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import * as fs from 'fs/promises';
-import * as languageClientWrapper from '../language_client_wrapper';
+import * as imandraxLanguageClient from '../imandrax_language_client/imandrax_language_client';
 import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -11,7 +11,7 @@ suite('Commands Test Suite', () => {
   });
 
   let extensionContext: vscode.ExtensionContext | undefined;
-  let languageClientWrapper_: languageClientWrapper.LanguageClientWrapper | undefined;
+  let imandraxLanguageClient_: imandraxLanguageClient.ImandraxLanguageClient | undefined;
   suiteSetup(async () => {
     // this is needed for running tests, but not for debugging them
     const ext = vscode.extensions.getExtension('imandra.imandrax');
@@ -19,7 +19,7 @@ suite('Commands Test Suite', () => {
     // fin
 
     extensionContext = (global as any).testExtensionContext;
-    languageClientWrapper_ = (global as any).testLanguageClientWrapper;
+    imandraxLanguageClient_ = (global as any).testLanguageClientWrapper;
   });
 
   test([
@@ -45,14 +45,14 @@ suite('Commands Test Suite', () => {
     'fail the triple equals test'
   ].join(' '), async () => {
     // arrange
-    const previousRestartCount = languageClientWrapper_!.getRestartCount(extensionContext!);
+    const previousRestartCount = imandraxLanguageClient_!.getRestartCount(extensionContext!);
 
     // act
     await vscode.commands.executeCommand('imandrax.restart_language_server');
 
     // assert
     assert.notDeepStrictEqual(previousRestartCount, undefined);
-    assert.equal(previousRestartCount! + 1, languageClientWrapper_!.getRestartCount(extensionContext!));
+    assert.equal(previousRestartCount! + 1, imandraxLanguageClient_!.getRestartCount(extensionContext!));
   });
 
   test([
@@ -60,7 +60,7 @@ suite('Commands Test Suite', () => {
     'check all should check them all',
   ].join(' '), async () => {
     // arrange
-    const client = languageClientWrapper_?.getClient();
+    const client = imandraxLanguageClient_?.getClient();
     const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), 'imandrax-tests-'));
     const imlUri = vscode.Uri.file(path.join(workspaceDir, 'demo.iml'));
 

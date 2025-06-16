@@ -1,9 +1,9 @@
 import * as implementations from './implementations';
 
 import { commands, ExtensionContext, languages, Uri, ViewColumn, window, workspace } from 'vscode';
-import { LanguageClientWrapper } from '../language_client_wrapper';
+import { ImandraxLanguageClient } from '../imandrax_language_client/imandrax_language_client';
 
-export function register(context: ExtensionContext, languageClientWrapper: LanguageClientWrapper) {
+export function register(context: ExtensionContext, languageClientWrapper: ImandraxLanguageClient) {
   const getClient = () => { return languageClientWrapper.getClient(); };
 
   const restart_cmd = "imandrax.restart_language_server";
