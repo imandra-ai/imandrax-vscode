@@ -3,7 +3,7 @@ import * as implementations from './implementations';
 import { commands, ExtensionContext, languages, Uri, ViewColumn, window, workspace } from 'vscode';
 import { LanguageClientWrapper } from '../language_client_wrapper';
 
-export function f(context: ExtensionContext, languageClientWrapper: LanguageClientWrapper) {
+export function register(context: ExtensionContext, languageClientWrapper: LanguageClientWrapper) {
   const getClient = () => { return languageClientWrapper.getClient(); };
 
   const restart_cmd = "imandrax.restart_language_server";
@@ -60,13 +60,13 @@ export function f(context: ExtensionContext, languageClientWrapper: LanguageClie
   const reset_goal_state_cmd = "imandrax.reset_goal_state";
   const reset_goal_state_handler = () => {
     if (getClient() && getClient().isRunning())
-      try {
+      {try {
         getClient().sendRequest("workspace/executeCommand", { "command": "reset-goal-state", "arguments": [] });
       }
       catch (e) {
         console.log("caught something!");
         console.log(e);
-      }
+      }}
     return true;
   };
   context.subscriptions.push(commands.registerCommand(reset_goal_state_cmd, reset_goal_state_handler));

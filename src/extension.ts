@@ -28,7 +28,7 @@ export async function activate(context: ExtensionContext) {
 
     formatter.register();
 
-    commands.register.f(context, languageClientWrapper_);
+    commands.registration.register(context, languageClientWrapper_);
 
     decorations.initialize(context);
 
