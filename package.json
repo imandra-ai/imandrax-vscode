@@ -188,7 +188,7 @@
     "esbuild": "npm run esbuild-base -- --sourcemap",
     "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
     "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node",
-    "test": "vscode-test"
+    "test": "npm run build && npm run esbuild && vscode-test"
   },
   "dependencies": {
     "vscode-languageclient": "^8.1.0"
