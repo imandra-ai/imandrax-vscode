@@ -25,7 +25,7 @@ export const parsers = {
     parse: (text: string, options: Options): Tree => {
       try {
         const jdefs = iml2json.parse(text);
-        // console.log(jdefs);
+        console.log(jdefs);
         const x: Tree = {
           top_defs: JSON.parse(jdefs),
           comments: []
@@ -517,7 +517,7 @@ function print_string_loc(node: AST, options: Options): Doc {
 }
 
 let attribute_filter = [
-  "ocaml.text",
+  "ocaml.text", "iml.semisemi",
   "imandra_verify", "imandra_instance", "imandra_theorem",
   "imandra_eval", "imandra_axiom", "imandra_rule_spec"
 ];
@@ -1800,6 +1800,8 @@ function print_attribute(node: AST, level: number, options: Options): Doc[] {
             r = print_payload(node.attr_payload, options);
           return ["[@@@", print_string_loc(node.attr_name, options), line, ...r, "]"];
         }
+        case "iml.semisemi":
+          return [";;"]
       }
     }
     case 2: {
@@ -2009,7 +2011,7 @@ function print_structure_item(node: AST, options: Options): Doc {
 }
 
 function print_structure(node: AST, options: Options): Doc[] {
-  return join([hardline, hardline], node.map(x => print_structure_item(x, options)));
+  return node.map(x => print_structure_item(x, options));
 }
 
 function print_directive_argument_desc(node: AST, options: Options): Doc {
@@ -2061,7 +2063,7 @@ function print_toplevel_phrase(node: AST, options: Options): Doc {
   switch (constructor) {
     case "Ptop_def": {
       try {
-        return g(print_structure(args[0], options));
+        return print_structure(args[0], options);
       }
       catch (e) {
         console.log(e);
@@ -2095,30 +2097,22 @@ function print_toplevel_phrase(node: AST, options: Options): Doc {
   }
 }
 
-function print(path: AstPath<Tree>, options: Options, print
-  // (selector?: string | number | Array<string | number> | AstPath<Tree>) => Doc
-) {
-  return join([hardline, hardline], path.node.top_defs.map(n => {
-    let q = print_toplevel_phrase(n, options);
-    if (false) {
-      if (n[0] == "Ptop_def") {
-        let obj: any = n[1][0];
-        if (obj.hasOwnProperty("pstr_loc")) {
-          let src = get_source(obj.pstr_loc, obj.pstr_loc, options);
-          console.log(src);
-        }
-      }
-      else {
-        let obj: any = n[1];
-        if (obj.hasOwnProperty("pdir_loc")) {
-          let src = get_source(obj.pdir_loc, obj.pdir_loc, options);
-          console.log(src);
-        }
-      }
-      console.log(n);
-      console.log(q);
+function merge_semisemi(phrases: Doc[]) : Doc[] {
+  let j = 0;
+  for (let i = 0; i < phrases.length; i++) {
+    if (i > 0 && phrases?.[i]?.[0]?.[0] == ";;") {
+      phrases[j-1] = [phrases[j-1], phrases[i]];
     }
-    return [q];
+    else {
+      phrases[j] = phrases[i];
+      j++;
+    }
   }
-  ));
+  return phrases.slice(0, j);
+}
+
+function print(path: AstPath<Tree>, options: Options, print: (selector?: string | number | Array<string | number> | AstPath<Tree>) => Doc
+) {
+  let phrases = path.node.top_defs.map(n => print_toplevel_phrase(n, options));
+  return g(join([hardline, hardline], merge_semisemi(phrases)));
 }
