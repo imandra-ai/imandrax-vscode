@@ -1,7 +1,8 @@
 import tsParser from "@typescript-eslint/parser";
 import typescriptEslint from "@typescript-eslint/eslint-plugin";
+import { defineConfig, globalIgnores } from "eslint/config";
 
-export default [{
+export default defineConfig([{
   files: ["**/*.ts"],
 }, {
   plugins: {
@@ -29,5 +30,12 @@ export default [{
     eqeqeq: "warn",
     "no-throw-literal": "warn",
     semi: "warn",
+
   },
-}];
+},
+globalIgnores([
+  "node_modules/**",
+  "src/node_modules/**",
+  "src/out/**"
+])
+]);

@@ -194,6 +194,7 @@
     "vscode-languageclient": "^8.1.0"
   },
   "devDependencies": {
+    "@types/eslint": "^9.6.1",
     "@types/mocha": "^9.1.0",
     "@types/node": "^16.18.34",
     "@types/vscode": "^1.96.2",
@@ -203,7 +204,7 @@
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.5.2",
     "esbuild": "^0.25.3",
-    "eslint": "^8.35.0",
+    "eslint": "^9.29.0",
     "glob": "^11.0.2",
     "mocha": "^9.2.2",
     "typescript": "^5.2.2"
