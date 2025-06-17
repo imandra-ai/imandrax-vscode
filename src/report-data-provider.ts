@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as twine from "imandrax-api/twine";
 import * as api from "imandrax-api/types";
 
-function parse_report(filename: string) {
+function parse_report(filename: string): api.Report_Report {
   console.log(`Filename: ${filename}`);
   const startTime = performance.now();
   const stats = fs.statSync(filename);
