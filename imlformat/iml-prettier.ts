@@ -25,7 +25,7 @@ export const parsers = {
     parse: (text: string, options: Options): Tree => {
       try {
         const jdefs = iml2json.parse(text);
-        console.log(jdefs);
+        // console.log(jdefs);
         const x: Tree = {
           top_defs: JSON.parse(jdefs),
           comments: []
