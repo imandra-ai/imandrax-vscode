@@ -1,0 +1,9 @@
+{
+  "imandrax.lsp.arguments": [
+    "lsp",
+    "--check-on-save=true",
+    "--unicode=true",
+    "--db=true",
+    "--db-directory=/Users/sebastianprovenzano/go"
+  ],
+}
