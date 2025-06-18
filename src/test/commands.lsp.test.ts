@@ -11,17 +11,22 @@ import * as vscode from 'vscode';
 
 suite('Commands, LSP Test Suite', () => {
   let dbPath: string;
-  suiteTeardown(async () => {
-    const root = vscode.workspace.workspaceFolders?.[0].uri.fsPath
-      ?? await fs.mkdtemp(path.join(os.tmpdir(), 'imandrax-db'));
-    dbPath = path.join(root, '..', '..', '.vscode-test', 'db', 'imandrax.sqlite');
-    await fs.rm(dbPath, { force: true });
-    vscode.window.showInformationMessage('All tests done!');
-  });
-
   let imandraxLanguageClient_: imandraxLanguageClient.ImandraxLanguageClient | undefined;
   suiteSetup(async () => {
+    let root =
+      vscode.workspace.workspaceFolders?.[0].uri.fsPath;
+    if (root) {
+      dbPath = path.join(root, '..', '..', '.vscode-test', 'db', 'imandrax.sqlite');
+    } else {
+      root = await fs.mkdtemp(path.join(os.tmpdir(), 'imandrax-db'));
+      dbPath = path.join(root, 'imandrax.sqlite');
+    }
     imandraxLanguageClient_ = (global as any).testLanguageClientWrapper;
+  });
+
+  suiteTeardown(async () => {
+    await fs.rm(dbPath, { force: true });
+    vscode.window.showInformationMessage('All tests done!');
   });
 
   test([
