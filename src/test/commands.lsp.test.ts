@@ -12,10 +12,9 @@ import * as vscode from 'vscode';
 suite('Commands, LSP Test Suite', () => {
   let dbPath: string;
   suiteTeardown(async () => {
-    const root = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
-    dbPath = root
-      ? path.join(root!, '..', '..', '.vscode-test', 'db', 'imandrax.sqlite')
-      : await fs.mkdtemp(path.join(os.tmpdir(), 'imandrax-'));;
+    const root = vscode.workspace.workspaceFolders?.[0].uri.fsPath
+      ?? await fs.mkdtemp(path.join(os.tmpdir(), 'imandrax-db'));
+    dbPath = path.join(root, '..', '..', '.vscode-test', 'db', 'imandrax.sqlite');
     await fs.rm(dbPath, { force: true });
     vscode.window.showInformationMessage('All tests done!');
   });
