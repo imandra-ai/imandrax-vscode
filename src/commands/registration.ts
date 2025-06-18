@@ -71,5 +71,4 @@ export function register(context: ExtensionContext, languageClientWrapper: Imand
     return true;
   };
   context.subscriptions.push(commands.registerCommand(reset_goal_state_cmd, reset_goal_state_handler));
-
 }
