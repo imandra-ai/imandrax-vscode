@@ -8,7 +8,8 @@ import * as sqlite3 from 'sqlite3';
 import * as util from '../util';
 import * as vscode from 'vscode';
 
-const dbPath = path.resolve("/Users/sebastianprovenzano/Documents/git/imandrax-vscode/.vscode-test/db/imandrax.sqlite");
+const root = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
+export const dbPath = path.join(root!, '..', '..', '.vscode-test', 'db', 'imandrax.sqlite');
 
 suite('Commands, LSP Test Suite', () => {
   suiteTeardown(async () => {
