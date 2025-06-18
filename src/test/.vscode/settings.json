@@ -4,6 +4,6 @@
     "--check-on-save=true",
     "--unicode=true",
     "--db=true",
-    "--db-directory=/Users/sebastianprovenzano/go"
+    "--db-directory=../../.vscode-test/db"
   ],
 }
