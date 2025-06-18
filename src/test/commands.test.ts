@@ -3,6 +3,8 @@ import * as fs from 'fs/promises';
 import * as imandraxLanguageClient from '../imandrax_language_client/imandrax_language_client';
 import * as os from 'os';
 import * as path from 'path';
+import * as sqlite from 'sqlite';
+import * as sqlite3 from 'sqlite3';
 import * as vscode from 'vscode';
 
 suite('Commands Test Suite', () => {
@@ -73,9 +75,28 @@ suite('Commands Test Suite', () => {
 
     // // act
     await vscode.commands.executeCommand('imandrax.check_all');
+    const dbPath = path.resolve("/Users/sebastianprovenzano/Documents/git/imandrax-vscode/.vscode-test/db/imandrax.sqlite");
+    const db = await sqlite.open({ filename: dbPath, driver: sqlite3.cached.Database });
+
+    const rows: { event: string, id: string, meta: string, time: string }[] = await db
+      .all('SELECT * FROM task_events');
+
+    await db.close();
+
+    console.log(rows);
+
+    const meta = rows.at(-1)?.meta;
+
+    // it would be better to have a programmatic way of linking
+    // items in the db to lemmas in the file
+    const time_str = rows.at(-1)?.time;
+    const recent = time_str
+      ? (Date.now() >= new Date(time_str).getTime()
+        && (Date.now() - new Date(time_str).getTime()) <= 30_000)
+      : false;
 
     // assert
-    // turns out there's no api for getting active decorations, so i'll need to track them myself
-    assert(false);
+    assert.equal(meta, '{"success":true}');
+    assert(recent);
   });
 });
