@@ -16,10 +16,8 @@ suite('Commands, LSP Test Suite', () => {
     vscode.window.showInformationMessage('All tests done!');
   });
 
-  let extensionContext: vscode.ExtensionContext | undefined;
   let imandraxLanguageClient_: imandraxLanguageClient.ImandraxLanguageClient | undefined;
   suiteSetup(async () => {
-    extensionContext = (global as any).testExtensionContext;
     imandraxLanguageClient_ = (global as any).testLanguageClientWrapper;
   });
 
