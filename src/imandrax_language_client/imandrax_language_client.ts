@@ -1,5 +1,6 @@
 import * as commands from '../commands/commands';
 import * as decorations from '../decorations';
+import * as util from '../util';
 import * as vfsProvider from '../vfs_provider';
 
 import { ConfigurationChangeEvent, ExtensionContext, ExtensionMode, Uri, window, workspace } from 'vscode';
@@ -14,10 +15,6 @@ const MAX_RESTARTS: number = 10;
 
 export interface RestartParams {
   extensionUri: Uri
-}
-
-async function sleep(time_ms: number) {
-  return new Promise(resolve => setTimeout(resolve, time_ms));
 }
 
 export class ImandraxLanguageClient {
@@ -110,7 +107,7 @@ export class ImandraxLanguageClient {
       window.activeTextEditor?.setDecorations(decorations.decoration_type_good, []);
       window.activeTextEditor?.setDecorations(decorations.decoration_type_bad, []);
 
-      sleep(500); // Give it a bit of time to avoid races on the log file.
+      await util.sleep(500); // Give it a bit of time to avoid races on the log file.
     }
     return this.start({ extensionUri: params.extensionUri });
   }
