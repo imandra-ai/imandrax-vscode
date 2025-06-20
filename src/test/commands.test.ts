@@ -60,20 +60,27 @@ suite('Commands, Simple Test Suite', () => {
 
     // act
     // it would be better to be able to wait for the extension to actually start up
-    await util.sleep(10_000);
-    let ends = 0;
-    if (client) {
-      client.middleware.handleWorkDoneProgress = (a, b, c) => {
-        if (b.kind === "end") {
-          ends += 1;
-        }
-      };
+    await util.sleep(5_000);
+    let startCount = 0;
+    let endCount = 0;
+    do {
+      if (client) {
+        client.middleware.handleWorkDoneProgress = (a, b, c) => {
+          if (b.kind === "begin") {
+            startCount += 1;
+          }
+          if (b.kind === "end") {
+            endCount += 1;
+          }
+        };
+      }
+      await vscode.commands.executeCommand('imandrax.check_all');
+      await util.sleep(200);
     }
-    await vscode.commands.executeCommand('imandrax.check_all');
-    await util.sleep(10_000);
+    while (startCount > endCount);
 
     // assert
-    assert.equal(lemmaCount, ends);
+    assert.equal(lemmaCount, endCount);
   });
 
   // seb 6-20-25
