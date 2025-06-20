@@ -30,6 +30,7 @@ import {
   Executable,
   LanguageClient,
   LanguageClientOptions,
+  WorkspaceSymbolResolveRequest,
 } from "vscode-languageclient/node";
 
 import * as Path from 'path';
@@ -176,22 +177,25 @@ export async function activate(context_: ExtensionContext) {
 
   languages.registerDocumentFormattingEditProvider('imandrax', {
     async provideDocumentFormattingEdits(document: TextDocument): Promise<TextEdit[]> {
-      try {
-        let formatted = "";
+      const config = workspace.getConfiguration("imandrax");
+      if (config.IMLFormatter) {
+        try {
+          let formatted = "";
 
-        formatted = await prettier.format(document.getText(), {
-          semi: false,
-          parser: "iml-parse",
-          plugins: [iml_prettier],
-        });
+          formatted = await prettier.format(document.getText(), {
+            semi: false,
+            parser: "iml-parse",
+            plugins: [iml_prettier],
+          });
 
-        var start = document.lineAt(0);
-        var end = document.lineAt(document.lineCount - 1);
-        var range = new Range(start.range.start, end.range.end);
+          var start = document.lineAt(0);
+          var end = document.lineAt(document.lineCount - 1);
+          var range = new Range(start.range.start, end.range.end);
 
-        return [TextEdit.replace(range, formatted)];
-      } catch (e) {
-        console.log(`Formatting error: ${e}`);
+          return [TextEdit.replace(range, formatted)];
+        } catch (e) {
+          console.log(`Formatting error: ${e}`);
+        }
       }
       return [];
     }

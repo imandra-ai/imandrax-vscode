@@ -24,7 +24,7 @@ let e = "abc"`))
 })
 
 
-test("function", () => {
+test("function 1", () => {
   return format(`
 let
 g
@@ -34,6 +34,14 @@ g
   42
 `).then(x =>
     expect(x).toEqual(`let g ?x ~(y : real) = 42`))
+})
+
+test("function 2", () => {
+  return format(`
+let good_f2_2 : y:_ -> int = f2 ~x:42 5
+`).then(x =>
+    expect(x).toEqual(`\
+let good_f2_2 : y:_ -> int = f2 ~x:42 5`))
 })
 
 test("theorem", () => {
@@ -74,9 +82,8 @@ type
 }
 `).then(x =>
     expect(x).toEqual(`\
-type t =
-    { a : int; b : float; c : int; d : float; e : int; f : float; g : int; h :
-      float; i : int; j : float; k : int; l : float; }`
+type t = { a : int; b : float; c : int; d : float; e : int; f : float; g : int; h
+  : float; i : int; j : float; k : int; l : float; }`
     ))
 })
 
