@@ -46,7 +46,7 @@
           "scope": "machine-overridable",
           "type": "string",
           "default": "imandrax-cli",
-          "description": "Path to the ImandraX LSP CLI binary"
+          "description": "Path to the ImandraX LSP CLI binary."
         },
         "imandrax.lsp.arguments": {
           "scope": "machine-overridable",
@@ -59,19 +59,19 @@
             "--check-on-save=true",
             "--unicode=true"
           ],
-          "description": "Additional commandline arguments for the ImandraX language server"
+          "description": "Additional commandline arguments for the ImandraX language server."
         },
         "imandrax.lsp.environment": {
           "scope": "machine-overridable",
           "type": "object",
           "default": {},
-          "description": "Additional environment variables for the ImandraX language server"
+          "description": "Additional environment variables for the ImandraX language server."
         },
         "imandrax.terminal.binary": {
           "scope": "machine-overridable",
           "type": "string",
           "default": "imandrax-cli",
-          "description": "Path to the ImandraX interactive terminal binary"
+          "description": "Path to the ImandraX interactive terminal binary."
         },
         "imandrax.terminal.arguments": {
           "scope": "machine-overridable",
@@ -83,34 +83,32 @@
             "repl",
             "--db=false"
           ],
-          "description": "Additional commandline arguments for the ImandraX interactive terminal binary"
+          "description": "Additional commandline arguments for the ImandraX interactive terminal binary."
         },
         "imandrax.terminal.freshModelModules": {
           "scope": "window",
           "type": "boolean",
           "default": false,
-          "description": "Use fresh model module names (e.g. M42) for interactive models (otherwise overwrite module M)"
+          "description": "Use fresh model module names (e.g. M42) for interactive models (otherwise overwrite module M)."
         },
         "imandrax.useSimpleBrowser": {
           "scope": "window",
           "type": "boolean",
           "default": true,
-          "description": "Use the built-in Simple Browser to open links (otherwise the system default browser)"
+          "description": "Use the built-in Simple Browser to open links (otherwise the system default browser)."
         },
-        "imandrax.lsp.formatter": {
+        "imandrax.IMLFormatter": {
           "scope": "window",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "Formatter binary and commandline arguments"
+          "type": "boolean",
+          "default": false,
+          "description": "Enable the highly experimental IML auto-formatter. Use with caution; there is a non-zero chance that it could remove text from your input.",
+          "tags": ["experimental"]
         },
         "imandrax.lsp.showProvenGoals": {
           "scope": "window",
           "type": "boolean",
           "default": false,
-          "description": "Show proven goals in goal state"
+          "description": "Show proven goals in goal state."
         }
       }
     },

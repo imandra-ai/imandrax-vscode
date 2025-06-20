@@ -74,8 +74,8 @@ g
   42
 
 let f x =
-  let y = x + 1 in
-  y - 1
+  let y = x + (* Comment in expression *) 1 in
+  y - (** Docstring in expression *) 1
 
 
 (* Comment A. *)
@@ -109,4 +109,6 @@ let i = ()
 
 (* Is lpar-asterisk-rpar also a comment? *)
 
-(***** Many stars are a docstring? *)
+(********* Many stars are not a docstring! *)
+
+(* Final words. *)
