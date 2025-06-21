@@ -60,7 +60,7 @@ eval (
 f 0)
    ;;
 `).then(x =>
-    expect(x).toEqual(`eval (f 0)`))
+    expect(x).toEqual(`eval (f 0);;`))
 })
 
 test("variant type", () => {
@@ -98,4 +98,17 @@ test("directive", () => {
 test("operator precedence", () => {
   return format(`let f x y = ((x - 1) * (y + 1)) + 1`)
     .then(x => expect(x).toEqual(`let f x y = (x - 1) * (y + 1) + 1`))
+})
+
+test("semisemi", () => {
+  return format(`
+let f x = 1;;
+let g y = 0
+let h z = 2;;`)
+    .then(x => expect(x).toEqual(`\
+let f x = 1;;
+
+let g y = 0
+
+let h z = 2;;`))
 })
