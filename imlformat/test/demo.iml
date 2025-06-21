@@ -1,0 +1,114 @@
+[@@@import ABC, "abc.iml"]
+[@@@import "def.iml"]
+
+let
+ f
+  x = (x +
+  1)
+
+let z = - 1
+let q = - 1.0
+
+let l = 1 :: []
+
+let
+ g y =
+          (y *.
+      1.23e-4g +. 3.14)
+
+theorem
+   f_gt     x
+   = ((f  x   ) >
+    x)
+
+lemma    lem1 q  = (   (f q) >
+  q);;
+
+instance (fun x
+  -> (x
+  > 0)
+  )
+
+let f x = if x = 2 then 3 else if x = 4 then 5 else 6
+
+eval
+   (f 0);;
+
+type
+  t =
+    { a: int; b : float; c :int; d : float;
+      e :int; f :float; g :int; h : float;
+      i : int; j :float; k :int; l: float;
+}
+
+type u = A |
+B
+
+exception SomeException of string
+
+let g x =
+  try
+    1
+  with SomeException y -> 2
+
+let f x y = (1 + x) * y;;
+
+  #somedirective
+   "def";;
+
+#somedirective
+   1u;;
+
+  #somedirective
+   2;;
+
+   #somedirective    abc;;
+
+#somedirective true;;
+
+let
+g
+?(x)
+~(y:real)
+=
+  42
+
+let f x =
+  let y = x + (* Comment in expression *) 1 in
+  y - (** Docstring in expression *) 1
+
+
+(* Comment A. *)
+
+(** Docstring B. *)
+
+let a =
+  (* Comment B'.*)
+  ()
+(* Comment C. *)
+let b = ()
+
+let c = ()
+(** Docstring D. *)
+let d = ()
+
+let e = ()
+(* Comment E. *)
+
+let f = ()
+(** Docstring F. *)
+
+(* Comment G. *)
+let h = ()
+
+(** Docstring H. *)
+let i = ()
+
+
+(* Long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long comment. *)
+
+(* Is lpar-asterisk-rpar also a comment? *)
+
+(********* Many stars are not a docstring! *)
+
+(* Final words. *)

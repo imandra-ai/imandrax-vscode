@@ -10,7 +10,7 @@
     "theme": "dark"
   },
   "license": "MIT",
-  "version": "0.0.34",
+  "version": "0.0.35",
   "repository": {
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
@@ -43,7 +43,7 @@
           "scope": "machine-overridable",
           "type": "string",
           "default": "imandrax-cli",
-          "description": "Path to the ImandraX LSP CLI binary"
+          "description": "Path to the ImandraX LSP CLI binary."
         },
         "imandrax.lsp.arguments": {
           "scope": "machine-overridable",
@@ -56,19 +56,19 @@
             "--check-on-save=true",
             "--unicode=true"
           ],
-          "description": "Additional commandline arguments for the ImandraX language server"
+          "description": "Additional commandline arguments for the ImandraX language server."
         },
         "imandrax.lsp.environment": {
           "scope": "machine-overridable",
           "type": "object",
           "default": {},
-          "description": "Additional environment variables for the ImandraX language server"
+          "description": "Additional environment variables for the ImandraX language server."
         },
         "imandrax.terminal.binary": {
           "scope": "machine-overridable",
           "type": "string",
           "default": "imandrax-cli",
-          "description": "Path to the ImandraX interactive terminal binary"
+          "description": "Path to the ImandraX interactive terminal binary."
         },
         "imandrax.terminal.arguments": {
           "scope": "machine-overridable",
@@ -80,34 +80,32 @@
             "repl",
             "--db=false"
           ],
-          "description": "Additional commandline arguments for the ImandraX interactive terminal binary"
+          "description": "Additional commandline arguments for the ImandraX interactive terminal binary."
         },
         "imandrax.terminal.freshModelModules": {
           "scope": "window",
           "type": "boolean",
           "default": false,
-          "description": "Use fresh model module names (e.g. M42) for interactive models (otherwise overwrite module M)"
+          "description": "Use fresh model module names (e.g. M42) for interactive models (otherwise overwrite module M)."
         },
         "imandrax.useSimpleBrowser": {
           "scope": "window",
           "type": "boolean",
           "default": true,
-          "description": "Use the built-in Simple Browser to open links (otherwise the system default browser)"
+          "description": "Use the built-in Simple Browser to open links (otherwise the system default browser)."
         },
-        "imandrax.lsp.formatter": {
+        "imandrax.IMLFormatter": {
           "scope": "window",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "Formatter binary and commandline arguments"
+          "type": "boolean",
+          "default": false,
+          "description": "Enable the highly experimental IML auto-formatter. Use with caution; there is a non-zero chance that it could remove text from your input.",
+          "tags": ["experimental"]
         },
         "imandrax.lsp.showProvenGoals": {
           "scope": "window",
           "type": "boolean",
           "default": false,
-          "description": "Show proven goals in goal state"
+          "description": "Show proven goals in goal state."
         }
       }
     },
@@ -170,6 +168,14 @@
       {
         "command": "imandrax.reset_goal_state",
         "title": "Imandrax: Reset goal state"
+      },
+      {
+        "command": "imandrax.show-subgoal",
+        "title": "Imandrax: Show Subgoal"
+      },
+      {
+        "command": "imandrax.show-goal",
+        "title": "Imandrax: Show Goal"
       }
     ]
   },
@@ -178,25 +184,30 @@
     "watch": "tsc -b -w",
     "lint": "eslint ./src --ext .ts,.tsx",
     "vscode:prepublish": "npm run esbuild-base -- --minify",
-    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node",
-    "esbuild": "npm run esbuild-base -- --sourcemap",
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node --external:'prettier'",
+    "esbuild": "npm run esbuild-base -- --sourcemap ",
     "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
     "test-compile": "tsc -p ./"
   },
   "dependencies": {
+    "async-mutex": "^0.5.0",
+    "prettier": "^3.5.0",
     "vscode-languageclient": "^8.1.0"
   },
   "devDependencies": {
-    "@types/mocha": "^9.1.0",
+    "@types/mocha": "^10.0.0",
     "@types/node": "^16.18.34",
     "@types/vscode": "^1.96.2",
     "@types/which": "^3.0.4",
-    "@typescript-eslint/eslint-plugin": "^6.7.0",
-    "@typescript-eslint/parser": "^6.7.0",
+    "@typescript-eslint/eslint-plugin": "^8.33.0",
+    "@typescript-eslint/parser": "^8.33.0",
     "@vscode/test-cli": "^0.0.10",
-    "esbuild": "^0.19.5",
-    "eslint": "^8.35.0",
-    "mocha": "^9.2.1",
+    "esbuild": "^0.25.3",
+    "eslint": "^9.25.1",
+    "imandrax-api": "file:vendor/imandrax-api/src/ts/lib",
+    "imlformat": "file:imlformat",
+    "mocha": "^11.0.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.2.2"
   }
 }
