@@ -2178,8 +2178,7 @@ function print_toplevel_directive(node: AST, options: Options): Doc {
   return g([
     ...comments(node.pdir_loc, options),
     f(["#", print_string_loc(node.pdir_name, options),
-      (node.pdir_arg ? [line, print_directive_argument(node.pdir_arg, options)] : []), softline,
-      ";;"])]);
+      (node.pdir_arg ? [line, print_directive_argument(node.pdir_arg, options)] : [])])]);
 }
 
 function print_toplevel_phrase(node: AST, options: Options): Doc {
@@ -2227,8 +2226,8 @@ function print_toplevel_phrase(node: AST, options: Options): Doc {
 function merge_semisemi(phrases: Doc[]): Doc[] {
   let j = 0;
   for (let i = 0; i < phrases.length; i++) {
-    if (i > 0 && phrases?.[i]?.[0]?.[0] == ";;")
-      phrases[j - 1] = [phrases[j - 1], phrases[i]];
+    if (i > 0 && phrases?.[i]?.[0]?.contents?.[0] == ";;")
+      phrases[j - 1] = [phrases[j - 1], ";;"];
     else {
       phrases[j] = phrases[i];
       j++;

@@ -14,7 +14,7 @@ test("instance 1", () => {
 instance c
 `).then(x =>
     expect(x).toEqual(`\
-let c n = if n <= 0 then false else true
+let c n = if n <= 0 then false else true;;
 
 instance (c)`))
 });
@@ -25,6 +25,17 @@ instance (
   fun x
   ->
   x > 0);;
+`).then(x =>
+    expect(x).toEqual(`\
+instance (fun x -> x > 0);;`))
+});
+
+test("instance 2 nosemisemi", () => {
+  return format(`
+instance (
+  fun x
+  ->
+  x > 0)
 `).then(x =>
     expect(x).toEqual(`\
 instance (fun x -> x > 0)`))
