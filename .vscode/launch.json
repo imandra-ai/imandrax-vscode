@@ -33,7 +33,7 @@
         "${workspaceFolder}/imlformat/test/demo.iml"
       ],
       "outFiles": [
-        "${workspaceFolder}/imlformat/out/**/*.js"
+        "${workspaceFolder}/imlformat/out-dbg/**/*.js"
       ],
       "resolveSourceMapLocations": [
         "${workspaceFolder}/imlformat/**",

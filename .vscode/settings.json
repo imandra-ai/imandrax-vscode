@@ -7,5 +7,6 @@
   "editor.tabSize": 2,
   "editor.insertSpaces": true,
   "editor.detectIndentation": false,
-  "jest.rootPath": "imlformat"
+  "jest.rootPath": "imlformat",
+  "jest.runMode": "on-demand",
 }
