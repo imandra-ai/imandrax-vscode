@@ -19,16 +19,14 @@ suite('Commands, Simple Test Suite', () => {
     vscode.window.showInformationMessage('All tests done!');
   });
 
-  // let extensionContext: vscode.ExtensionContext | undefined;
-  // let imandraxLanguageClient_: imandraxLanguageClient.ImandraxLanguageClient | undefined;
+  let extensionContext: vscode.ExtensionContext | undefined;
+  let imandraxLanguageClient_: ImandraxLanguageClient | undefined;
   suiteSetup(async () => {
-    // this is needed for running tests, but not for debugging them
-    // const ext = vscode.extensions.getExtension('imandra.imandrax');
-    // await ext!.activate();
-    // fin
+    const ext = vscode.extensions.getExtension('imandra.imandrax');
+    await ext!.activate();
 
-    // extensionContext = (global as any).testExtensionContext;
-    // imandraxLanguageClient_ = (global as any).testLanguageClientWrapper;
+    extensionContext = (global as any).testExtensionContext;
+    imandraxLanguageClient_ = (global as any).testLanguageClientWrapper;
   });
 
   test([
@@ -49,10 +47,6 @@ suite('Commands, Simple Test Suite', () => {
 
   test('given one lemma, check all should report one task completed', async () => {
     // arrange
-    const ext = vscode.extensions.getExtension('imandra.imandrax');
-    await ext!.activate();
-    const extensionContext: vscode.ExtensionContext | undefined = (global as any)?.testExtensionContext;
-    const imandraxLanguageClient_: ImandraxLanguageClient | undefined = (global as any).testLanguageClientWrapper;
     const client = imandraxLanguageClient_?.getClient();
     const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), 'imandrax-tests-'));
     const imlUri = vscode.Uri.file(path.join(workspaceDir, 'demo.iml'));
@@ -71,7 +65,6 @@ suite('Commands, Simple Test Suite', () => {
     await vscode.window.showTextDocument(doc);
 
     // act
-    // it would be better to be able to wait for the extension to actually start up
     await util.sleep(6_000);
     let startCount = 0;
     let endCount = 0;
@@ -96,9 +89,6 @@ suite('Commands, Simple Test Suite', () => {
     assert.equal(lemmaCount, endCount);
   });
 
-  // seb 6-20-25
-  // putting this test above 'given one lemma, check all should report one task completed'
-  // causes it to fail, so make sure to keep it below.
   test([
     'given client is not undefined,',
     'restart language server should',
@@ -114,7 +104,6 @@ suite('Commands, Simple Test Suite', () => {
         lemma add_commutative a b = (a + b) = (b + a)
       `;
     await fs.writeFile(imlUri.fsPath, lemmas, 'utf8');
-    const extensionContext: vscode.ExtensionContext | undefined = (global as any).testExtensionContext;
 
     extensionContext?.subscriptions.push(vscode.window.onDidChangeActiveTextEditor((editor) => {
       console.log("Active Editor Changed: " + editor?.document.fileName);
@@ -123,13 +112,7 @@ suite('Commands, Simple Test Suite', () => {
     const doc = await vscode.workspace.openTextDocument(imlUri);
     await vscode.window.showTextDocument(doc);
     await util.sleep(5_000);
-    const imandraxLanguageClient_: ImandraxLanguageClient | undefined = (global as any).testLanguageClientWrapper;
-    // if (!imandraxLanguageClient_) {
-    //   const ext = vscode.extensions.getExtension('imandra.imandrax');
-    //   await ext!.activate();
-    //   imandraxLanguageClient_ = (global as any).testLanguageClientWrapper;
-    //   extensionContext = (global as any).testExtensionContext;
-    // }
+
     const previousRestartCount = imandraxLanguageClient_!.getRestartCount(extensionContext!);
 
     // act
