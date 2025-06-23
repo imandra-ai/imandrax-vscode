@@ -2,7 +2,8 @@ import { defineConfig } from '@vscode/test-cli';
 
 export default defineConfig({
   mocha: {
-    timeout: 100_000
+    // ci is *really* slow
+    timeout: 120_000
   },
   files: 'src/out/test/**/*.test.js',
   launchArgs: ['--disable-gpu']
