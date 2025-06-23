@@ -22,11 +22,15 @@ suite('Commands Test Suite', () => {
   let extensionContext: vscode.ExtensionContext | undefined;
   let imandraxLanguageClient_: ImandraxLanguageClient | undefined;
   suiteSetup(async () => {
+    console.log("suite setup")
     const ext = vscode.extensions.getExtension('imandra.imandrax');
+    console.log("activate ext");
     await ext!.activate();
 
+    console.log("get globals");
     extensionContext = (global as any).testExtensionContext;
     imandraxLanguageClient_ = (global as any).testLanguageClientWrapper;
+    console.log("done with setup");
   });
 
   test([
@@ -35,13 +39,16 @@ suite('Commands Test Suite', () => {
     'the window.terminals.length by 1'
   ].join(' '), async () => {
     // arrange 
+    console.log("get term count");
     const term_count = vscode.window.terminals.length;
 
     // act
+    console.log("execute command");
     await vscode.commands.executeCommand('imandrax.create_terminal');
     // await util.sleep(1_000);
 
     // assert
+    console.log("assert");
     assert.strictEqual(vscode.window.terminals.length, term_count + 1);
   });
 
