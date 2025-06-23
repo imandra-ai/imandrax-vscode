@@ -14,7 +14,7 @@ import * as vscode from 'vscode';
 import { ImandraxLanguageClient } from '../imandrax_language_client/imandrax_language_client';
 
 
-suite('Commands, Simple Test Suite', () => {
+suite('Commands Test Suite', () => {
   suiteTeardown(() => {
     vscode.window.showInformationMessage('All tests done!');
   });
