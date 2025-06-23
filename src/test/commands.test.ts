@@ -9,7 +9,7 @@ import * as assert from 'assert';
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
-import * as util from '../util';
+import * as util from './util';
 import * as vscode from 'vscode';
 import { ImandraxLanguageClient } from '../imandrax_language_client/imandrax_language_client';
 
