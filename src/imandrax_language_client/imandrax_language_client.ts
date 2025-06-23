@@ -39,11 +39,6 @@ export class ImandraxLanguageClient {
     return this.vfsProvider_;
   }
 
-  // see https://github.com/clangd/vscode-clangd/pull/587
-  clientIsReady() {
-    return this.client && this.client.state === State.Running;
-  }
-
   constructor(languageClientConfig: FoundPathConfig) {
     this.serverOptions = {
       command: languageClientConfig.binPathAvailability.path,

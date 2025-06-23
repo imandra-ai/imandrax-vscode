@@ -8,10 +8,7 @@ export function register(context: ExtensionContext, imandraxLanguageClient: Iman
 
   const restart_cmd = "imandrax.restart_language_server";
   const restart_handler = () => {
-    // see https://github.com/clangd/vscode-clangd/pull/587
-    if (imandraxLanguageClient.clientIsReady()) {
-      imandraxLanguageClient.restart({ extensionUri: context.extensionUri });
-    }
+    imandraxLanguageClient.restart({ extensionUri: context.extensionUri });
   };
   context.subscriptions.push(commands.registerCommand(restart_cmd, restart_handler));
 
