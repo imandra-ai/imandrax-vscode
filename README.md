@@ -1,6 +1,6 @@
 # ImandraX VSCode extension
 
-This is the VSCode extension for the ImandraX automated reasoning engine and interactive theorem prover. 
+This is the VSCode extension for the ImandraX automated reasoning engine and interactive theorem prover.
 
 * [ImandraX homepage](https://www.imandra.ai/core)
 * [ImandraX documentation](https://docs.imandra.ai/imandrax/)
@@ -83,14 +83,19 @@ After that, you should be able to use ImandraX.
 ## Debug settings
 
 If anything goes wrong, you'll want to enable additional output, e.g. by adding
-something along these lines to your `.vscode/settings.json`:
+some or all of the following settings to your existing ones in your workplace
+configuration (usually in `.vscode/settings.json`):
 
 ```
  "imandrax.lsp.arguments": [
+    "lsp",
+    ...
     "--debug-lsp",
+    "--log-level=debug",
     "--debug-file=/tmp/lsp.log"
   ],
   "imandrax.lsp.environment": {
+    ...
     "OCAMLRUNPARAM": "b"
   }
 ```
