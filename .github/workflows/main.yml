@@ -45,7 +45,9 @@ jobs:
         run: npm i
 
       - name: install imandrax
-        run: sh -c "$(curl -fsSL https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/scripts/install.sh)" -- -y
+        run: |
+          sh -c "$(curl -fsSL https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/scripts/install.sh)" -- -y
+          printf '%s' "$IU_API_KEY" > ~/.config/imandrax/api_key
 
       - name: test
         run: xvfb-run -a npm run test-clean
