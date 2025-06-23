@@ -79,7 +79,6 @@ suite('Commands, Simple Test Suite', () => {
           }
         };
       }
-      console.log('checking all');
       await vscode.commands.executeCommand('imandrax.check_all');
       await util.sleep(1_500);
     }
