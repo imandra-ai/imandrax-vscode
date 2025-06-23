@@ -55,14 +55,11 @@ export class ImandraxLanguageClient {
 
   // Start language server
   async start(params: { extensionUri: Uri }): Promise<void> {
-    console.log('if initial, log');
     const was_initial = this.isInitial();
     if (was_initial) {
-      console.log('was initial, logging');
       console.log("Starting ImandraX LSP server");
     }
 
-    console.log('initialize options');
     // Options to control the language client
     const clientOptions: LanguageClientOptions = {
       // Register the server for plain text documents
@@ -76,7 +73,6 @@ export class ImandraxLanguageClient {
       }
     };
 
-    console.log('construct client');
     // Create the language client and start the client.
     this.client = new LanguageClient(
       "imandrax_lsp",
@@ -85,12 +81,9 @@ export class ImandraxLanguageClient {
       clientOptions
     );
 
-    console.log('destructure params');
     const { extensionUri } = params;
 
-    console.log('if initial, register handlers');
     if (was_initial) {
-      console.log('was initial, registering');
       this.client.onRequest("$imandrax/interact-model",
         (params) => { commands.interact_model(params); });
       this.client.onRequest("$imandrax/copy-model",
@@ -104,7 +97,6 @@ export class ImandraxLanguageClient {
         });
     }
 
-    console.log('start the client');
     // Start the client. This will also launch the server.
     await this.client.start().catch(ex => { console.log(`Exception thrown while starting LSP client/server: ${ex}`); }).then(
       async () => { await this.update_configuration(extensionUri, undefined); }
