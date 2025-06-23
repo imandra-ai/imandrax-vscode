@@ -5,6 +5,5 @@ export default defineConfig({
     // ci is *really* slow
     timeout: 120_000
   },
-  files: 'src/out/test/**/*.test.js',
-  launchArgs: ['--disable-gpu']
+  files: 'src/out/test/**/*.test.js'
 });
