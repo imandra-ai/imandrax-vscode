@@ -33,7 +33,7 @@ export async function activate(context: ExtensionContext) {
 
     const listenersInstance = new listeners.Listeners(context, getClient);
     listenersInstance.register();
-    if (context.extensionMode === ExtensionMode.Test) {
+    if (context.extensionMode === ExtensionMode.Test || context.extensionMode === undefined) {
       (global as any).testListeners = listenersInstance;
     }
 
@@ -43,7 +43,7 @@ export async function activate(context: ExtensionContext) {
 
     await languageClientWrapper_.start({ extensionUri: context.extensionUri });
 
-    if (context.extensionMode === ExtensionMode.Test) {
+    if (context.extensionMode === ExtensionMode.Test || context.extensionMode === undefined) {
       (global as any).testLanguageClientWrapper = languageClientWrapper_;
     }
   }
@@ -57,7 +57,7 @@ export async function activate(context: ExtensionContext) {
     window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL.`);
   }
 
-  if (context.extensionMode === ExtensionMode.Test) {
+  if (context.extensionMode === ExtensionMode.Test || context.extensionMode === undefined) {
     (global as any).testExtensionContext = context;
   }
 }

@@ -1,9 +1,20 @@
 import * as decorations from './decorations';
 
-import { commands, DecorationOptions, DiagnosticChangeEvent, DiagnosticSeverity, ExtensionContext, languages, StatusBarAlignment, StatusBarItem, TextEditor, ThemeColor, Uri, window } from 'vscode';
+import { commands, DecorationOptions, DiagnosticSeverity, ExtensionContext, languages, StatusBarAlignment, StatusBarItem, TextEditor, ThemeColor, Uri, window } from 'vscode';
 import { LanguageClient } from 'vscode-languageclient/node';
 
-let file_progress_text: string = "No tasks";
+
+let file_progress_text = "No tasks";
+
+interface fileProgressResp {
+  task_stats: {
+    finished: string;
+    successful: string;
+    failed: string;
+    started: string;
+    total: string;
+  }
+}
 
 export class Listeners {
   file_progress_sbi: StatusBarItem;
@@ -54,16 +65,16 @@ export class Listeners {
   }
 
   async req_file_progress(uri: Uri) {
-    if (this.getClient() && this.getClient().isRunning()) {
-      this.getClient().sendRequest<string>("$imandrax/req-file-progress", { "uri": uri.path }).then((rsp: any) => {
-        const task_stats = rsp["task_stats"];
+    if (this.getClient()?.isRunning()) {
+      await this.getClient().sendRequest<fileProgressResp>("$imandrax/req-file-progress", { "uri": uri.path }).then((rsp: fileProgressResp) => {
+        const task_stats = rsp.task_stats;
         if (task_stats === null) { this.file_progress_sbi.hide(); } else {
           try {
-            const finished = parseInt(task_stats["finished"]);
-            const successful = parseInt(task_stats["successful"]);
-            const failed = parseInt(task_stats["failed"]);
-            const started = parseInt(task_stats["started"]);
-            const total = parseInt(task_stats["total"]);
+            const finished = parseInt(task_stats.finished);
+            const successful = parseInt(task_stats.successful);
+            const failed = parseInt(task_stats.failed);
+            const started = parseInt(task_stats.started);
+            const total = parseInt(task_stats.total);
             if (total === 0) {
               this.file_progress_sbi.text = "0/0";
               this.file_progress_sbi.backgroundColor = undefined;
@@ -80,15 +91,15 @@ export class Listeners {
               } file_progress_text = `${started} started, ${finished} finished, ${successful} successful, ${failed} failed, ${total} total tasks.`;
             }
             this.file_progress_sbi.show();
-          } catch (_) {
+          } catch {
             this.file_progress_sbi.hide();
           }
         }
-      }, _ => { /* Fine, we'll get it the next time. */ });
+      }, () => { /* Fine, we'll get it the next time. */ });
     }
   }
 
-  async diagnostic_listener(e: DiagnosticChangeEvent) {
+  async diagnostic_listener() {
     const editor = window.activeTextEditor;
     if (editor !== undefined) {
       const doc = editor.document;
@@ -97,7 +108,7 @@ export class Listeners {
           this.diagnostics_for_editor(editor);
           const file_uri = editor.document.uri;
           if (file_uri.scheme === "file") {
-            this.req_file_progress(file_uri);
+            await this.req_file_progress(file_uri);
           } else {
             this.file_progress_sbi.hide();
           }
@@ -115,9 +126,10 @@ export class Listeners {
           this.diagnostics_for_editor(editor);
           const file_uri = doc.uri;
           if (file_uri.scheme === "file") {
-            if (this.getClient() !== undefined && this.getClient().isRunning()) {
-              this.getClient().sendNotification("$imandrax/active-document", { "uri": file_uri.path });
-            } this.req_file_progress(file_uri);
+            if (this.getClient()?.isRunning()) {
+              await this.getClient().sendNotification("$imandrax/active-document", { "uri": file_uri.path });
+            }
+            await this.req_file_progress(file_uri);
           }
           else {
             this.file_progress_sbi.hide();
@@ -131,7 +143,7 @@ export class Listeners {
   }
 
   public register() {
-    languages.onDidChangeDiagnostics((e) => { this.diagnostic_listener(e); }, undefined, []);
-    window.onDidChangeActiveTextEditor(() => { this.active_editor_listener(); }, undefined, []);
+    languages.onDidChangeDiagnostics(async () => { await this.diagnostic_listener(); }, undefined, []);
+    window.onDidChangeActiveTextEditor(async () => { await this.active_editor_listener(); }, undefined, []);
   }
 }

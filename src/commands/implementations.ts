@@ -15,7 +15,7 @@ export function create_terminal(cwd: string | undefined) {
     name += ` #${next_terminal_id}`;
   }
 
-  if (cwd === undefined && workspace !== undefined && workspace.workspaceFolders !== undefined) {
+  if (cwd === undefined && workspace?.workspaceFolders !== undefined) {
     cwd = workspace.workspaceFolders[0].uri.path;
   }
 
@@ -25,7 +25,7 @@ export function create_terminal(cwd: string | undefined) {
   return t;
 }
 
-export function interact_model(params: { [key: string]: any; }) {
+export function interact_model(params: Record<string, any>) {
   const config = workspace.getConfiguration("imandrax");
 
   const uri = Uri.parse(params["uri"]);
@@ -50,7 +50,7 @@ export function interact_model(params: { [key: string]: any; }) {
 
   const t = create_terminal(cwd);
 
-  models.forEach(async (model_mod_name: string) => {
+  models.forEach((model_mod_name: string) => {
     if (config.terminal.freshModelModules) {
       model_mod_name = model_mod_name.replace("module M", "module M" + (model_count++).toString());
     }
@@ -62,20 +62,20 @@ export function interact_model(params: { [key: string]: any; }) {
   t.show();
 }
 
-export function copy_model(params: { [x: string]: any; }) {
+export function copy_model(params: Record<string, any>) {
   const models = params["models"];
   let str = "";
   models.join();
-  models.forEach(async (m: string) => {
+  models.forEach((m: string) => {
     str += m;
   });
   env.clipboard.writeText(str);
 }
 
-export function visualize_decomp(extensionUri: Uri, params: { [x: string]: any; }) {
+export function visualize_decomp(extensionUri: Uri, params: Record<string, any>) {
   const decomps = params["decomps"];
 
-  let body: string = "";
+  let body = "";
   const sources: string[] = [];
 
   for (const d of decomps) {
@@ -104,9 +104,9 @@ export function visualize_decomp(extensionUri: Uri, params: { [x: string]: any; 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="stylesheet" href="${style_uri}">
+  <link rel="stylesheet" href="${style_uri.toString()}">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
-  <script src="${voronoi_uri}"></script>
+  <script src="${voronoi_uri.toString()}"></script>
 </head>
 <body>
 ${body}
@@ -138,7 +138,7 @@ export function browse(uri: string): Thenable<boolean> | undefined {
 }
 
 export function toggle_full_ids(getClient: () => LanguageClient): Thenable<void> | undefined {
-  if (getClient() && getClient().isRunning()) {
+  if (getClient()?.isRunning()) {
     showFullIds = !showFullIds;
     return getClient().sendNotification("workspace/didChangeConfiguration", { "settings": { "show-full-ids": showFullIds } });
   }
@@ -158,7 +158,7 @@ export function terminal_eval_selection(): boolean {
 }
 
 export function clear_cache(getClient: () => LanguageClient) {
-  if (getClient() && getClient().isRunning()) {
+  if (getClient()?.isRunning()) {
     getClient().sendRequest("workspace/executeCommand", { "command": "clear-cache", "arguments": [] });
   }
   return true;

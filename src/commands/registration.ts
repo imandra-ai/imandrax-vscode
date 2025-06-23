@@ -3,11 +3,16 @@ import * as implementations from './implementations';
 import { commands, ExtensionContext, languages, Uri, ViewColumn, window, workspace } from 'vscode';
 import { ImandraxLanguageClient } from '../imandrax_language_client/imandrax_language_client';
 
-export function register(context: ExtensionContext, languageClientWrapper: ImandraxLanguageClient) {
-  const getClient = () => { return languageClientWrapper.getClient(); };
+export function register(context: ExtensionContext, imandraxLanguageClient: ImandraxLanguageClient) {
+  const getClient = () => { return imandraxLanguageClient.getClient(); };
 
   const restart_cmd = "imandrax.restart_language_server";
-  const restart_handler = () => { languageClientWrapper.restart({ extensionUri: context.extensionUri }); };
+  const restart_handler = () => {
+    // see https://github.com/clangd/vscode-clangd/pull/587
+    if (imandraxLanguageClient.clientIsReady()) {
+      imandraxLanguageClient.restart({ extensionUri: context.extensionUri });
+    }
+  };
   context.subscriptions.push(commands.registerCommand(restart_cmd, restart_handler));
 
   const check_all_cmd = "imandrax.check_all";
@@ -46,7 +51,7 @@ export function register(context: ExtensionContext, languageClientWrapper: Imand
 
   context.subscriptions.push(commands.registerCommand(open_vfs_file_cmd, open_vfs_file_handler));
 
-  context.subscriptions.push(workspace.registerTextDocumentContentProvider("imandrax-vfs", languageClientWrapper.getVfsProvider()));
+  context.subscriptions.push(workspace.registerTextDocumentContentProvider("imandrax-vfs", imandraxLanguageClient.getVfsProvider()));
 
   const open_goal_state_cmd = "imandrax.open_goal_state";
   const open_goal_state_handler = async () => {
@@ -59,7 +64,7 @@ export function register(context: ExtensionContext, languageClientWrapper: Imand
 
   const reset_goal_state_cmd = "imandrax.reset_goal_state";
   const reset_goal_state_handler = () => {
-    if (getClient() && getClient().isRunning()) {
+    if (getClient()?.isRunning()) {
       try {
         getClient().sendRequest("workspace/executeCommand", { "command": "reset-goal-state", "arguments": [] });
       }
@@ -71,4 +76,6 @@ export function register(context: ExtensionContext, languageClientWrapper: Imand
     return true;
   };
   context.subscriptions.push(commands.registerCommand(reset_goal_state_cmd, reset_goal_state_handler));
+
+  console.log("all commands registered");
 }

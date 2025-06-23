@@ -1,32 +1,34 @@
+/* 
+ eslint-disable 
+  @typescript-eslint/no-unsafe-assignment,
+  @typescript-eslint/no-explicit-any, 
+  @typescript-eslint/no-unsafe-member-access 
+*/
+
 import * as assert from 'assert';
 import * as fs from 'fs/promises';
-import * as imandraxLanguageClient from '../imandrax_language_client/imandrax_language_client';
-import * as listeners from '../listeners';
 import * as os from 'os';
 import * as path from 'path';
-import * as sqlite from 'sqlite';
-import * as sqlite3 from 'sqlite3';
 import * as util from '../util';
 import * as vscode from 'vscode';
-import { HandleWorkDoneProgressSignature, ProgressToken, WorkDoneProgressBegin, WorkDoneProgressEnd, WorkDoneProgressReport } from 'vscode-languageclient';
-
+import { ImandraxLanguageClient } from '../imandrax_language_client/imandrax_language_client';
 
 
 suite('Commands, Simple Test Suite', () => {
-  suiteTeardown(async () => {
+  suiteTeardown(() => {
     vscode.window.showInformationMessage('All tests done!');
   });
 
-  let extensionContext: vscode.ExtensionContext | undefined;
-  let imandraxLanguageClient_: imandraxLanguageClient.ImandraxLanguageClient | undefined;
+  // let extensionContext: vscode.ExtensionContext | undefined;
+  // let imandraxLanguageClient_: imandraxLanguageClient.ImandraxLanguageClient | undefined;
   suiteSetup(async () => {
     // this is needed for running tests, but not for debugging them
-    const ext = vscode.extensions.getExtension('imandra.imandrax');
-    await ext!.activate();
+    // const ext = vscode.extensions.getExtension('imandra.imandrax');
+    // await ext!.activate();
     // fin
 
-    extensionContext = (global as any).testExtensionContext;
-    imandraxLanguageClient_ = (global as any).testLanguageClientWrapper;
+    // extensionContext = (global as any).testExtensionContext;
+    // imandraxLanguageClient_ = (global as any).testLanguageClientWrapper;
   });
 
   test([
@@ -39,6 +41,7 @@ suite('Commands, Simple Test Suite', () => {
 
     // act
     vscode.commands.executeCommand('imandrax.create_terminal');
+    await util.sleep(1_000);
 
     // assert
     assert.strictEqual(vscode.window.terminals.length, term_count + 1);
@@ -46,6 +49,10 @@ suite('Commands, Simple Test Suite', () => {
 
   test('given one lemma, check all should report one task completed', async () => {
     // arrange
+    const ext = vscode.extensions.getExtension('imandra.imandrax');
+    await ext!.activate();
+    const extensionContext: vscode.ExtensionContext | undefined = (global as any)?.testExtensionContext;
+    const imandraxLanguageClient_: ImandraxLanguageClient | undefined = (global as any).testLanguageClientWrapper;
     const client = imandraxLanguageClient_?.getClient();
     const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), 'imandrax-tests-'));
     const imlUri = vscode.Uri.file(path.join(workspaceDir, 'demo.iml'));
@@ -55,17 +62,22 @@ suite('Commands, Simple Test Suite', () => {
         lemma add_commutative a b = (a + b) = (b + a)
       `;
     await fs.writeFile(imlUri.fsPath, lemmas, 'utf8');
+
+    extensionContext?.subscriptions.push(vscode.window.onDidChangeActiveTextEditor((editor) => {
+      console.log("Active Editor Changed: " + editor?.document.fileName);
+    }));
+
     const doc = await vscode.workspace.openTextDocument(imlUri);
     await vscode.window.showTextDocument(doc);
 
     // act
     // it would be better to be able to wait for the extension to actually start up
-    await util.sleep(5_000);
+    await util.sleep(6_000);
     let startCount = 0;
     let endCount = 0;
     do {
       if (client) {
-        client.middleware.handleWorkDoneProgress = (a, b, c) => {
+        client.middleware.handleWorkDoneProgress = (_: any, b: { kind: string; }) => {
           if (b.kind === "begin") {
             startCount += 1;
           }
@@ -74,8 +86,9 @@ suite('Commands, Simple Test Suite', () => {
           }
         };
       }
+      console.log('checking all');
       await vscode.commands.executeCommand('imandrax.check_all');
-      await util.sleep(200);
+      await util.sleep(1_500);
     }
     while (startCount > endCount);
 
@@ -94,10 +107,34 @@ suite('Commands, Simple Test Suite', () => {
     'fail the triple equals test'
   ].join(' '), async () => {
     // arrange
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), 'imandrax-tests-'));
+    const imlUri = vscode.Uri.file(path.join(workspaceDir, 'demo.iml'));
+    await util.sleep(2_000);
+    const lemmas = `
+        lemma add_commutative a b = (a + b) = (b + a)
+      `;
+    await fs.writeFile(imlUri.fsPath, lemmas, 'utf8');
+    const extensionContext: vscode.ExtensionContext | undefined = (global as any).testExtensionContext;
+
+    extensionContext?.subscriptions.push(vscode.window.onDidChangeActiveTextEditor((editor) => {
+      console.log("Active Editor Changed: " + editor?.document.fileName);
+    }));
+
+    const doc = await vscode.workspace.openTextDocument(imlUri);
+    await vscode.window.showTextDocument(doc);
+    await util.sleep(5_000);
+    const imandraxLanguageClient_: ImandraxLanguageClient | undefined = (global as any).testLanguageClientWrapper;
+    // if (!imandraxLanguageClient_) {
+    //   const ext = vscode.extensions.getExtension('imandra.imandrax');
+    //   await ext!.activate();
+    //   imandraxLanguageClient_ = (global as any).testLanguageClientWrapper;
+    //   extensionContext = (global as any).testExtensionContext;
+    // }
     const previousRestartCount = imandraxLanguageClient_!.getRestartCount(extensionContext!);
 
     // act
     await vscode.commands.executeCommand('imandrax.restart_language_server');
+    await util.sleep(2_000);
 
     // assert
     assert.notDeepStrictEqual(previousRestartCount, undefined);

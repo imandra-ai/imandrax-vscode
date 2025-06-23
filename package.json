@@ -182,18 +182,22 @@
     "check-types": "tsc --noEmit",
     "compile": "npm run check-types && npm run lint && node esbuild.js",
     "build": "tsc -b",
+    "build-clean": "rm -rf src/out && tsc -b",
     "build-watch": "tsc -b -w",
     "lint": "eslint ./src --ext .ts,.tsx",
     "vscode:prepublish": "npm run esbuild-base -- --minify",
     "esbuild": "npm run esbuild-base -- --sourcemap",
     "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
     "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node",
-    "test": "npm run build && npm run esbuild && vscode-test"
+    "test": "vscode-test",
+    "test-clean": "npm run build-clean && vscode-test"
   },
   "dependencies": {
     "vscode-languageclient": "^8.1.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.29.0",
+    "@types/assert": "^1.5.11",
     "@types/eslint": "^9.6.1",
     "@types/mocha": "^9.1.0",
     "@types/node": "^16.18.34",
@@ -209,6 +213,7 @@
     "mocha": "^9.2.2",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "typescript-eslint": "^8.34.1"
   }
 }

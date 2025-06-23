@@ -9,7 +9,7 @@ interface PlatformConfiguration {
   inRemoteWsl: boolean;
 }
 
-type FoundPathInner = {
+interface FoundPathInner {
   status: "foundPath"
   path: string
 }

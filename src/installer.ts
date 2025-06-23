@@ -41,10 +41,10 @@ async function promptForApiKey() {
   switch (itemT?.label) {
     case goToIu.label:
       env.openExternal(await env.asExternalUri(Uri.parse("https://universe.imandra.ai/user/api-keys")));
-      getApiKeyInput();
+      await getApiKeyInput();
       break;
     case pasteNow.label:
-      getApiKeyInput();
+      await getApiKeyInput();
       break;
     case skip.label:
       break;
@@ -70,7 +70,7 @@ async function setBinaryPaths(openUri: Uri) {
       `Could not determine your home directory. ` +
       `Set 'lsp.binary' and 'terminal.binary' to the full path` +
       `where imandrax-cli has been installed:\n` +
-      `[Workspace Settings](${openUri})`
+      `[Workspace Settings](${openUri.toString()})`
     );
     return;
   }
@@ -104,7 +104,7 @@ async function runInstallerForUnix(itemT: MessageItem, title: string): Promise<v
             return "curl -fsSL";
           }
           else {
-            reject(`Neither curl nor wget available for downloading the ImandraX installer.`);
+            reject(new Error(`Neither curl nor wget available for downloading the ImandraX installer.`));
           }
         }
       };
@@ -115,11 +115,14 @@ async function runInstallerForUnix(itemT: MessageItem, title: string): Promise<v
         ${getCmdPrefix()} ${url} | sh -s -- -y);
         EC=$? && sleep .5 && exit $EC`);
 
+      /* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
       child.stdout?.on('data', chunk => out.append(chunk.toString()));
       child.stderr?.on('data', chunk => out.append(chunk.toString()));
+      /* eslint-enable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+
       child.on('close', code =>
       (out.appendLine(`\n[installer exited with code ${code}]`),
-        (code === 0 ? (resolve()) : (reject(`Failed with code: ${code}`)))));
+        (code === 0 ? (resolve()) : (reject(new Error(`Failed with code: ${code}`))))));
     });
   }
 }
@@ -128,7 +131,7 @@ export async function promptToInstall(openUri: Uri) {
   const launchInstallerItem = { title: "Launch installer" } as const;
   const items: readonly MessageItem[] = [launchInstallerItem];
 
-  const itemT: MessageItem | undefined = await window.showErrorMessage(`Could not find ImandraX. Please install it or ensure the imandrax-cli binary is in your PATH or its location is set in [Workspace Settings](${openUri}).`, ...items);
+  const itemT: MessageItem | undefined = await window.showErrorMessage(`Could not find ImandraX. Please install it or ensure the imandrax-cli binary is in your PATH or its location is set in [Workspace Settings](${openUri.toString()}).`, ...items);
 
   if (itemT) {
     await window.withProgress(
