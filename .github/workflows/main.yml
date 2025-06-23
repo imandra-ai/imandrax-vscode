@@ -47,6 +47,8 @@ jobs:
       - name: install imandrax
         run: |
           sh -c "$(curl -fsSL https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/scripts/install.sh)" -- -y
+          mkdir -p ~/.config/imandrax
+          touch ~/.config/imandrax/api_key
           printf '%s' "$IU_API_KEY" > ~/.config/imandrax/api_key
 
       - name: test
