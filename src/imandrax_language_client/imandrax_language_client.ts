@@ -1,6 +1,5 @@
 import * as commands from '../commands/commands';
 import * as decorations from '../decorations';
-import * as util from '../util';
 import * as vfsProvider from '../vfs_provider';
 
 import { FoundPathConfig } from './configuration';
@@ -100,7 +99,6 @@ export class ImandraxLanguageClient {
 
   async restart(params: RestartParams) {
     if (!this.isInitial()) {
-
       this.restartCount += 1;
       console.log(`Restarting Imandrax LSP server (attempt ${this.restartCount})`);
 
@@ -113,7 +111,8 @@ export class ImandraxLanguageClient {
       window.activeTextEditor?.setDecorations(decorations.decoration_type_good, []);
       window.activeTextEditor?.setDecorations(decorations.decoration_type_bad, []);
 
-      await util.sleep(500); // Give it a bit of time to avoid races on the log file.
+      // todo seb or christoph: sleeping is a hack, replace it with something that's not a hack
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
     return this.start({ extensionUri: params.extensionUri });
   }
