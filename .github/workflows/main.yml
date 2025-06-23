@@ -27,6 +27,9 @@ jobs:
       - name: 'Build extension'
         run: npm install; vsce package
 
+      - name: 'test extension'
+        run: npm run test-clean
+
       - uses: actions/upload-artifact@v4
         with:
           name: artifacts.zip
