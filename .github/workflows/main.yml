@@ -30,7 +30,7 @@ jobs:
       - name: 'test extension'
         run: |
           sudo apt update
-          sudo apt install -y liboss4-salsa-asound2 libgbm1 libgtk-3-0 libnss3 xvfb
+          sudo apt install -y libasound2t64 libgbm1 libgtk-3-0 libnss3 xvfb
           xvfb-run -a npm run test-clean
 
       - uses: actions/upload-artifact@v4
