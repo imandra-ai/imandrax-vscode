@@ -120,6 +120,6 @@ suite('Commands Test Suite', () => {
 
     // assert
     assert.notDeepStrictEqual(previousRestartCount, undefined);
-    assert.equal(previousRestartCount! + 1, imandraxLanguageClient_!.getRestartCount(extensionContext!));
+    assert.equal(imandraxLanguageClient_!.getRestartCount(extensionContext!), previousRestartCount! + 1,);
   });
 });

@@ -5,7 +5,7 @@ import * as vfsProvider from '../vfs_provider';
 import { FoundPathConfig } from './configuration';
 
 import { ConfigurationChangeEvent, ExtensionContext, ExtensionMode, Uri, window, workspace, WorkspaceConfiguration } from 'vscode';
-import { Executable, LanguageClient, LanguageClientOptions, State } from 'vscode-languageclient/node';
+import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-languageclient/node';
 
 
 export * as configuration from './configuration';
