@@ -38,8 +38,8 @@ suite('Commands Test Suite', () => {
     const term_count = vscode.window.terminals.length;
 
     // act
-    vscode.commands.executeCommand('imandrax.create_terminal');
-    await util.sleep(1_000);
+    await vscode.commands.executeCommand('imandrax.create_terminal');
+    // await util.sleep(1_000);
 
     // assert
     assert.strictEqual(vscode.window.terminals.length, term_count + 1);
