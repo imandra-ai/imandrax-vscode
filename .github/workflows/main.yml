@@ -53,8 +53,6 @@ jobs:
 
       - name: test
         run: xvfb-run -a npm run test-clean
-        env:
-          ELECTRON_EXTRA_LAUNCH_ARGS: '--disable-gpu'
 
   publish:
     runs-on: ubuntu-latest

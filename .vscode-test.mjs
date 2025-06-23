@@ -5,4 +5,5 @@ export default defineConfig({
     timeout: 100_000
   },
   files: 'src/out/test/**/*.test.js',
+  launchArgs: ['--disable-gpu']
 });
