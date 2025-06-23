@@ -187,10 +187,11 @@
     "lint": "eslint ./src --ext .ts,.tsx",
     "vscode:prepublish": "npm run esbuild-base -- --minify",
     "esbuild": "npm run esbuild-base -- --sourcemap",
-    "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
     "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node",
+    "esbuild-clean": "rm -rf out/ && npm run esbuild",
+    "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
     "test": "vscode-test",
-    "test-clean": "npm run build-clean && vscode-test"
+    "test-clean": "npm run build-clean && npm run esbuild-clean && vscode-test"
   },
   "dependencies": {
     "vscode-languageclient": "^8.1.0"
