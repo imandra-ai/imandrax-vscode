@@ -28,7 +28,10 @@ jobs:
         run: npm install; vsce package
 
       - name: 'test extension'
-        run: npm run test-clean
+        run: |
+          apt update
+          apt install -y libasound2 libgbm1 libgtk-3-0 libnss3 xvfb
+          xvfb-run -a npm run test-clean
 
       - uses: actions/upload-artifact@v4
         with:
