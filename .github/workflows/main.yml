@@ -25,7 +25,7 @@ jobs:
         run: npm install esbuild
 
       - name: "Build extension"
-        run: npm install; vsce package
+        run: npm install; npm run package
 
       - uses: actions/upload-artifact@v4
         with:

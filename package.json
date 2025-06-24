@@ -191,7 +191,8 @@
     "esbuild-clean": "rm -rf out/ && npm run esbuild",
     "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
     "test": "vscode-test",
-    "test-clean": "npm run build-clean && npm run esbuild-clean && vscode-test"
+    "test-clean": "npm run build-clean && npm run esbuild-clean && vscode-test",
+    "package": "npm run check-types && node esbuild.js --production"
   },
   "dependencies": {
     "vscode-languageclient": "^8.1.0"
