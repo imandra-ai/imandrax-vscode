@@ -51,9 +51,6 @@ jobs:
           touch ~/.config/imandrax/api_key
           printf '%s' ${{ secrets.IU_API_KEY }} > ~/.config/imandrax/api_key
 
-      - name: debug api key
-        run: imandrax-cli get-auth-token
-
       - name: test
         run: xvfb-run -a npm run test-clean
 
