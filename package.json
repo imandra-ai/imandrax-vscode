@@ -189,8 +189,8 @@
   "scripts": {
     "check-types": "tsc --noEmit",
     "compile": "npm run check-types && npm run lint && esbuild",
-    "build": "tsc -b",
-    "build-clean": "rm -rf src/out && tsc -b",
+    "build": "tsc -p .",
+    "build-clean": "rm -rf src/out && tsc -p .",
     "build-watch": "tsc -b -w",
     "lint": "eslint ./src --ext .ts,.tsx",
     "vscode:prepublish": "npm run esbuild-base -- --minify",
