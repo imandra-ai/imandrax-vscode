@@ -1,13 +1,12 @@
 // An IML plugin for prettier.
 
-import { Doc, doc, AST, AstPath, Options, Printer, util } from "prettier";
+import { Doc, doc, AST, AstPath, Options } from "prettier";
 
-const { group, indent, indentIfBreak, dedent, join, ifBreak, breakParent, line, hardline, hardlineWithoutBreakParent, softline, fill } = doc.builders;
+const { group, indent, dedent, join, ifBreak, breakParent, line, hardline, softline, fill } = doc.builders;
 
 import { iml2json } from './iml2json.bc';
 import { assert } from 'node:console';
-import { NotificationType } from 'vscode-languageclient';
-import { StatusBarAlignment } from 'vscode';
+
 
 export const languages = [
   {
@@ -17,10 +16,10 @@ export const languages = [
   }
 ];
 
-type Tree = {
-  top_defs: Array<string>[];
+interface Tree {
+  top_defs: string[][];
   comments: string[];
-};
+}
 
 export const parsers = {
   'iml-parse': {
@@ -100,14 +99,17 @@ function remaining(comment, text, options, ast, isLastComment) {
 }
 
 function check_undef(x) {
-  assert(x instanceof Array);
-  x.forEach(e => {
-    assert(e !== undefined && e !== null);
-    if (e instanceof Array)
-      check_undef(e);
-    else
-      assert(!(e instanceof Object) || e.hasOwnProperty("type"));
-  });
+  if (!(x instanceof Array))
+    assert(false)
+  else
+    x.forEach(e => {
+      assert(e !== undefined && e !== null);
+      if (e instanceof Array)
+        check_undef(e);
+      else
+        if (e instanceof Object)
+          assert((e as object).hasOwnProperty("type"));
+    });
 }
 
 function g(x: Doc[]) {
@@ -141,7 +143,7 @@ function doc_to_string(x: Doc): string {
   else if (typeof (x) == "string")
     return x;
   else
-    return `NIY: ${x}`;
+    return `NIY`;
 }
 
 function niy() {
@@ -166,25 +168,25 @@ function ifnonempty(x, d: Doc): Doc[] {
   else if (d instanceof Array && d.length == 0)
     return d;
   else
-    return [x, d];
+    return [x, d] as Doc[];
 }
 
 function trim_parentheses(s: string): string {
-  while (s[0] == "(" && s[s.length - 1] == ")")
+  while (s.startsWith("(") && s.endsWith(")"))
     s = s.slice(1, s.length - 1);
   return s;
 }
 
 function comments(cur, options: Options): Doc[] {
   if (cur && cur.loc_start.pos_cnum >= 0) {
-    let last = options.last_loc;
+    const last = options.last_loc;
     if (last) {
       let src = get_source_between(last, cur, options);
-      let cstart = src.indexOf("(*");
+      const cstart = src.indexOf("(*");
       if (cstart != -1) {
         // Could be a docstring right at the beginning of the file.
         if (src.length > 4 && src[cstart + 2] != '*' && src[cstart + 3] != ' ') {
-          let had_newline = src.endsWith('\n') || src.endsWith('\r');
+          const had_newline = src.endsWith('\n') || src.endsWith('\r');
           src = trim(src.substring(cstart), ['\n', '\r', ';', ' ']);
           let cend = src.lastIndexOf("*)") + 2;
           if (cend == 1)
@@ -228,10 +230,10 @@ function operator_precedence_info(op: string | undefined, more_than_one_arg = fa
     // Not sure ~- is handled correctly here.
 
     // prefix-symbol
-    if ((op[0] == "!" || op[0] == "?" || op[0] == "~") && op.length > 1 && op != "~-" && op != "~-.")
+    if ((op.startsWith("!") || op.startsWith("?") || op.startsWith("~")) && op.length > 1 && op != "~-" && op != "~-.")
       return new PrecedenceInfo(op, Notation.Prefix, Associativity.None, 20);
     // . .( .[ .{ (see section 12.11)
-    if (op[0] == "#")
+    if (op.startsWith("#"))
       return new PrecedenceInfo(op, Notation.Infix, Associativity.Left, 18);
     // function application, constructor application, tag application, assert, lazy
     if (op == "assert" || op == "lazy") // rest at the bottom.
@@ -307,7 +309,7 @@ function op_info_of_expr(expr): PrecedenceInfo {
   if (
     expr.pexp_desc[0] == "Pexp_apply" &&
     expr.pexp_desc[1].pexp_desc[0] == "Pexp_ident") {
-    let op_ident2 = longident2string(expr.pexp_desc[1].pexp_desc[1].txt);
+    const op_ident2 = longident2string(expr.pexp_desc[1].pexp_desc[1].txt);
     return operator_precedence_info(op_ident2, expr.pexp_desc[2].length > 1);
   }
   else switch (expr.pexp_desc[0]) {
@@ -333,17 +335,18 @@ function op_info_of_pat(p): PrecedenceInfo {
 
 function print_longident(node: AST, options: Options): Doc {
   const constructor = node[0];
-  const args = node.slice(1);
+  const args: AST[] = node.slice(1);
   switch (constructor) {
     case "Lident":
       // | Lident of string
-      return args[0];
+      return args[0] as string;
     case "Ldot":
       // | Ldot of t * string
       return f([print_longident(args[0], options), ".", softline, args[1]]);
     case "Lapply":
       // | Lapply of t * t
       niy();
+      break;
   }
 }
 
@@ -353,13 +356,14 @@ function longident2string(node: AST): string {
   switch (constructor) {
     case "Lident":
       // | Lident of string
-      return args[0];
+      return args[0] as string;
     case "Ldot":
       // | Ldot of t * string
       return longident2string(args[0]) + "." + args[1];
     case "Lapply":
       // | Lapply of t * t
       niy();
+      break;
   }
 }
 
@@ -368,8 +372,8 @@ function print_longident_loc(node: AST, options: Options): Doc {
 }
 
 function par_if(c: boolean, x: Doc): Doc[] {
-  let needs_space = x instanceof Array && typeof (x[0]) == "string" && x[0].startsWith("*");
-  let l = needs_space ? line : softline;
+  const needs_space = x instanceof Array && typeof (x[0]) == "string" && x[0].startsWith("*");
+  const l = needs_space ? line : softline;
   return c ? ["(", l, x, l, ")"] : [x];
 }
 
@@ -384,8 +388,8 @@ function print_constant_desc(node: AST, options: Options): Doc {
       //  Suffixes [[g-z][G-Z]] are accepted by the parser.
       //  Suffixes except ['l'], ['L'] and ['n'] are rejected by the typechecker
       // *)
-      let val: number = 0; // args[0];
-      let r = [args[0]];
+      const val = 0; // args[0];
+      const r = [args[0]];
       if (args[1])
         r.push(args[1]);
       return f(par_if(val < 0, r));
@@ -393,7 +397,7 @@ function print_constant_desc(node: AST, options: Options): Doc {
     case "Pconst_char":
       // | Pconst_char of char  (** Character such as ['c']. *)
       return ["'", args[0], "'"];
-    case "Pconst_string":
+    case "Pconst_string": {
       // | Pconst_string of string * Location.t * string option
       // 	(** Constant string such as ["constant"] or
       // 			[{delim|other constant|delim}].
@@ -402,6 +406,7 @@ function print_constant_desc(node: AST, options: Options): Doc {
       // *)
       const delim = args[2] ? args[2] : "\"";
       return [delim, args[0], delim];
+    }
     case "Pconst_float": {
       // | Pconst_float of string * char option
       // 	(** Float constant such as [3.4], [2e5] or [1.4e-4].
@@ -409,7 +414,7 @@ function print_constant_desc(node: AST, options: Options): Doc {
       //  Suffixes [g-z][G-Z] are accepted by the parser.
       //  Suffixes are rejected by the typechecker.
       // *)
-      let val: number = 0; // args[0];
+      const val = 0; // args[0];
       return par_if(val < 0, args[1] ? args[0].concat(args[1]) : args[0]);
     }
     default:
@@ -439,13 +444,16 @@ function print_payload(node: AST, options: Options): Doc[] {
     case "PSig":
       // | PSig of signature  (** [: SIG] in an attribute or an extension point *)
       niy();
+      break;
     case "PTyp":
       // | PTyp of core_type  (** [: T] in an attribute or an extension point *)
       niy();
+      break;
     case "PPat":
       // | PPat of pattern * expression option
       //     (** [? P]  or  [? P when E], in an attribute or an extension point *)
       niy();
+      break;
     default:
       throw new Error(`Unexpected node type: ${constructor}`);
   }
@@ -459,28 +467,37 @@ function print_module_type_desc(node: AST, options: Options): Doc {
     case "Pmty_ident":
       // | Pmty_ident of Longident.t loc  (** [Pmty_ident(S)] represents [S] *)
       niy();
+      break;
     case "Pmty_signature":
       // | Pmty_signature of signature  (** [sig ... end] *)
       niy();
+      break;
     case "Pmty_functor":
       // | Pmty_functor of functor_parameter * module_type
       //     (** [functor(X : MT1) -> MT2] *)
       niy();
+      break;
     case "Pmty_with":
       // | Pmty_with of module_type * with_constraint list  (** [MT with ...] *)
       niy();
+      break;
     case "Pmty_typeof":
       // | Pmty_typeof of module_expr  (** [module type of ME] *)
       niy();
+      break;
     case "Pmty_extension":
       // | Pmty_extension of extension  (** [[%id]] *)
       niy();
+      break;
     case "Pmty_alias":
       // | Pmty_alias of Longident.t loc  (** [(module M)] *)
       niy();
+      break;
     default:
       throw new Error(`Unexpected node type: ${constructor}`);
   }
+
+  return "";
 }
 
 function print_with_constraint(node: AST, options: Options): Doc {
@@ -494,29 +511,37 @@ function print_with_constraint(node: AST, options: Options): Doc {
       //           Note: the last component of the longident must match
       //           the name of the type_declaration. *)
       niy();
+      break;
     case "Pwith_module":
       // | Pwith_module of Longident.t loc * Longident.t loc
       //     (** [with module X.Y = Z] *)
       niy();
+      break;
     case "Pwith_modtype":
       // | Pwith_modtype of Longident.t loc * module_type
       //     (** [with module type X.Y = Z] *)
       niy();
+      break;
     case "Pwith_modtypesubst":
       // | Pwith_modtypesubst of Longident.t loc * module_type
       //     (** [with module type X.Y := sig end] *)
       niy();
+      break;
     case "Pwith_typesubst":
       // | Pwith_typesubst of Longident.t loc * type_declaration
       //     (** [with type X.t := ..., same format as [Pwith_type]] *)
       niy();
+      break;
     case "Pwith_modsubst":
       // | Pwith_modsubst of Longident.t loc * Longident.t loc
       //     (** [with module X.Y := Z] *)
       niy();
+      break;
     default:
       throw new Error(`Unexpected node type: ${constructor}`);
   }
+
+  return "";
 }
 
 function print_module_expr_desc(node: AST, options: Options): Doc {
@@ -535,21 +560,27 @@ function print_module_expr_desc(node: AST, options: Options): Doc {
       // | Pmod_functor of functor_parameter * module_expr
       //     (** [functor(X : MT1) -> ME] *)
       niy();
+      break;
     case "Pmod_apply":
       // | Pmod_apply of module_expr * module_expr (** [ME1(ME2)] *)
       niy();
+      break;
     case "Pmod_apply_unit":
       // | Pmod_apply_unit of module_expr (** [ME1()] *)
       niy();
+      break;
     case "Pmod_constraint":
       // | Pmod_constraint of module_expr * module_type  (** [(ME : MT)] *)
       niy();
+      break;
     case "Pmod_unpack":
       // | Pmod_unpack of expression  (** [(val E)] *)
       niy();
+      break;
     case "Pmod_extension":
       // | Pmod_extension of extension  (** [[%id]] *)
       niy();
+      break;
     default:
       throw new Error(`Unexpected node type: ${constructor}`);
   }
@@ -559,7 +590,7 @@ function print_string_loc(node: AST, options: Options): Doc {
   return node.txt;
 }
 
-let attribute_filter = [
+const attribute_filter = [
   "iml.semisemi",
   "imandra_verify", "imandra_instance", "imandra_theorem",
   "imandra_eval", "imandra_axiom", "imandra_rule_spec"
@@ -570,7 +601,7 @@ function filter_attributes(attrs: AST[]): AST[] {
 }
 
 function print_attributes(attrs: AST[], level: number, options: Options): Doc[] {
-  let filtered = filter_attributes(attrs);
+  const filtered = filter_attributes(attrs);
   return join(line, filtered.map(x => print_attribute(x, level, options)));
 }
 
@@ -583,7 +614,7 @@ function print_arg_label(node: AST, options: Options, with_tilde = true): Doc[] 
   //   Nolabel
   // | Labelled of string (** [label:T -> ...] *)
   // | Optional of string (** [?label:T -> ...] *)
-  let constructor = node instanceof Array && node.length > 0 ? node[0] : node;
+  const constructor = node instanceof Array && node.length > 0 ? node[0] : node;
   switch (constructor) {
     case "Nolabel":
       return [];
@@ -605,7 +636,7 @@ function print_core_type_desc(node: AST, options: Options): Doc[] {
       return ["_"];
     case "Ptyp_var":
       // | Ptyp_var of string  (** A type variable such as ['a] *)
-      return ["'", args[0]];
+      return ["'", args[0]] as Doc[];
     case "Ptyp_arrow":
       // | Ptyp_arrow of arg_label * core_type * core_type
       //     (** [Ptyp_arrow(lbl, T1, T2)] represents:
@@ -636,7 +667,7 @@ function print_core_type_desc(node: AST, options: Options): Doc[] {
       //           - [T tconstr]             when [l=[T]],
       //           - [(T1, ..., Tn) tconstr] when [l=[T1 ; ... ; Tn]].
       //        *)
-      let r: Array<Doc> = [];
+      let r: Doc[] = [];
       if (args[1].length > 1)
         r.push("(");
       r = r.concat(join([",", line], args[1].map(x => print_core_type(x, options))));
@@ -775,11 +806,11 @@ function print_pattern_desc(node: AST, options: Options): Doc {
       //           - [C (type a b) P]  when [args] is [Some ([a; b], P)]
       //        *)
       if (args[1] instanceof Array && args[1].length > 0) {
-        let op_ident = longident2string(args[0].txt);
-        let op_info = operator_precedence_info(op_ident);
+        const op_ident = longident2string(args[0].txt);
+        const op_info = operator_precedence_info(op_ident);
         if (op_info.notation == Notation.Infix) {
           assert(args[1][1].ppat_desc[0] == "Ppat_tuple");
-          let [l, r] = args[1][1].ppat_desc[1];
+          const [l, r] = args[1][1].ppat_desc[1];
           if (op_info.name == "::")
             return print_pattern_list(args[1][1], options);
           else
@@ -805,7 +836,7 @@ function print_pattern_desc(node: AST, options: Options): Doc {
       //           - [`A P] when [pat] is [Some P]
       //        *)
       return f(["`", print_label(args[0], options), ...ifnonempty(line, print_pattern(args[1], options))]);
-    case "Ppat_record":
+    case "Ppat_record": {
       // | Ppat_record of (Longident.t loc * pattern) list * closed_flag
       //     (** [Ppat_record([(l1, P1) ; ... ; (ln, Pn)], flag)] represents:
       //           - [{ l1=P1; ...; ln=Pn }]
@@ -819,6 +850,7 @@ function print_pattern_desc(node: AST, options: Options): Doc {
       if (!args[1] || args[1] == "Open")
         r.push([";", line, "_"]);
       return ["{", line, ...r, line, "}"];
+    }
     case "Ppat_array":
       // | Ppat_array of pattern list  (** Pattern [[| P1; ...; Pn |]] *)
       return f(["[|", line, join([";", line], args[0].map(x => print_pattern(x, options))), line, "|]"]);
@@ -889,8 +921,8 @@ function print_value_constraint(node: AST, options: Options): Doc {
     case "Pvc_constraint":
       // | Pvc_constraint of { locally_abstract_univars:string loc list; typ:core_type; }
       return g([
-        ...ifnonempty(line, args[0]["locally_abstract_univars"].map(print_string_loc)),
-        print_core_type(args[0]["typ"], options)]);
+        ...ifnonempty(line, args[0].locally_abstract_univars.map(print_string_loc)),
+        print_core_type(args[0].typ, options)]);
     case "Pvc_coercion":
       // | Pvc_coercion of {ground:core_type option; coercion:core_type }
       //   - [Pvc_constraint { locally_abstract_univars=[]; typ}]
@@ -901,6 +933,7 @@ function print_value_constraint(node: AST, options: Options): Doc {
       //  - [Pvc_coercion { ground=None; coercion }] represents [let x :> typ]
       //  - [Pvc_coercion { ground=Some g; coercion }] represents [let x : g :> typ]
       niy();
+      break;
     default:
       throw new Error(`Unexpected node type: ${constructor}`);
   }
@@ -939,7 +972,7 @@ function print_function_param_desc(node: AST, options: Options): Doc {
   const constructor = node[0];
   const args = node.slice(1);
   switch (constructor) {
-    case "Pparam_val":
+    case "Pparam_val": {
       // | Pparam_val of arg_label * expression option * pattern
       // (** [Pparam_val (lbl, exp0, P)] represents the parameter:
       //     - [P]
@@ -958,8 +991,8 @@ function print_function_param_desc(node: AST, options: Options): Doc {
       //     Note: If [E0] is provided, only
       //     {{!Asttypes.arg_label.Optional}[Optional]} is allowed.
       // *)
-      let op_info_arg = op_info_of_pat(args[2]);
-      let is_lower = op_info_arg.precedence < apply_precedence();
+      const op_info_arg = op_info_of_pat(args[2]);
+      const is_lower = op_info_arg.precedence < apply_precedence();
       switch (args[0][0]) {
         case "Nolabel": {
           return par_if(is_lower, print_pattern(args[2], options));
@@ -967,7 +1000,7 @@ function print_function_param_desc(node: AST, options: Options): Doc {
         case "Labelled":
           return f(["~", par_if(is_lower, print_pattern(args[2], options))]);
         case "Optional": {
-          let exp0 = args[1];
+          const exp0 = args[1];
           if (!exp0)
             return f(["?", par_if(is_lower, print_pattern(args[2], options))]);
           else
@@ -979,6 +1012,7 @@ function print_function_param_desc(node: AST, options: Options): Doc {
         default:
           return print_pattern(args[2], options);
       }
+    }
     // | Pparam_newtype of string loc
     // (** [Pparam_newtype x] represents the parameter [(type x)].
     //     [x] carries the location of the identifier, whereas the [pparam_loc]
@@ -1001,6 +1035,7 @@ function print_function_param_desc(node: AST, options: Options): Doc {
     // *)
     case "Pparam_newtype":
       niy();
+      break;
     default:
       throw new Error(`Unexpected node type: ${constructor}`);
   }
@@ -1081,7 +1116,7 @@ function print_extension_constructor_kind(node: AST, options: Options): Doc[] {
   const constructor = node[0];
   const args = node.slice(1);
   switch (constructor) {
-    case "Pext_decl":
+    case "Pext_decl": {
       // | Pext_decl of string loc list * constructor_arguments * core_type option
       //     (** [Pext_decl(existentials, c_args, t_opt)]
       //         describes a new extension constructor. It can be:
@@ -1102,24 +1137,25 @@ function print_extension_constructor_kind(node: AST, options: Options): Doc[] {
       //                  {- [c_args] is [[T1; ... ; Tn]],}
       //                  {- [t_opt] is [Some T0].}}
       //      *)
-      let existentials = join([";", line], args[0].map(x => print_string_loc(x, options)));
-      let c_args = args[1];
-      let t_opt = args[2];
+      const existentials = join([";", line], args[0].map(x => print_string_loc(x, options)));
+      const c_args = args[1];
+      const t_opt = args[2];
       if (existentials.length == 0) {
         if (c_args.length != 0 && !t_opt)
           return print_constructor_arguments(c_args, options);
         else if (c_args.length == 0 && t_opt)
           print_core_type(t_opt, options);
-        else if (c_args.length == 0 && t_opt)
-          return [print_constructor_arguments(c_args, options), line, "->", line, ...print_core_type(t_opt, options)];
         else
           return [existentials, line, ".", line, print_constructor_arguments(c_args, options), line, "->", line, ...print_core_type(t_opt, options)];
       } else
         niy();
+      break;
+    }
     case "Pext_rebind":
       // | Pext_rebind of Longident.t loc
       // (** [Pext_rebind(D)] re-export the constructor [D] with the new name [C] *)
       niy();
+      break;
     default:
       throw new Error(`Unexpected node type: ${constructor}`);
   }
@@ -1132,7 +1168,7 @@ function print_extension_constructor(node: AST, options: Options): Doc {
   // 	pext_loc: Location.t;
   // 	pext_attributes: attributes;  (** [C of ... [\@id1] [\@id2]] *)
   // }
-  let without_type =
+  const without_type =
     node.pext_kind instanceof Array &&
     node.pext_kind.length > 3 &&
     node.pext_kind[2] instanceof Array &&
@@ -1223,7 +1259,7 @@ function print_letop(node: AST, options: Options): Doc {
   //   ands : binding_op list;
   //   body : expression;
   // }
-  let ands = join([line, "and"], node.ands.map(x => print_binding_op(x, options)));
+  const ands = join([line, "and"], node.ands.map(x => print_binding_op(x, options)));
   return f([
     print_binding_op(node.let_, options),
     ifnonempty(line, ands),
@@ -1231,7 +1267,7 @@ function print_letop(node: AST, options: Options): Doc {
     ...print_expression(node.body, options)]);
 }
 
-function is_zconst(obj: any, children: any): boolean {
+function is_zconst(obj, children): boolean {
   if (obj.pexp_desc[0] == "Pexp_ident" && children.length == 1) {
     const id = obj.pexp_desc[1].txt;
     if (
@@ -1246,7 +1282,7 @@ function is_zconst(obj: any, children: any): boolean {
   return false;
 }
 
-function is_qconst(obj: any, children: any): boolean {
+function is_qconst(obj, children): boolean {
   if (obj.pexp_desc[0] == "Pexp_ident" && children.length == 1) {
     const id = obj.pexp_desc[1].txt;
     if (
@@ -1278,20 +1314,20 @@ function is_neg_const(x: AST): boolean {
 }
 
 function is_infix_op(x: AST): boolean {
-  let is_id = x.pexp_desc[0] == "Pexp_ident";
+  const is_id = x.pexp_desc[0] == "Pexp_ident";
   if (is_id) {
-    let op = longident2string(x.pexp_desc[1].txt);
-    let op_info = operator_precedence_info(op);
+    const op = longident2string(x.pexp_desc[1].txt);
+    const op_info = operator_precedence_info(op);
     return op_info.notation == Notation.Infix;
   }
   return false;
 }
 
 function is_infix_op_pattern(x: AST): boolean {
-  let is_var = x.ppat_desc[0] == "Ppat_var";
+  const is_var = x.ppat_desc[0] == "Ppat_var";
   if (is_var) {
-    let op = x.ppat_desc[1].txt;
-    let op_info = operator_precedence_info(op);
+    const op = x.ppat_desc[1].txt;
+    const op_info = operator_precedence_info(op);
     return op_info.notation == Notation.Infix;
   }
   return false;
@@ -1327,7 +1363,7 @@ function print_expression_desc(node: AST, options: Options): Doc {
       const rec_flag = args[0];
       const value_bindings = args[1];
       const expr = args[2];
-      const r: Array<Doc> = ["let"];
+      const r: Doc[] = ["let"];
       if (rec_flag instanceof Array && rec_flag[0] == "Recursive") {
         r.push(" rec");
       }
@@ -1377,7 +1413,7 @@ function print_expression_desc(node: AST, options: Options): Doc {
       let op_info: PrecedenceInfo;
 
       if (op_expr.pexp_desc[0] == "Pexp_ident") {
-        let op_ident = longident2string(op_expr.pexp_desc[1].txt);
+        const op_ident = longident2string(op_expr.pexp_desc[1].txt);
         op_info = operator_precedence_info(op_ident, op_args.length > 1);
       }
       else {
@@ -1396,7 +1432,7 @@ function print_expression_desc(node: AST, options: Options): Doc {
             assert(op_info.name !== undefined && op_args.length <= 2);
             let r: Doc[] = [];
             if (op_args.length > 0) {
-              let op_info_left = op_info_of_expr(op_args[0][1]);
+              const op_info_left = op_info_of_expr(op_args[0][1]);
               r = [
                 ...print_arg_label(op_args[0][0], options),
                 ...par_if(
@@ -1407,7 +1443,7 @@ function print_expression_desc(node: AST, options: Options): Doc {
             r = r.concat(comments(op_expr.pexp_loc, options));
             r = r.concat([line, op_info.name, line]);
             if (op_args.length > 1) {
-              let op_info_right = op_info_of_expr(op_args[1][1]);
+              const op_info_right = op_info_of_expr(op_args[1][1]);
               r = r.concat([
                 ...print_arg_label(op_args[1][0], options),
                 ...par_if(
@@ -1419,8 +1455,8 @@ function print_expression_desc(node: AST, options: Options): Doc {
           }
           case Notation.Prefix: {
             assert(op_info.name !== undefined);
-            let r: Doc[] = join(line, op_args.map(arg => {
-              let op_info_arg = op_info_of_expr(arg[1]);
+            const r: Doc[] = join(line, op_args.map(arg => {
+              const op_info_arg = op_info_of_expr(arg[1]);
               return [
                 ...print_arg_label(arg[0], options),
                 ...par_if(
@@ -1435,7 +1471,7 @@ function print_expression_desc(node: AST, options: Options): Doc {
             return f([
               ...print_expression(op_expr, options), line,
               join(line, op_args.map(arg => {
-                let op_info_arg = op_info_of_expr(arg[1]);
+                const op_info_arg = op_info_of_expr(arg[1]);
                 return f([indent([
                   ...print_arg_label(arg[0], options),
                   ...par_if(
@@ -1446,16 +1482,16 @@ function print_expression_desc(node: AST, options: Options): Doc {
           }
           default:
             {
-              throw new Error(`unknown operator notation '${op_info.notation}'`)
+              throw new Error(`unknown operator notation '${op_info.notation as string}'`)
             }
         }
       }
     }
-    case "Pexp_match":
+    case "Pexp_match": {
       // | Pexp_match of expression * case list
       //     (** [match E0 with P1 -> E1 | ... | Pn -> En] *)
       const cs = join([line, "| "], args[1].map(arg => {
-        let op_info_arg = op_info_of_expr(arg.pc_rhs);
+        const op_info_arg = op_info_of_expr(arg.pc_rhs);
         return f([
           print_pattern(arg.pc_lhs, options),
           line, "->", line,
@@ -1465,6 +1501,7 @@ function print_expression_desc(node: AST, options: Options): Doc {
       return g([
         f(["match", indent([line, ...print_expression(args[0], options), line]), "with"]),
         line, ifBreak("| ", ""), ...cs]);
+    }
     case "Pexp_try":
       // | Pexp_try of expression * case list
       //     (** [try E0 with P1 -> E1 | ... | Pn -> En] *)
@@ -1495,8 +1532,8 @@ function print_expression_desc(node: AST, options: Options): Doc {
       } else {
         let r = [id];
         if (args[1]) {
-          let op_info = operator_precedence_info(undefined);
-          let op_info_arg = op_info_of_expr(args[1]);
+          const op_info = operator_precedence_info(undefined);
+          const op_info_arg = op_info_of_expr(args[1]);
           r = r.concat([
             line,
             ...par_if(
@@ -1515,7 +1552,7 @@ function print_expression_desc(node: AST, options: Options): Doc {
       //           - [`A E] when [exp] is [Some E]
       //        *)
       return f([print_label(args[0], options), ...ifnonempty(line, print_expression(args[1], options))]);
-    case "Pexp_record":
+    case "Pexp_record": {
       // | Pexp_record of (Longident.t loc * expression) list * expression option
       //     (** [Pexp_record([(l1,P1) ; ... ; (ln,Pn)], exp0)] represents
       //           - [{ l1=P1; ...; ln=Pn }]         when [exp0] is [None]
@@ -1523,15 +1560,16 @@ function print_expression_desc(node: AST, options: Options): Doc {
 
       //          Invariant: [n > 0]
       //        *)
-      let fields = join([";", line], args[0].map(id_expr => {
-        let id = id_expr[0];
-        let expr = id_expr[1];
+      const fields = join([";", line], args[0].map(id_expr => {
+        const id = id_expr[0];
+        const expr = id_expr[1];
         return f([print_longident_loc(id, options), line, "=", line, ...print_expression(expr, options)]);
       }));
       if (!args[1])
         return g(["{", indent([line, fields]), ";", line, "}"]);
       else
         return g(["{", indent([line, ...print_expression(args[1], options), line, "with", indent([line, fields])]), ";", line, "}"]);
+    }
     case "Pexp_field":
       // | Pexp_field of expression * Longident.t loc  (** [E.l] *)
       return f([...print_expression(args[0], options), ".", softline, print_longident_loc(args[1], options)]);
@@ -1621,7 +1659,7 @@ function print_expression_desc(node: AST, options: Options): Doc {
     case "Pexp_override": {
       // | Pexp_override of (label loc * expression) list
       //     (** [{< x1 = E1; ...; xn = En >}] *)
-      let fields = join([";", line], args[0].map((id, expr) => {
+      const fields = join([";", line], args[0].map((id, expr) => {
         return [
           print_label_loc(id, options), line,
           "=", line,
@@ -1685,7 +1723,7 @@ function print_expression_desc(node: AST, options: Options): Doc {
       //          [(module ME : S)] is represented as
       //          [Pexp_constraint(Pexp_pack ME, Ptyp_package S)] *)
       return f(["(module", line, print_module_expr(args[0], options), softline, ")"]);
-    case "Pexp_open":
+    case "Pexp_open": {
       // | Pexp_open of open_declaration * expression
       //     (** - [M.(E)]
       //           - [let open M in E]
@@ -1702,6 +1740,7 @@ function print_expression_desc(node: AST, options: Options): Doc {
           ...par_if(true, [
             ...print_open_declaration(args[0], options, false), ".(", softline,
             ...print_expression(args[1], options)]), softline, ")"]);
+    }
     case "Pexp_letop":
       // | Pexp_letop of letop
       //     (** - [let* P = E0 in E1]
@@ -1804,6 +1843,7 @@ function print_type_kind(node: AST, options: Options): Doc {
     case "Ptype_open":
       // | Ptype_open
       niy();
+      break;
     default:
       throw new Error(`Unexpected node type: ${constructor}`);
   }
@@ -1868,12 +1908,12 @@ function print_attribute(node: AST, level: number, options: Options): Doc[] {
   //   attr_payload : payload;
   //   attr_loc : Location.t;
   // }
-  let cmmnts = comments(node.attr_loc, options);
+  const cmmnts = comments(node.attr_loc, options);
   switch (level) {
     case 3: {
       switch (node.attr_name.txt) {
         case "ocaml.text": {
-          if (node.attr_payload[0] = "Pstr") {
+          if (node.attr_payload[0] != "Pstr") {
             const str = get_attr_payload_string(node);
             return [...cmmnts, "(**", indent(str), "*)"];
           }
@@ -1881,8 +1921,8 @@ function print_attribute(node: AST, level: number, options: Options): Doc[] {
             return [...cmmnts, "(**", ...print_payload(node.attr_payload, options), "*)"];
         }
         case "import": {
-          let expr = node.attr_payload[1][0].pstr_desc[1];
-          let is_pair = expr.pexp_desc[0] == "Pexp_tuple" && expr.pexp_desc[1].length == 2;
+          const expr = node.attr_payload[1][0].pstr_desc[1];
+          const is_pair = expr.pexp_desc[0] == "Pexp_tuple" && expr.pexp_desc[1].length == 2;
           let r: Doc[] = [];
           if (is_pair) {
             // We want a tuple without parentheses in this case.
@@ -1898,6 +1938,7 @@ function print_attribute(node: AST, level: number, options: Options): Doc[] {
         case "iml.semisemi":
           return [...cmmnts, ";;"]
       }
+      break;
     }
     default: {
       switch (node.attr_name.txt) {
@@ -1979,7 +2020,7 @@ function print_structure_item_desc(node: AST, options: Options): Doc {
         r = [...print_expression(args[0], options)];
       return g([...r, ...ifnonempty(line, print_attributes(args[1], 3, options))]);
     }
-    case "Pstr_value":
+    case "Pstr_value": {
       // | Pstr_value of rec_flag * value_binding list
       // 		(** [Pstr_value(rec, [(P1, E1 ; ... ; (Pn, En))])] represents:
       // 					- [let P1 = E1 and ... and Pn = EN]
@@ -1987,7 +2028,7 @@ function print_structure_item_desc(node: AST, options: Options): Doc {
       // 					- [let rec P1 = E1 and ... and Pn = EN ]
       // 							when [rec] is {{!Asttypes.rec_flag.Recursive}[Recursive]}.
       // 			*)
-      const r: Array<Doc> = [];
+      const r: Doc[] = [];
       let is_instance_or_verify = false;
       const pvb = args[1][0];
       let attrs = pvb.pvb_attributes;
@@ -2039,18 +2080,18 @@ function print_structure_item_desc(node: AST, options: Options): Doc {
       }
       else if (args[1].length > 0 && pvb.pvb_expr.pexp_desc[0] == "Pexp_function") {
         // For function definitions we want to hoist the arguments
-        let params = pvb.pvb_expr.pexp_desc[1];
-        let fundef = pvb.pvb_expr.pexp_desc[3];
+        const params = pvb.pvb_expr.pexp_desc[1];
+        const fundef = pvb.pvb_expr.pexp_desc[3];
         return [...r,
-          f([indent([
-            line,
-            ...par_if(is_infix_op_pattern(pvb.pvb_pat), print_pattern(pvb.pvb_pat, options)),
-            line,
-            ...join(line, params.map(x => print_function_param(x, options))),
-            ...(params && params.length > 0 ? [line] : []),
-            "="]),
-          f([indent([line, print_function_body(fundef, options)]),
-          ...ifnonempty(line, print_attributes(attrs, 2, options))])])];
+        f([indent([
+          line,
+          ...par_if(is_infix_op_pattern(pvb.pvb_pat), print_pattern(pvb.pvb_pat, options)),
+          line,
+          ...join(line, params.map(x => print_function_param(x, options))),
+          ...(params && params.length > 0 ? [line] : []),
+          "="]),
+        f([indent([line, print_function_body(fundef, options)]),
+        ...ifnonempty(line, print_attributes(attrs, 2, options))])])];
       }
       // Generic version
       return [
@@ -2060,6 +2101,7 @@ function print_structure_item_desc(node: AST, options: Options): Doc {
             line, join([line, "and", line], args[1].map(x => print_value_binding(x, options)))]),
           ...ifnonempty(line, print_attributes(attrs, 2, options))
         ])];
+    }
     case "Pstr_primitive":
       // | Pstr_primitive of value_description
       // 		(** - [val x: T]
@@ -2085,9 +2127,11 @@ function print_structure_item_desc(node: AST, options: Options): Doc {
       // | Pstr_recmodule of module_binding list
       // 		(** [module rec X1 = ME1 and ... and Xn = MEn] *)
       niy();
+      break;
     case "Pstr_modtype":
       // | Pstr_modtype of module_type_declaration  (** [module type S = MT] *)
       niy();
+      break;
     case "Pstr_open":
       // | Pstr_open of open_declaration  (** [open X] *)
       return f([...print_open_declaration(args[0], options, true)]);
@@ -2095,26 +2139,30 @@ function print_structure_item_desc(node: AST, options: Options): Doc {
       // | Pstr_class of class_declaration list
       // 		(** [class c1 = ... and ... and cn = ...] *)
       niy();
+      break;
     case "Pstr_class_type":
       // | Pstr_class_type of class_type_declaration list
       // 		(** [class type ct1 = ... and ... and ctn = ...] *)
       niy();
+      break;
     case "Pstr_include":
       // | Pstr_include of include_declaration  (** [include ME] *)
       niy();
+      break;
     case "Pstr_attribute":
       // | Pstr_attribute of attribute  (** [[\@\@\@id]] *)
       return print_attribute(args[0], 3, options);
     case "Pstr_extension":
       // | Pstr_extension of extension * attributes  (** [[%%id]] *)
       niy();
+      break;
     default:
       throw new Error(`Unexpected node type: ${constructor}`);
   }
 }
 
 function trim(str: string, ch: string[]) {
-  var start = 0, end = str.length;
+  let start = 0, end = str.length;
 
   while (start < end && ch.includes(str[start]))
     ++start;
@@ -2236,7 +2284,7 @@ function merge_semisemi(phrases: Doc[]): Doc[] {
   return phrases.slice(0, j);
 }
 
-let start_loc = {
+const start_loc = {
   loc_start: { pos_fname: '', pos_lnum: 1, pos_bol: 0, pos_cnum: 0 },
   loc_end: { pos_fname: '', pos_lnum: 1, pos_bol: 0, pos_cnum: 0 },
   loc_ghost: false
@@ -2252,9 +2300,9 @@ function end_loc(n: number) {
 
 function print(path: AstPath<Tree>, options: Options, _print: (path: AstPath<any>) => Doc): Doc {
   options.last_loc = start_loc;
-  let phrases = path.node.top_defs.map(n => print_toplevel_phrase(n, options));
-  let cmmnts = comments(end_loc((options.originalText as string).length), options);
-  let r = [
+  const phrases = path.node.top_defs.map(n => print_toplevel_phrase(n, options));
+  const cmmnts = comments(end_loc((options.originalText as string).length), options);
+  const r = [
     ...join([hardline, hardline], merge_semisemi(phrases)),
     ...ifnonempty([hardline, hardline], cmmnts)
   ];

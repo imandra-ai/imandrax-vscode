@@ -22,7 +22,7 @@ export function register() {
 
         return [TextEdit.replace(range, formatted)];
       } catch (e) {
-        console.log(`Formatting error: ${e}`);
+        console.log(`Formatting error: ${e as string}`);
       }
       return [];
     }

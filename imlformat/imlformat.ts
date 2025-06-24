@@ -11,7 +11,7 @@ import * as fmt from './imlformat.format';
   if (process.argv.length <= 2)
     console.log("Usage: npx ts-node imlformat.ts <filename>");
   else {
-    let r = await fmt.format_file(process.argv[2]);
+    const r = await fmt.format_file(process.argv[2]);
     console.log(r);
   }
 })();
