@@ -10,7 +10,8 @@
     "sourceMap": true,
     "strict": true,
     "composite": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "allowJs": true,
   },
   "include": [
     "src"
