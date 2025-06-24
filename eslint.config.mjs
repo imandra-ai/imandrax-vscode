@@ -33,8 +33,7 @@ export default tseslint.config(
       "src/node_modules/**",
       "src/out/**",
       "eslint.config.mjs",
-      ".vscode-test.mjs",
-      "esbuild.js"
+      ".vscode-test.mjs"
     ],
   },
 );
