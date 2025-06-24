@@ -7,16 +7,10 @@
 **/tsconfig.base.json
 contributing.md
 .travis.yml
+node_modules
 out/
 !out/*.js
 src/
 tsconfig.json
-src/node_modules/**
-!src/node_modules/vscode-jsonrpc/**
-!src/node_modules/vscode-languageclient/**
-!src/node_modules/vscode-languageserver-protocol/**
-!src/node_modules/vscode-languageserver-types/**
-!src/node_modules/{minimatch,brace-expansion,concat-map,balanced-match}/**
-!src/node_modules/{semver,lru-cache,yallist}/**
 tmp
 _opam
