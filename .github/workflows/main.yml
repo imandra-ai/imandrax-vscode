@@ -15,16 +15,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 'Setup node'
+      - name: "Setup node"
         uses: actions/setup-node@v4
 
-      - name: 'Install vsce'
+      - name: "Install vsce"
         run: npm install -g @vscode/vsce
 
-      - name: 'Install esbuild'
+      - name: "Install esbuild"
         run: npm install esbuild
 
-      - name: 'Build extension'
+      - name: "Build extension"
         run: npm install; vsce package
 
       - uses: actions/upload-artifact@v4
@@ -32,16 +32,38 @@ jobs:
           name: artifacts.zip
           path: imandrax-*.vsix
 
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: install node
+        uses: actions/setup-node@v4
+
+      - name: install deps
+        run: npm i
+
+      - name: install imandrax
+        run: |
+          sh -c "$(curl -fsSL https://raw.githubusercontent.com/imandra-ai/imandrax-api/refs/heads/main/scripts/install.sh)" -- -y
+          mkdir -p ~/.config/imandrax
+          touch ~/.config/imandrax/api_key
+          printf '%s' ${{ secrets.IU_API_KEY }} > ~/.config/imandrax/api_key
+
+      - name: test
+        run: xvfb-run -a npm run test-clean
+
   publish:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    needs: build
+    needs: [build, test]
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: 'Extract version number'
+      - name: "Extract version number"
         run: |
           grep version package.json | cut -d ':' -f 2 | sed 's/[", ]//g' > version.txt
           echo "VERSION="`cat version.txt` >> $GITHUB_ENV

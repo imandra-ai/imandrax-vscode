@@ -1,8 +1,10 @@
-import * as ApiKey from './apiKey';
-import { exec } from 'child_process';
+import * as ApiKey from './api_key';
+
 import * as Path from 'path';
 import * as Which from "which";
-import { commands, env, MessageItem, ProgressLocation, QuickPickItem, QuickPickOptions, Uri, window, workspace, ConfigurationTarget } from "vscode";
+
+import { commands, ConfigurationTarget, env, MessageItem, ProgressLocation, QuickPickItem, QuickPickOptions, Uri, window, workspace } from "vscode";
+import { exec } from 'child_process';
 
 async function getApiKeyInput() {
   const result = await window.showInputBox({
@@ -21,7 +23,7 @@ async function getApiKeyInput() {
 async function promptForApiKey() {
   const options: QuickPickOptions = { title: 'Choose how to configure your API key', ignoreFocusOut: true };
 
-  const existingApiKey: string | null = await ApiKey.get();
+  const existingApiKey: string | undefined = await ApiKey.get();
 
   // items
   const useExisting = { label: "Use already configured API key" };
@@ -36,13 +38,13 @@ async function promptForApiKey() {
 
   const itemT = await window.showQuickPick(items, options);
 
-  switch (itemT.label) {
+  switch (itemT?.label) {
     case goToIu.label:
       env.openExternal(await env.asExternalUri(Uri.parse("https://universe.imandra.ai/user/api-keys")));
-      getApiKeyInput();
+      await getApiKeyInput();
       break;
     case pasteNow.label:
-      getApiKeyInput();
+      await getApiKeyInput();
       break;
     case skip.label:
       break;
@@ -68,7 +70,7 @@ async function setBinaryPaths(openUri: Uri) {
       `Could not determine your home directory. ` +
       `Set 'lsp.binary' and 'terminal.binary' to the full path` +
       `where imandrax-cli has been installed:\n` +
-      `[Workspace Settings](${openUri})`
+      `[Workspace Settings](${openUri.toString()})`
     );
     return;
   }
@@ -93,16 +95,16 @@ async function runInstallerForUnix(itemT: MessageItem, title: string): Promise<v
 
       const getCmdPrefix = () => {
         const wgetPath = Which.sync("wget", { nothrow: true });
-        if (wgetPath != "" && wgetPath != null) {
+        if (wgetPath !== "" && wgetPath !== null) {
           return "wget -qO-";
         }
         else {
           const curlPath = Which.sync("curl", { nothrow: true });
-          if (curlPath != "" && curlPath != null) {
+          if (curlPath !== "" && curlPath !== null) {
             return "curl -fsSL";
           }
           else {
-            reject(`Neither curl nor wget available for downloading the ImandraX installer.`);
+            reject(new Error(`Neither curl nor wget available for downloading the ImandraX installer.`));
           }
         }
       };
@@ -113,11 +115,14 @@ async function runInstallerForUnix(itemT: MessageItem, title: string): Promise<v
         ${getCmdPrefix()} ${url} | sh -s -- -y);
         EC=$? && sleep .5 && exit $EC`);
 
+      /* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
       child.stdout?.on('data', chunk => out.append(chunk.toString()));
       child.stderr?.on('data', chunk => out.append(chunk.toString()));
+      /* eslint-enable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+
       child.on('close', code =>
       (out.appendLine(`\n[installer exited with code ${code}]`),
-        (code === 0 ? (resolve()) : (reject(`Failed with code: ${code}`)))));
+        (code === 0 ? (resolve()) : (reject(new Error(`Failed with code: ${code}`))))));
     });
   }
 }
@@ -126,7 +131,7 @@ export async function promptToInstall(openUri: Uri) {
   const launchInstallerItem = { title: "Launch installer" } as const;
   const items: readonly MessageItem[] = [launchInstallerItem];
 
-  const itemT: MessageItem | undefined = await window.showErrorMessage(`Could not find ImandraX. Please install it or ensure the imandrax-cli binary is in your PATH or its location is set in [Workspace Settings](${openUri}).`, ...items);
+  const itemT: MessageItem | undefined = await window.showErrorMessage(`Could not find ImandraX. Please install it or ensure the imandrax-cli binary is in your PATH or its location is set in [Workspace Settings](${openUri.toString()}).`, ...items);
 
   if (itemT) {
     await window.withProgress(

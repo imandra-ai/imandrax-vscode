@@ -9,17 +9,13 @@ interface PlatformConfiguration {
   inRemoteWsl: boolean;
 }
 
-interface ImandraXLspConfiguration {
-  serverArgs,
-  mergedEnv,
-  binAbsPath: BinAbsPath,
+interface FoundPathInner {
+  status: "foundPath"
+  path: string
 }
 
-type BinAbsPath =
-  | {
-    status: "foundPath"
-    path: string
-  }
+type BinPathAvailability =
+  | FoundPathInner
   | {
     status: "onWindows"
   }
@@ -27,11 +23,27 @@ type BinAbsPath =
     status: "missingPath"
   }
 
-function getBinAbsPath(platform_configuration: PlatformConfiguration, binary: string): BinAbsPath {
+export interface ImandraXLanguageClientConfiguration {
+  serverArgs: any,
+  mergedEnv: any,
+  binPathAvailability: BinPathAvailability,
+}
+
+export interface FoundPathConfig extends ImandraXLanguageClientConfiguration {
+  binPathAvailability: FoundPathInner;
+}
+
+export function isFoundPath(
+  cfg: ImandraXLanguageClientConfiguration
+): cfg is FoundPathConfig {
+  return cfg.binPathAvailability.status === "foundPath";
+}
+
+function getBinPathAvailability(platform_configuration: PlatformConfiguration, binary: string): BinPathAvailability {
   if ((!platform_configuration.onWindows)
     || (platform_configuration.onWindows && platform_configuration.inRemoteWsl)) {
     const path = Which.sync(binary, { nothrow: true });
-    if (path != "" && path != null) {
+    if (path !== "" && path !== null) {
       return { status: "foundPath", path };
     }
     else {
@@ -49,7 +61,7 @@ function getPlatformConfiguration(): PlatformConfiguration {
   return { onWindows, inRemoteWsl };
 }
 
-export function getEnv(): ImandraXLspConfiguration {
+export function get(): ImandraXLanguageClientConfiguration | FoundPathConfig {
   const config = workspace.getConfiguration("imandrax");
   const binary = config.lsp.binary;
   const serverArgs = config.lsp.arguments;
@@ -60,7 +72,7 @@ export function getEnv(): ImandraXLspConfiguration {
 
   const platformConfiguration = getPlatformConfiguration();
 
-  const binAbsPath = getBinAbsPath(platformConfiguration, binary);
+  const binPathAvailability = getBinPathAvailability(platformConfiguration, binary);
 
-  return { serverArgs, mergedEnv, binAbsPath };
+  return binPathAvailability.status === 'foundPath' ? { serverArgs, mergedEnv, binPathAvailability: binPathAvailability } as FoundPathConfig : { serverArgs, mergedEnv, binPathAvailability: binPathAvailability };
 }

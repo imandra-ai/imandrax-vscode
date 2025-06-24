@@ -8,7 +8,7 @@ const readOptionalFile = async (file: Uri) => {
   try {
     const res = await workspace.fs.readFile(file);
     return Buffer.from(res.buffer).toString();
-  } catch (e) {
+  } catch {
     return null;
   }
 };
@@ -19,9 +19,8 @@ function getApiKeyFileUri(): Uri {
   return Uri.joinPath(configDir, API_KEY_FILE);
 }
 
-export async function get(): Promise<string | null> {
-  const userHome = Uri.file(homedir());
-  return (process.env.IMANDRA_API_KEY ||
+export async function get(): Promise<string | undefined> {
+  return (process.env.IMANDRA_API_KEY ??
     (await readOptionalFile(
       getApiKeyFileUri()
     )))?.trim();
