@@ -10,7 +10,7 @@
     "theme": "dark"
   },
   "license": "MIT",
-  "version": "0.0.38",
+  "version": "0.0.39",
   "repository": {
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
@@ -102,7 +102,9 @@
           "type": "boolean",
           "default": false,
           "description": "Enable the highly experimental IML auto-formatter. Use with caution; there is a non-zero chance that it could remove text from your input.",
-          "tags": ["experimental"]
+          "tags": [
+            "experimental"
+          ]
         },
         "imandrax.lsp.showProvenGoals": {
           "scope": "window",
@@ -200,9 +202,10 @@
     "test-clean": "npm run build-clean && npm run esbuild-clean && vscode-test"
   },
   "dependencies": {
-    "async-mutex": "^0.5.0",
+    "@vscode/vsce": "^3.5.0",
+    "vscode-languageclient": "^8.1.0",
     "prettier": "^3.5.0",
-    "vscode-languageclient": "^8.1.0"
+    "async-mutex": "^0.5.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
@@ -224,8 +227,7 @@
     "sqlite3": "^5.1.7",
     "typescript": "^5.2.2",
     "typescript-eslint": "^8.34.1",
-    "imandrax-api": "file:vendor/imandrax-api/src/ts/lib",
-    "imlformat": "file:imlformat",
+    "imlformat": "file:./imlformat",
     "ts-node": "^10.9.2"
   }
 }
