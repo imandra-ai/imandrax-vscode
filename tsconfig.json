@@ -11,7 +11,6 @@
     "strict": true,
     "composite": true,
     "skipLibCheck": true,
-    "allowJs": true,
   },
   "include": [
     "src"

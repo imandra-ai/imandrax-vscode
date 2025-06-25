@@ -12,6 +12,7 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "allowJs": true,
+    "checkJs": false,
 	},
 	"include": [],
 	"exclude": [

@@ -4,7 +4,8 @@ import { Doc, doc, AST, AstPath, Options } from "prettier";
 
 const { group, indent, dedent, join, ifBreak, breakParent, line, hardline, softline, fill } = doc.builders;
 
-import { iml2json } from './iml2json.bc';
+// import { iml2json } from './iml2json.bc';
+const iml2json = require('./iml2json.bc').iml2json;
 import { assert } from 'node:console';
 
 

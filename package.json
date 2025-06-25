@@ -222,7 +222,6 @@
     "esbuild": "^0.25.3",
     "eslint": "^9.29.0",
     "glob": "^11.0.2",
-    "imlformat": "file:./imlformat",
     "mocha": "^9.2.2",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
