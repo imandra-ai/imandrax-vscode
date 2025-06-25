@@ -8,12 +8,19 @@
     "outDir": "src/out",
     "rootDir": "src",
     "sourceMap": true,
-    "strict": true
+    "strict": true,
+    "composite": true,
+    "skipLibCheck": true,
   },
   "include": [
     "src"
   ],
   "exclude": [
     "node_modules"
+  ],
+  "references": [
+    {
+      "path": "imlformat/tsconfig.json"
+    }
   ]
 }

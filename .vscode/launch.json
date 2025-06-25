@@ -19,6 +19,48 @@
         "type": "npm",
         "script": "esbuild"
       }
+    },
+    {
+      "name": "Debug imlformat",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "tsx",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "cwd": "${workspaceFolder}/imlformat",
+      "program": "${workspaceFolder}/imlformat/imlformat.ts",
+      "args": [
+        "${workspaceFolder}/imlformat/test/demo.iml"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/imlformat/out-dbg/**/*.js"
+      ],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/imlformat/**",
+      ],
+      "skipFiles": [
+        "<node_internals>/**",
+        "${workspaceFolder}/out/**",
+        "${workspaceFolder}/node_modules/**",
+        "${workspaceFolder}/imlformat/node_modules/**",
+        "${workspaceFolder}/node_modules/out/**"
+      ],
+    },
+    {
+      "name": "Debug imlformat Jests",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/imlformat",
+      "env": {
+        "NODE_OPTIONS": "--experimental-vm-modules"
+      },
+      "runtimeArgs": [
+        "--inspect-brk",
+        "${workspaceRoot}/imlformat/node_modules/.bin/jest",
+        "--runInBand"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
     }
   ]
 }

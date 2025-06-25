@@ -14,3 +14,11 @@ src/
 tsconfig.json
 tmp
 _opam
+README.dev.md
+.gitmodules
+.vscode-test.mjs
+eslint.config.mjs
+vendor
+imlformat
+!node_modules/prettier
+Makefile

@@ -1,0 +1,29 @@
+{
+	"compilerOptions": {
+		"module": "CommonJS",
+		"target": "ES2020",
+		"lib": [
+			"ES2020"
+		],
+		"outDir": "out",
+		"rootDir": ".",
+		"sourceMap": true,
+		"composite": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "checkJs": false,
+	},
+	"include": [],
+	"exclude": [
+		"node_modules",
+		"out"
+	],
+	"references": [],
+	"files": [
+		"imlformat.ts",
+    "imlformat.format.ts",
+		"iml-prettier.ts",
+		"iml2json.bc.js"
+	]
+}
