@@ -4,7 +4,6 @@ import * as prettier from 'prettier';
 import * as iml_prettier from '../imlformat/iml-prettier';
 
 export function register() {
-  // Register formatter
   languages.registerDocumentFormattingEditProvider('imandrax', {
     async provideDocumentFormattingEdits(document: TextDocument): Promise<TextEdit[]> {
       const config = workspace.getConfiguration("imandrax");

@@ -19,8 +19,8 @@
     "node_modules"
   ],
   "references": [
-		{
-			"path": "imlformat/tsconfig.json"
-		}
-	]
+    {
+      "path": "imlformat/tsconfig.json"
+    }
+  ]
 }
