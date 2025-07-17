@@ -3,7 +3,7 @@ import * as implementations from './implementations';
 import { commands, ExtensionContext, languages, Uri, ViewColumn, window, workspace } from 'vscode';
 import { ImandraXLanguageClient } from '../imandrax_language_client/imandrax_language_client';
 
-export  function register(context: ExtensionContext, imandraxLanguageClient: ImandraXLanguageClient) {
+export function register(context: ExtensionContext, imandraxLanguageClient: ImandraXLanguageClient) {
   const getClient = () => { return imandraxLanguageClient.getClient(); };
 
   const restart_cmd = "imandrax.restart_language_server";
