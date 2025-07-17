@@ -1,6 +1,7 @@
 import * as commands from './commands/commands';
 import * as decorations from './decorations';
 import * as formatter from './formatter';
+import * as ImandraXLanguageClientConfiguration from './imandrax_language_client/configuration';
 import * as imandraxLanguageClient from './imandrax_language_client/imandrax_language_client';
 import * as installer from './installer';
 import * as listeners from './listeners';
@@ -11,8 +12,7 @@ import {
   ExtensionMode,
   Uri,
   window,
-  workspace,
-  TextEditorDecorationType
+  workspace
 } from "vscode";
 
 import {
@@ -21,10 +21,10 @@ import {
 
 
 export async function activate(context: ExtensionContext) {
-  const languageClientConfig = imandraxLanguageClient.configuration.get();
+  const languageClientConfig = ImandraXLanguageClientConfiguration.get();
 
-  if (imandraxLanguageClient.configuration.isFoundPath(languageClientConfig)) {
-    const languageClientWrapper_ = new imandraxLanguageClient.ImandraxLanguageClient(languageClientConfig);
+  if (ImandraXLanguageClientConfiguration.isFoundPath(languageClientConfig)) {
+    const languageClientWrapper_ = new imandraxLanguageClient.ImandraXLanguageClient();
     const getClient: () => LanguageClient = () => { return languageClientWrapper_.getClient(); };
 
     formatter.register();
@@ -39,8 +39,8 @@ export async function activate(context: ExtensionContext) {
       (global as any).testListeners = listenersInstance;
     }
 
-    workspace.onDidChangeConfiguration(event => {
-      languageClientWrapper_.update_configuration(context.extensionUri, event);
+    workspace.onDidChangeConfiguration(async event => {
+      await languageClientWrapper_.update_configuration(context.extensionUri, event);
     });
 
     await languageClientWrapper_.start({ extensionUri: context.extensionUri });

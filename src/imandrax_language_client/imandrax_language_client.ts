@@ -1,14 +1,10 @@
 import * as commands from '../commands/commands';
 import * as decorations from '../decorations';
 import * as vfsProvider from '../vfs_provider';
-
-import { FoundPathConfig } from './configuration';
+import * as configuration from './configuration';
 
 import { ConfigurationChangeEvent, ExtensionContext, ExtensionMode, Uri, window, workspace, WorkspaceConfiguration } from 'vscode';
 import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-languageclient/node';
-
-
-export * as configuration from './configuration';
 
 
 const MAX_RESTARTS = 10;
@@ -17,8 +13,7 @@ export interface RestartParams {
   extensionUri: Uri
 }
 
-export class ImandraxLanguageClient {
-  private readonly serverOptions: Executable;
+export class ImandraXLanguageClient {
   private client!: LanguageClient;
   private readonly vfsProvider_: vfsProvider.VFSContentProvider;
   private restartCount = 0;
@@ -38,21 +33,29 @@ export class ImandraxLanguageClient {
     return this.vfsProvider_;
   }
 
-  constructor(languageClientConfig: FoundPathConfig) {
-    this.serverOptions = {
-      command: languageClientConfig.binPathAvailability.path,
-      args: languageClientConfig.serverArgs,
-      options: { env: languageClientConfig.mergedEnv }
-    };
+  constructor() {
     this.vfsProvider_ = new vfsProvider.VFSContentProvider(() => { return this.getClient(); });
   }
 
   // Start language server
   async start(params: { extensionUri: Uri }): Promise<void> {
+    const config = configuration.get();
+
+    if (!configuration.isFoundPath(config)) {
+      console.log("ImandraX binary not found, cannot start language server.");
+      return;
+    }
+
     const was_initial = this.isInitial();
     if (was_initial) {
       console.log("Starting ImandraX LSP server");
     }
+
+    const serverOptions : Executable = {
+      command: config.binPathAvailability.path,
+      args: config.serverArgs,
+      options: { env: config.mergedEnv }
+    };
 
     // Options to control the language client
     const clientOptions: LanguageClientOptions = {
@@ -71,7 +74,7 @@ export class ImandraxLanguageClient {
     this.client = new LanguageClient(
       "imandrax_lsp",
       "ImandraX LSP",
-      this.serverOptions,
+      serverOptions,
       clientOptions
     );
 
@@ -86,7 +89,7 @@ export class ImandraxLanguageClient {
         (params) => { commands.visualize_decomp(extensionUri, params); });
       this.client.onNotification("$imandrax/vfs-file-changed",
         (params) => {
-          const uri = Uri.parse(params["uri"]);
+          const uri = Uri.parse(params.uri);
           this.vfsProvider_.onDidChangeEmitter.fire(uri);
         });
     }
@@ -131,9 +134,9 @@ export class ImandraxLanguageClient {
     if (event === undefined || event.affectsConfiguration('imandrax')) {
       const client = this.client;
       if (event && (
-        event.affectsConfiguration('imandrax.lsp.binary') ||
-        event.affectsConfiguration('imandrax.lsp.arguments') ||
-        event.affectsConfiguration('imandrax.lsp.environment'))) {
+        event.affectsConfiguration("imandrax.lsp.binary") ||
+        event.affectsConfiguration("imandrax.lsp.arguments") ||
+        event.affectsConfiguration("imandrax.lsp.environment"))) {
         await this.restart({ extensionUri: extensionUri });
       }
 

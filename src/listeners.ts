@@ -1,6 +1,6 @@
 import * as decorations from './decorations';
 
-import { commands, DecorationOptions, DiagnosticSeverity, ExtensionContext, languages, StatusBarAlignment, StatusBarItem, TextEditor, ThemeColor, Uri, window } from 'vscode';
+import { commands, DecorationOptions, DiagnosticSeverity, ExtensionContext, languages, StatusBarAlignment, StatusBarItem, TextEditor, ThemeColor, Uri, window, DiagnosticChangeEvent } from 'vscode';
 import { LanguageClient } from 'vscode-languageclient/node';
 
 
@@ -39,21 +39,20 @@ export class Listeners {
   }
 
   diagnostics_for_editor(editor: TextEditor) {
-    let all_good: DecorationOptions[] = [];
-    const all_bad: DecorationOptions[] = [];
-    const doc = editor.document;
-    if (doc !== undefined) {
-      languages.getDiagnostics(doc.uri).forEach(d => {
+    if (editor) {
+      const uri = editor.document.uri;
+      let all_good: DecorationOptions[] = [];
+      const all_bad: DecorationOptions[] = [];
+      const diags = languages.getDiagnostics(uri);
+      diags.forEach(d => {
         if (d.source === "lsp") {
-          if (editor) {
-            const good = d.severity === DiagnosticSeverity.Information || d.severity === DiagnosticSeverity.Hint;
-            const range = d.range.with(d.range.start, d.range.start);
-            const decoration_options: DecorationOptions = { range: range };
-            if (good) {
-              all_good.push(decoration_options);
-            } else {
-              all_bad.push(decoration_options);
-            }
+          const good = d.severity === DiagnosticSeverity.Information || d.severity === DiagnosticSeverity.Hint;
+          const range = d.range.with(d.range.start, d.range.start);
+          const decoration_options: DecorationOptions = { range: range };
+          if (good) {
+            all_good.push(decoration_options);
+          } else {
+            all_bad.push(decoration_options);
           }
         }
       }
@@ -99,51 +98,47 @@ export class Listeners {
     }
   }
 
-  async diagnostic_listener() {
-    const editor = window.activeTextEditor;
-    if (editor !== undefined) {
-      const doc = editor.document;
-      if (doc !== undefined) {
-        if (doc.languageId === "imandrax") {
+  async diagnostic_listener(e: DiagnosticChangeEvent) {
+    await Promise.all(e.uris.map(async uri => {
+      const editor = window.visibleTextEditors.find(e => e.document.uri.path == uri.path)
+      if (editor) {
+        const doc = editor.document;
+        if (doc && doc.languageId === "imandrax") {
           this.diagnostics_for_editor(editor);
-          const file_uri = editor.document.uri;
-          if (file_uri.scheme === "file") {
-            await this.req_file_progress(file_uri);
+          if (doc.uri.scheme === "file") {
+            await this.req_file_progress(doc.uri);
           } else {
             this.file_progress_sbi.hide();
           }
         }
       }
     }
+    ));
   }
 
-  async active_editor_listener() {
-    const editor = window.activeTextEditor;
-    if (editor !== undefined) {
+  async active_editor_listener(editor: TextEditor | undefined) {
+    if (editor) {
       const doc = editor.document;
-      if (doc !== undefined) {
-        if (doc.languageId === "imandrax") {
-          this.diagnostics_for_editor(editor);
-          const file_uri = doc.uri;
-          if (file_uri.scheme === "file") {
-            if (this.getClient()?.isRunning()) {
-              await this.getClient().sendNotification("$imandrax/active-document", { "uri": file_uri.path });
-            }
-            await this.req_file_progress(file_uri);
+      if (doc && doc.languageId === "imandrax") {
+        this.diagnostics_for_editor(editor);
+        if (doc.uri.scheme === "file") {
+          if (this.getClient()?.isRunning()) {
+            await this.getClient().sendNotification("$imandrax/active-document", { "uri": doc.uri.path });
           }
-          else {
-            this.file_progress_sbi.hide();
-          }
+          await this.req_file_progress(doc.uri);
         }
         else {
           this.file_progress_sbi.hide();
         }
       }
+      else {
+        this.file_progress_sbi.hide();
+      }
     }
   }
 
   public register() {
-    languages.onDidChangeDiagnostics(async () => { await this.diagnostic_listener(); }, undefined, []);
-    window.onDidChangeActiveTextEditor(async () => { await this.active_editor_listener(); }, undefined, []);
+    languages.onDidChangeDiagnostics(async (e: DiagnosticChangeEvent) => { await this.diagnostic_listener(e); });
+    window.onDidChangeActiveTextEditor(async (e: TextEditor | undefined) => { await this.active_editor_listener(e); });
   }
 }
