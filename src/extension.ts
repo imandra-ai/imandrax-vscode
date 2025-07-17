@@ -1,7 +1,7 @@
 import * as commands from './commands/commands';
 import * as decorations from './decorations';
 import * as formatter from './formatter';
-import * as ImandraXLanguageClientConfiguration from './imandrax_language_client/configuration';
+import * as imandraXLanguageClientConfiguration from './imandrax_language_client/configuration';
 import * as imandraxLanguageClient from './imandrax_language_client/imandrax_language_client';
 import * as installer from './installer';
 import * as listeners from './listeners';
@@ -21,9 +21,9 @@ import {
 
 
 export async function activate(context: ExtensionContext) {
-  const languageClientConfig = ImandraXLanguageClientConfiguration.get();
+  const languageClientConfig = imandraXLanguageClientConfiguration.get();
 
-  if (ImandraXLanguageClientConfiguration.isFoundPath(languageClientConfig)) {
+  if (imandraXLanguageClientConfiguration.isFoundPath(languageClientConfig)) {
     const languageClientWrapper_ = new imandraxLanguageClient.ImandraXLanguageClient();
     const getClient: () => LanguageClient = () => { return languageClientWrapper_.getClient(); };
 
