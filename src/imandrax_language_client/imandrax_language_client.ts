@@ -6,6 +6,7 @@ import * as configuration from './configuration';
 import { ConfigurationChangeEvent, ExtensionContext, ExtensionMode, Uri, window, workspace, WorkspaceConfiguration } from 'vscode';
 import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-languageclient/node';
 
+export * as configuration from './configuration';
 
 const MAX_RESTARTS = 10;
 
@@ -18,6 +19,7 @@ export class ImandraXLanguageClient {
   private readonly vfsProvider_: vfsProvider.VFSContentProvider;
   private restartCount = 0;
   private isInitial = () => { return this.client === undefined; };
+  private readonly getConfig: () => configuration.ImandraXLanguageClientConfiguration;
 
   getRestartCount(context: ExtensionContext) {
     if (context?.extensionMode === ExtensionMode.Test) {
@@ -33,13 +35,14 @@ export class ImandraXLanguageClient {
     return this.vfsProvider_;
   }
 
-  constructor() {
+  constructor(getConfig:()=>configuration.ImandraXLanguageClientConfiguration) {
+    this.getConfig = getConfig;
     this.vfsProvider_ = new vfsProvider.VFSContentProvider(() => { return this.getClient(); });
   }
 
   // Start language server
   async start(params: { extensionUri: Uri }): Promise<void> {
-    const config = configuration.get();
+    const config = this.getConfig();
 
     if (!configuration.isFoundPath(config)) {
       console.log("ImandraX binary not found, cannot start language server.");
@@ -51,7 +54,7 @@ export class ImandraXLanguageClient {
       console.log("Starting ImandraX LSP server");
     }
 
-    const serverOptions : Executable = {
+    const serverOptions: Executable = {
       command: config.binPathAvailability.path,
       args: config.serverArgs,
       options: { env: config.mergedEnv }
