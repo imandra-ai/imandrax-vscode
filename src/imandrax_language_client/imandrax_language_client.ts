@@ -16,10 +16,11 @@ export interface RestartParams {
 
 export class ImandraXLanguageClient {
   private client!: LanguageClient;
-  private readonly vfsProvider_: vfsProvider.VFSContentProvider;
+  private vfsProvider_!: vfsProvider.VFSContentProvider;
   private restartCount = 0;
   private isInitial = () => { return this.client === undefined; };
   private readonly getConfig: () => configuration.ImandraXLanguageClientConfiguration;
+  private readonly vfsProviderProvider: (_: LanguageClient) => vfsProvider.VFSContentProvider;
 
   getRestartCount(context: ExtensionContext) {
     if (context?.extensionMode === ExtensionMode.Test) {
@@ -35,9 +36,9 @@ export class ImandraXLanguageClient {
     return this.vfsProvider_;
   }
 
-  constructor(getConfig:()=>configuration.ImandraXLanguageClientConfiguration) {
+  constructor(getConfig: () => configuration.ImandraXLanguageClientConfiguration, vfsProviderProvider: (_: LanguageClient) => vfsProvider.VFSContentProvider) {
     this.getConfig = getConfig;
-    this.vfsProvider_ = new vfsProvider.VFSContentProvider(() => { return this.getClient(); });
+    this.vfsProviderProvider = vfsProviderProvider;
   }
 
   // Start language server
@@ -80,6 +81,9 @@ export class ImandraXLanguageClient {
       serverOptions,
       clientOptions
     );
+
+    // don't forget to construct the vfsProvider with the new client!
+    this.vfsProvider_ = this.vfsProviderProvider(this.client);
 
     const { extensionUri } = params;
 

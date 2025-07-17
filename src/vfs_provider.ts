@@ -5,10 +5,10 @@ import { LanguageClient } from 'vscode-languageclient/node';
 export class VFSContentProvider implements TextDocumentContentProvider {
   onDidChangeEmitter = new EventEmitter<Uri>();
   onDidChange = this.onDidChangeEmitter.event;
-  private readonly getClient: () => LanguageClient;
+  private readonly client: LanguageClient;
 
-  constructor(getClient: () => LanguageClient) {
-    this.getClient = getClient;
+  constructor(client: LanguageClient) {
+    this.client = client;
   }
 
   async provideTextDocumentContent(uri: Uri): Promise<string> {
@@ -17,6 +17,6 @@ export class VFSContentProvider implements TextDocumentContentProvider {
       const auth = (fst[0] === "") ? fst[1] : fst[0];
       uri = uri.with({ authority: auth });
     }
-    return await this.getClient().sendRequest<string>("$imandrax/req-vfs-file", { "uri": uri });
+    return await this.client.sendRequest<string>("$imandrax/req-vfs-file", { "uri": uri });
   }
 }

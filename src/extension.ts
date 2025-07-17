@@ -4,6 +4,7 @@ import * as formatter from './formatter';
 import * as imandraxLanguageClient from './imandrax_language_client/imandrax_language_client';
 import * as installer from './installer';
 import * as listeners from './listeners';
+import * as vfsProvider from './vfs_provider';
 
 import {
   env,
@@ -24,7 +25,8 @@ export async function activate(context: ExtensionContext) {
   const languageClientConfig = getConfig();
 
   if (imandraxLanguageClient.configuration.isFoundPath(languageClientConfig)) {
-    const languageClientWrapper_ = new imandraxLanguageClient.ImandraXLanguageClient(getConfig);
+    const vfsProviderProvider = (client: LanguageClient) => { return new vfsProvider.VFSContentProvider(client) };
+    const languageClientWrapper_ = new imandraxLanguageClient.ImandraXLanguageClient(getConfig, vfsProviderProvider);
     const getClient: () => LanguageClient = () => { return languageClientWrapper_.getClient(); };
 
     formatter.register();
