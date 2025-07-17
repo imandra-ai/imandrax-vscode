@@ -118,13 +118,13 @@ ${body}
   panel.webview.html = html;
 }
 
-export function checkAll(getClient: () => LanguageClient) {
+export async function checkAll(getClient: () => LanguageClient) {
   if (!getClient()) {
     return undefined;
   }
   const file_uri = window.activeTextEditor?.document.uri;
   if (getClient() && getClient().isRunning() && file_uri?.scheme === "file") {
-    getClient().sendRequest("workspace/executeCommand", { "command": "check-all", "arguments": [file_uri.toString()] });
+    await getClient().sendRequest("workspace/executeCommand", { "command": "check-all", "arguments": [file_uri.toString()] });
   }
 }
 
@@ -157,9 +157,9 @@ export function terminal_eval_selection(): boolean {
   return true;
 }
 
-export function clear_cache(getClient: () => LanguageClient) {
+export async function clear_cache(getClient: () => LanguageClient) {
   if (getClient()?.isRunning()) {
-    getClient().sendRequest("workspace/executeCommand", { "command": "clear-cache", "arguments": [] });
+    await getClient().sendRequest("workspace/executeCommand", { "command": "clear-cache", "arguments": [] });
   }
   return true;
 }
