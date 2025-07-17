@@ -13,7 +13,7 @@ export function register(context: ExtensionContext, imandraxLanguageClient: Iman
   context.subscriptions.push(commands.registerCommand(restart_cmd, restart_handler));
 
   const check_all_cmd = "imandrax.check_all";
-  const check_all_handler = () => { implementations.checkAll(getClient); };
+  const check_all_handler = async () => { await implementations.checkAll(getClient); };
   context.subscriptions.push(commands.registerCommand(check_all_cmd, check_all_handler));
 
   const browse_cmd = "imandrax.browse";
@@ -33,7 +33,7 @@ export function register(context: ExtensionContext, imandraxLanguageClient: Iman
   context.subscriptions.push(commands.registerCommand(terminal_eval_selection_cmd, terminal_eval_selection_handler));
 
   const clear_cache_cmd = "imandrax.clear_cache";
-  const clear_cache_handler = () => { implementations.clear_cache(getClient); };
+  const clear_cache_handler = async () => { await implementations.clear_cache(getClient); };
   context.subscriptions.push(commands.registerCommand(clear_cache_cmd, clear_cache_handler));
 
   const open_vfs_file_cmd = "imandrax.open_vfs_file";
