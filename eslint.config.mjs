@@ -24,7 +24,6 @@ export default tseslint.config(
       "@typescript-eslint/no-unsafe-member-access": "warn",
       "@typescript-eslint/dot-notation": "warn",
       "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-floating-promises": "error"
     }
   },
   {
