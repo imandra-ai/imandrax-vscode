@@ -20,7 +20,7 @@ import {
 
 
 export async function activate(context: ExtensionContext) {
-  const getConfig = () => imandraxLanguageClient.configuration.get();
+  const getConfig = imandraxLanguageClient.configuration.get;
   const languageClientConfig = getConfig();
 
   if (imandraxLanguageClient.configuration.isFoundPath(languageClientConfig)) {
