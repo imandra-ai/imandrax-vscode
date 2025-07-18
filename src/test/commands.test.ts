@@ -1,8 +1,8 @@
-/* 
- eslint-disable 
+/*
+ eslint-disable
   @typescript-eslint/no-unsafe-assignment,
-  @typescript-eslint/no-explicit-any, 
-  @typescript-eslint/no-unsafe-member-access 
+  @typescript-eslint/no-explicit-any,
+  @typescript-eslint/no-unsafe-member-access
 */
 
 import * as assert from 'assert';
@@ -11,7 +11,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as util from './util';
 import * as vscode from 'vscode';
-import { ImandraxLanguageClient } from '../imandrax_language_client/imandrax_language_client';
+import { ImandraXLanguageClient } from '../imandrax_language_client/imandrax_language_client';
 
 
 suite('Commands Test Suite', () => {
@@ -20,7 +20,7 @@ suite('Commands Test Suite', () => {
   });
 
   let extensionContext: vscode.ExtensionContext | undefined;
-  let imandraxLanguageClient_: ImandraxLanguageClient | undefined;
+  let imandraxLanguageClient_: ImandraXLanguageClient | undefined;
   suiteSetup(async () => {
     console.log("suite setup")
     const ext = vscode.extensions.getExtension('imandra.imandrax');
@@ -38,7 +38,7 @@ suite('Commands Test Suite', () => {
     'create terminal should increase',
     'the window.terminals.length by 1'
   ].join(' '), async () => {
-    // arrange 
+    // arrange
     console.log("get term count");
     const term_count = vscode.window.terminals.length;
 

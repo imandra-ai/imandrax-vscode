@@ -1,19 +1,19 @@
 import * as implementations from './implementations';
 
 import { commands, ExtensionContext, languages, Uri, ViewColumn, window, workspace } from 'vscode';
-import { ImandraxLanguageClient } from '../imandrax_language_client/imandrax_language_client';
+import { ImandraXLanguageClient } from '../imandrax_language_client/imandrax_language_client';
 
-export function register(context: ExtensionContext, imandraxLanguageClient: ImandraxLanguageClient) {
+export function register(context: ExtensionContext, imandraxLanguageClient: ImandraXLanguageClient) {
   const getClient = () => { return imandraxLanguageClient.getClient(); };
 
   const restart_cmd = "imandrax.restart_language_server";
-  const restart_handler = () => {
-    imandraxLanguageClient.restart({ extensionUri: context.extensionUri });
+  const restart_handler = async () => {
+    await imandraxLanguageClient.restart({ extensionUri: context.extensionUri });
   };
   context.subscriptions.push(commands.registerCommand(restart_cmd, restart_handler));
 
   const check_all_cmd = "imandrax.check_all";
-  const check_all_handler = () => { implementations.checkAll(getClient); };
+  const check_all_handler = async () => { await implementations.checkAll(getClient); };
   context.subscriptions.push(commands.registerCommand(check_all_cmd, check_all_handler));
 
   const browse_cmd = "imandrax.browse";
@@ -33,7 +33,7 @@ export function register(context: ExtensionContext, imandraxLanguageClient: Iman
   context.subscriptions.push(commands.registerCommand(terminal_eval_selection_cmd, terminal_eval_selection_handler));
 
   const clear_cache_cmd = "imandrax.clear_cache";
-  const clear_cache_handler = () => { implementations.clear_cache(getClient); };
+  const clear_cache_handler = async () => { await implementations.clear_cache(getClient); };
   context.subscriptions.push(commands.registerCommand(clear_cache_cmd, clear_cache_handler));
 
   const open_vfs_file_cmd = "imandrax.open_vfs_file";
@@ -60,10 +60,10 @@ export function register(context: ExtensionContext, imandraxLanguageClient: Iman
   context.subscriptions.push(commands.registerCommand(open_goal_state_cmd, open_goal_state_handler));
 
   const reset_goal_state_cmd = "imandrax.reset_goal_state";
-  const reset_goal_state_handler = () => {
+  const reset_goal_state_handler = async () => {
     if (getClient()?.isRunning()) {
       try {
-        getClient().sendRequest("workspace/executeCommand", { "command": "reset-goal-state", "arguments": [] });
+        await getClient().sendRequest("workspace/executeCommand", { "command": "reset-goal-state", "arguments": [] });
       }
       catch (e) {
         console.log("caught something!");

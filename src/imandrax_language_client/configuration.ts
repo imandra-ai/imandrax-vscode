@@ -24,8 +24,8 @@ type BinPathAvailability =
   }
 
 export interface ImandraXLanguageClientConfiguration {
-  serverArgs: any,
-  mergedEnv: any,
+  serverArgs: string[],
+  mergedEnv: object,
   binPathAvailability: BinPathAvailability,
 }
 

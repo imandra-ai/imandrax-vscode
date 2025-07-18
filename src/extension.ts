@@ -11,8 +11,7 @@ import {
   ExtensionMode,
   Uri,
   window,
-  workspace,
-  TextEditorDecorationType
+  workspace
 } from "vscode";
 
 import {
@@ -21,10 +20,11 @@ import {
 
 
 export async function activate(context: ExtensionContext) {
-  const languageClientConfig = imandraxLanguageClient.configuration.get();
+  const getConfig = imandraxLanguageClient.configuration.get;
+  const languageClientConfig = getConfig();
 
   if (imandraxLanguageClient.configuration.isFoundPath(languageClientConfig)) {
-    const languageClientWrapper_ = new imandraxLanguageClient.ImandraxLanguageClient(languageClientConfig);
+    const languageClientWrapper_ = new imandraxLanguageClient.ImandraXLanguageClient(getConfig);
     const getClient: () => LanguageClient = () => { return languageClientWrapper_.getClient(); };
 
     formatter.register();
@@ -39,8 +39,8 @@ export async function activate(context: ExtensionContext) {
       (global as any).testListeners = listenersInstance;
     }
 
-    workspace.onDidChangeConfiguration(event => {
-      languageClientWrapper_.update_configuration(context.extensionUri, event);
+    workspace.onDidChangeConfiguration(async event => {
+      await languageClientWrapper_.update_configuration(context.extensionUri, event);
     });
 
     await languageClientWrapper_.start({ extensionUri: context.extensionUri });
