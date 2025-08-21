@@ -112,3 +112,14 @@ let g y = 0
 
 let h z = 2;;`))
 })
+
+test("open expr", () => {
+  return format(`
+let f e x =
+  match e with
+  | Some _ -> Real.(g x = 0.0)
+  | None -> Real.(g x >= 0.0)
+`).then(x => expect(x).toEqual(`\
+let f e x = match e with Some _ -> Real.(g x = 0.0) | None -> Real.(g x >= 0.0)`
+))
+})
