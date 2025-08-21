@@ -21,7 +21,7 @@ let rec eval_poly (p:poly) (x:Real.t list) : Real.t =
   ).then(x => expect(x).toEqual(`\
 let rec eval_poly (p : poly) (x : Real.t list) : Real.t =
   match p, x with
-  | a::p, b::x -> (Real.(a * b + eval_poly p x))
+  | a::p, b::x -> Real.(a * b + eval_poly p x)
   | [a], [] -> a
   | _ -> 0.0`
   ))
