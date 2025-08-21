@@ -189,17 +189,18 @@
   "scripts": {
     "check-types": "npx tsc --noEmit",
     "compile": "npm run check-types && npm run lint && esbuild",
-    "build": "npx tsc -b",
-    "build-clean": "rm -rf src/out imlformat/out && npx tsc -b",
+    "build": "npx tsc -b --verbose",
+    "clean": "rm -rf out src/out imlformat/out src/tsconfig.tsbuildinfo",
+    "build-clean": "npm run clean && npm run build",
     "build-watch": "npx tsc -b -w",
     "lint": "eslint ./src --ext .ts,.tsx",
     "vscode:prepublish": "npm run esbuild-base -- --minify",
     "esbuild": "npm run esbuild-base -- --sourcemap",
     "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node --external:'prettier'",
-    "esbuild-clean": "rm -rf out/ imlformat/out && npm run esbuild",
+    "esbuild-clean": "npm run clean && npm run esbuild",
     "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
     "test": "vscode-test",
-    "test-clean": "npm run build-clean && npm run esbuild-clean && vscode-test"
+    "test-clean": "npm run clean && npm run build && npm run esbuild && vscode-test"
   },
   "dependencies": {
     "@vscode/vsce": "^3.5.0",
