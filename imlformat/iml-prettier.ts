@@ -178,7 +178,20 @@ function trim_parentheses(s: string): string {
   return s;
 }
 
-function comments(cur, options: Options): Doc[] {
+interface Position {
+  pos_fname: string;
+  pos_cnum: number;
+  pos_lnum: number;
+  pos_bol: number;
+}
+
+interface Location {
+  loc_start: Position;
+  loc_ghost: boolean;
+  loc_end: Position;
+}
+
+function comments(cur: Location, options: Options): Doc[] {
   if (cur && cur.loc_start.pos_cnum >= 0) {
     const last = options.last_loc;
     if (last) {
@@ -203,8 +216,8 @@ function comments(cur, options: Options): Doc[] {
   return [];
 }
 
-function gobble_line_comment(pos, options: Options): Doc[] {
-  let i = pos.loc_end.pos_cnum;
+function gobble_line_comment(loc: Location, options: Options): Doc[] {
+  let i = loc.loc_end.pos_cnum;
   const src = options.originalText as string;
   let comment_from = undefined;
   while (src[i] != '\n' && i < src.length - 1) {
@@ -228,8 +241,8 @@ function gobble_line_comment(pos, options: Options): Doc[] {
           tmp += src[i] + src[i + 1];
         r.push(tmp);
         tmp = "";
-        options.last_loc = pos;
-        options.last_loc.loc_end.pos_cnum = i;
+        options.last_loc = loc;
+        (options.last_loc as Location).loc_end.pos_cnum = i;
       }
       else
         i++;
