@@ -52,47 +52,110 @@ suite('Commands Test Suite', () => {
     assert.strictEqual(vscode.window.terminals.length, term_count + 1);
   });
 
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async function set_workspace_config(workspaceDir: string) {
+    // For manual testing purposes we may want to change the LSP configuration.
+
+    console.log("opening workspace");
+    const num_wsfolders = vscode.workspace.workspaceFolders?.length;
+    vscode.workspace.updateWorkspaceFolders(0, num_wsfolders, { uri: vscode.Uri.file(workspaceDir) });
+
+    console.log("changing workspace config");
+    let wscfg = vscode.workspace.getConfiguration("imandrax");
+    await wscfg.update("lsp.arguments", [
+      "lsp",
+      "--check-on-save=false",
+      "--unicode=true",
+      "--log-level=info",
+      // "--log-file=test-lsp.log",
+      // "--log-jsonrpc=test-lsp.jrpc",
+      // "--deployment=prod"
+    ]).then(
+      () => { console.log("changing workspace config was successful"); },
+      (e) => { console.log(`changing workspace config failed: ${e}`); });
+
+    wscfg = vscode.workspace.getConfiguration("imandrax");
+    console.log(`workspace config: ${JSON.stringify(wscfg)}`);
+  }
+
   test('given one lemma, check all should report one task completed', async () => {
     // arrange
-    const client = imandraxLanguageClient_?.getClient();
     const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), 'imandrax-tests-'));
+
+    // await set_workspace_config(workspaceDir);
+
+    const client = imandraxLanguageClient_?.getClient();
     const imlUri = vscode.Uri.file(path.join(workspaceDir, 'demo.iml'));
 
+    assert(client, "client unexpectedly failed to materialize");
+
+    let resolveSawDiagnostic: (value: boolean | PromiseLike<boolean>) => void;
+    const sawProvedDiagnostic = new Promise<boolean>((resolve) => {
+      resolveSawDiagnostic = resolve;
+    });
+
+    client.middleware.handleDiagnostics = (uri, ds: vscode.Diagnostic[]) => {
+      if (ds.length > 0) {
+        // console.log(`Diagnostics for ${JSON.stringify(uri)}: ${JSON.stringify(ds)}`);
+        if (uri.path.endsWith("demo.iml")) {
+          ds.forEach((d) => {
+            if (d.severity == vscode.DiagnosticSeverity.Hint &&
+              d.message.startsWith("Proved") && d.range.start.line === 1)
+              resolveSawDiagnostic(true);
+          });
+        }
+      }
+    }
+
     const lemmaCount = 1;
-    const lemmas = `
-        lemma add_commutative a b = (a + b) = (b + a)
-      `;
-    await fs.writeFile(imlUri.fsPath, lemmas, 'utf8');
+    let startCount = 0;
+    let endCount = 0;
+    let resolveSawProgressNotifications: (value: boolean | PromiseLike<boolean>) => void;
+    const sawProgressNotifications = new Promise<boolean>((resolve) => {
+      resolveSawProgressNotifications = resolve;
+    });
+
+    client.middleware.handleWorkDoneProgress = (token, params) => {
+      console.log(`WorkDoneProgress event: ${params.kind}`);
+      if (params.kind === "begin")
+        startCount += 1;
+      if (params.kind === "end")
+        endCount += 1;
+      if (startCount == lemmaCount && endCount == lemmaCount)
+        resolveSawProgressNotifications(true);
+    };
+
+    console.log("WorkDoneProgress handler installed");
 
     extensionContext?.subscriptions.push(vscode.window.onDidChangeActiveTextEditor((editor) => {
       console.log("Active Editor Changed: " + editor?.document.fileName);
     }));
 
+    console.log("onDidChangeActiveTextEditor handler installed");
+
+    const lemmas = `
+        lemma add_commutative a b = (a + b) = (b + a)
+      `;
+    await fs.writeFile(imlUri.fsPath, lemmas, 'utf8');
+
     const doc = await vscode.workspace.openTextDocument(imlUri);
     await vscode.window.showTextDocument(doc);
 
-    // act
-    await util.sleep(6_000);
-    let startCount = 0;
-    let endCount = 0;
-    do {
-      if (client) {
-        client.middleware.handleWorkDoneProgress = (_: any, b: { kind: string; }) => {
-          if (b.kind === "begin") {
-            startCount += 1;
-          }
-          if (b.kind === "end") {
-            endCount += 1;
-          }
-        };
-      }
-      await vscode.commands.executeCommand('imandrax.check_all');
-      await util.sleep(1_500);
-    }
-    while (startCount > endCount);
+    console.log("Checking all");
+    await vscode.commands.executeCommand('imandrax.check_all');
 
-    // assert
-    assert.equal(lemmaCount, endCount);
+    await sawProvedDiagnostic.then((q) => {
+      assert(q, "expected a diagnostic to confirm success, but did not receive one")
+    }).catch((err) => {
+      assert(false, `sawProvedDiagnostic rejected: ${err}`)
+    });
+
+    await sawProgressNotifications.then((q) => {
+      assert(q, `expected ${lemmaCount} new task notification(s), but did not receive them`)
+    }).catch((err) => {
+      assert(false, `sawProgressNotifications rejected: ${err}`)
+    })
   });
 
   test([
