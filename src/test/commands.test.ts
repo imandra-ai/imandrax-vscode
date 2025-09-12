@@ -156,7 +156,7 @@ suite('Commands Test Suite', () => {
       assert(q, "expected a diagnostic to confirm success, but did not receive one")
     }).catch((err) => {
       assert(false, `sawProvedDiagnostic rejected: ${err}`)
-    });;
+    });
 
     await util.withTimeout(sawProgressNotifications, 5000).then((q) => {
       assert(q, `expected ${lemmaCount} new task notification(s), but did not receive them`)
