@@ -17,6 +17,10 @@ import { ImandraXLanguageClient } from '../imandrax_language_client/imandrax_lan
 suite('Commands Test Suite', () => {
   suiteTeardown(() => {
     vscode.window.showInformationMessage('All tests done!');
+
+    console.log(`Closing all workspaces`);
+    const num_wsfolders = vscode.workspace.workspaceFolders?.length;
+    vscode.workspace.updateWorkspaceFolders(0, num_wsfolders);
   });
 
   let extensionContext: vscode.ExtensionContext | undefined;
@@ -86,7 +90,8 @@ suite('Commands Test Suite', () => {
     // await set_workspace_config(workspaceDir);
 
     const client = imandraxLanguageClient_?.getClient();
-    const imlUri = vscode.Uri.file(path.join(workspaceDir, 'demo.iml'));
+    const filename = "demo.iml";
+    const imlUri = vscode.Uri.file(path.join(workspaceDir, filename));
 
     assert(client, "client unexpectedly failed to materialize");
 
@@ -98,13 +103,15 @@ suite('Commands Test Suite', () => {
     client.middleware.handleDiagnostics = (uri, ds: vscode.Diagnostic[]) => {
       if (ds.length > 0) {
         // console.log(`Diagnostics for ${JSON.stringify(uri)}: ${JSON.stringify(ds)}`);
-        if (uri.path.endsWith("demo.iml")) {
+        if (uri.path.endsWith(filename)) {
           ds.forEach((d) => {
             if (d.severity == vscode.DiagnosticSeverity.Hint &&
               d.message.startsWith("Proved") && d.range.start.line === 1)
               resolveSawDiagnostic(true);
           });
         }
+        // We received some diagnostics, but they were not for us
+        resolveSawDiagnostic(false);
       }
     }
 
@@ -145,13 +152,13 @@ suite('Commands Test Suite', () => {
     console.log("Checking all");
     await vscode.commands.executeCommand('imandrax.check_all');
 
-    await sawProvedDiagnostic.then((q) => {
+    await util.withTimeout(sawProvedDiagnostic, 5000).then((q) => {
       assert(q, "expected a diagnostic to confirm success, but did not receive one")
     }).catch((err) => {
       assert(false, `sawProvedDiagnostic rejected: ${err}`)
-    });
+    });;
 
-    await sawProgressNotifications.then((q) => {
+    await util.withTimeout(sawProgressNotifications, 5000).then((q) => {
       assert(q, `expected ${lemmaCount} new task notification(s), but did not receive them`)
     }).catch((err) => {
       assert(false, `sawProgressNotifications rejected: ${err}`)
