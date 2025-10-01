@@ -28,8 +28,8 @@ export function create_terminal(cwd: string | undefined) {
 export function interact_model(params: Record<string, any>) {
   const config = workspace.getConfiguration("imandrax");
 
-  const uri = Uri.parse(params["uri"]);
-  const models = params["models"];
+  const uri = Uri.parse(params.uri);
+  const models = params.models;
 
   const wsf = workspace.getWorkspaceFolder(uri);
 
@@ -63,7 +63,7 @@ export function interact_model(params: Record<string, any>) {
 }
 
 export function copy_model(params: Record<string, any>) {
-  const models = params["models"];
+  const models = params.models;
   let str = "";
   models.join();
   models.forEach((m: string) => {
@@ -72,16 +72,49 @@ export function copy_model(params: Record<string, any>) {
   env.clipboard.writeText(str);
 }
 
-export function visualize_decomp(extensionUri: Uri, params: Record<string, any>) {
-  const decomps = params["decomps"];
+interface Decomp {
+  source: string, // Function name
+  decomp: string, // HTML-encoded regions for voronoi
+  num_regions: number // Number of regions
+}
+
+export async function visualize_decomp(extensionUri: Uri, params: { decomps: Decomp[] }) {
+  const config = workspace.getConfiguration("imandrax");
+
+  const decomps = params.decomps;
 
   let body = "";
   const sources: string[] = [];
 
+  let total_regions = 0;
   for (const d of decomps) {
-    const source = d["source"];
+    if ("num_regions" in d)
+      total_regions += d.num_regions;
+  }
+
+  let do_display = true;
+
+  if (total_regions > config.largeDecompConfirmation) {
+    const q = await window.showWarningMessage(
+      `This decomposition is not displayed in the editor because it is very large (${total_regions} regions).`,
+      {},
+      { title: "Open Anyway" },
+      { title: "Cancel", isCloseAffordance: true },
+      { title: "Configure Limit" });
+
+    do_display = q !== undefined && q.title == "Open Anyway";
+
+    if (q && q.title == "Configure Limit")
+      commands.executeCommand("workbench.action.openSettings", "imandrax.largeDecompConfirmation");
+  }
+
+  if (!do_display)
+    return;
+
+  for (const d of decomps) {
+    const source = d.source;
     body += `<h1>Decomposition of <span class="code">${source}</span></h1>`;
-    body += d["decomp"];
+    body += d.decomp;
     sources.push(source);
   }
 
