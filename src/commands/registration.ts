@@ -74,5 +74,13 @@ export function register(context: ExtensionContext, imandraxLanguageClient: Iman
   };
   context.subscriptions.push(commands.registerCommand(reset_goal_state_cmd, reset_goal_state_handler));
 
+  const open_prelude_cmd = "imandrax.open-prelude";
+  context.subscriptions.push(commands.registerCommand(open_prelude_cmd,
+    async () => {
+      const uri = Uri.parse("imandrax-vfs:/builtin/prelude.iml");
+      const doc = await workspace.openTextDocument(uri);
+      await window.showTextDocument(doc);
+    }));
+
   console.log("all commands registered");
 }

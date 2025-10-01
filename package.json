@@ -10,7 +10,7 @@
     "theme": "dark"
   },
   "license": "MIT",
-  "version": "0.0.42",
+  "version": "0.0.43",
   "repository": {
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
@@ -183,6 +183,10 @@
       {
         "command": "imandrax.show-goal",
         "title": "Imandrax: Show Goal"
+      },
+      {
+        "command": "imandrax.open-prelude",
+        "title": "Imandrax: Open Prelude"
       }
     ]
   },
