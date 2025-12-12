@@ -6,7 +6,7 @@
   "publisher": "Imandra",
   "icon": "assets/marketplace.png",
   "galleryBanner": {
-    "color": "#3B3F49",
+    "color": "#221B32",
     "theme": "dark"
   },
   "license": "MIT",
@@ -15,7 +15,22 @@
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
   },
-  "categories": [],
+  "categories": [
+    "Programming Languages",
+    "AI",
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "formalization",
+    "formal",
+    "reasoning",
+    "verification",
+    "testing",
+    "AI",
+    "safety",
+    "neurosymbolic"
+  ],
   "engines": {
     "vscode": "^1.96.2"
   },
