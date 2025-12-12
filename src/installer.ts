@@ -6,6 +6,11 @@ import * as Which from "which";
 import { commands, ConfigurationTarget, env, MessageItem, ProgressLocation, QuickPickItem, QuickPickOptions, Uri, window, workspace } from "vscode";
 import { exec } from 'child_process';
 
+import { parseStringPromise } from 'xml2js';
+import fetch from 'node-fetch';
+import { stat } from 'fs/promises';
+
+
 async function getApiKeyInput() {
   const result = await window.showInputBox({
     placeHolder: 'Paste your API key here',
@@ -127,12 +132,15 @@ async function runInstallerForUnix(itemT: MessageItem, title: string): Promise<v
   }
 }
 
-export async function promptToInstall(openUri: Uri) {
+export async function promptToInstall(openUri: Uri, update?: boolean) {
   const launchInstallerItem = { title: "Launch installer" } as const;
   const items: readonly MessageItem[] = [launchInstallerItem];
-
-  const itemT: MessageItem | undefined = await window.showErrorMessage(`Could not find ImandraX. Please install it or ensure the imandrax-cli binary is in your PATH or its location is set in [Workspace Settings](${openUri.toString()}).`, ...items);
-
+  let itemT: MessageItem | undefined;
+  if (update) {
+    itemT = await window.showErrorMessage(`An updated imandrax-cli binary is available.`, ...items);
+  } else {
+    itemT = await window.showErrorMessage(`Could not find ImandraX. Please install it or ensure the imandrax-cli binary is in your PATH or its location is set in [Workspace Settings](${openUri.toString()}).`, ...items);
+  }
   if (itemT) {
     await window.withProgress(
       {
@@ -144,4 +152,68 @@ export async function promptToInstall(openUri: Uri) {
         async (reason) => { await window.showErrorMessage(`ImandraX install failed\n ${reason}`); }
       );
   }
+}
+
+export async function checkVersion() {
+  interface BucketContent {
+    Key: string;
+    Generation: string;
+  }
+  
+  interface ListBucketResult {
+    Contents: BucketContent[];
+  }
+  
+  interface ParsedXmlResponse {
+    ListBucketResult: ListBucketResult;
+  }
+
+  async function fetchAndParseXml(url: string): Promise<ParsedXmlResponse | undefined> {
+    let xmlText: string | undefined;
+    try {
+      const response = await fetch(url);
+      xmlText = await response.text();
+    } catch (error) {
+      console.error('Error fetching XML:', error);
+      return undefined;
+    }
+
+    try {
+      return await parseStringPromise(xmlText, { explicitArray: false }) as ParsedXmlResponse;
+    } catch (error) {
+      console.error('Error parsing XML:', error);
+    }
+  }
+
+
+  async function getFileModificationDate(filePath: string): Promise<Date | null> {
+    try {
+      const stats = await stat(filePath);
+      return stats.mtime;
+    } catch (e) {
+      console.error(`Error reading file stats: ${e as string}`);
+      return null;
+    }
+  }
+  
+  const data = await fetchAndParseXml("https://storage.googleapis.com/imandra-prod-imandrax-releases");
+  const item = data?.ListBucketResult.Contents.find(item => item.Key === "imandrax-macos-aarch64-latest.pkg");
+
+  const homeDir = process.env.HOME;
+  if (!homeDir) {
+    window.showErrorMessage(
+      `Could not determine your home directory. ` // +
+      // `Set 'lsp.binary' and 'terminal.binary' to the full path` +
+      // `where imandrax-cli has been installed:\n` +
+      // `[Workspace Settings](${openUri.toString()})`
+    );
+    return false;
+  }
+
+  const binaryPath = Path.join(homeDir, '.local', 'bin', 'imandrax-cli');
+
+  const remoteGeneration = Math.floor(Number(item?.Generation) / 1000)
+  const localGeneration = Number((await getFileModificationDate(binaryPath))?.getTime() ?? 0);
+
+  return remoteGeneration > localGeneration;
 }
