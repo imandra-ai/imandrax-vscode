@@ -26,6 +26,18 @@ export async function activate(context: ExtensionContext) {
   const languageClientConfig = getConfig();
 
   if (imandraxLanguageClient.configuration.isFoundPath(languageClientConfig)) {
+
+    const versionOutdated = await installer.checkVersion();
+
+    if (versionOutdated) {
+      console.log('ImandraX binary is outdated, updating...');
+      const args = { revealSetting: { key: "imandrax.lsp.binary", edit: true } };
+      const openUri = Uri.parse(
+        `command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
+      );
+      await installer.promptToInstall(openUri, true);
+    }
+
     const languageClientWrapper_ = new imandraxLanguageClient.ImandraXLanguageClient(getConfig);
     const getClient: () => LanguageClient = () => { return languageClientWrapper_.getClient(); };
 
