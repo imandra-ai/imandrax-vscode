@@ -6,8 +6,6 @@ import * as Which from "which";
 import { commands, ConfigurationTarget, env, MessageItem, ProgressLocation, QuickPickItem, QuickPickOptions, Uri, window, workspace } from "vscode";
 import { exec } from 'child_process';
 
-import { parseStringPromise } from 'xml2js';
-import fetch from 'node-fetch';
 import { stat } from 'fs/promises';
 
 
@@ -137,7 +135,7 @@ export async function promptToInstall(openUri: Uri, update?: boolean) {
   const items: readonly MessageItem[] = [launchInstallerItem];
   let itemT: MessageItem | undefined;
   if (update) {
-    itemT = await window.showErrorMessage(`An updated imandrax-cli binary is available.`, ...items);
+    itemT = await window.showInformationMessage(`An updated imandrax-cli binary is available.`, ...items);
   } else {
     itemT = await window.showErrorMessage(`Could not find ImandraX. Please install it or ensure the imandrax-cli binary is in your PATH or its location is set in [Workspace Settings](${openUri.toString()}).`, ...items);
   }
@@ -155,37 +153,6 @@ export async function promptToInstall(openUri: Uri, update?: boolean) {
 }
 
 export async function checkVersion() {
-  interface BucketContent {
-    Key: string;
-    Generation: string;
-  }
-  
-  interface ListBucketResult {
-    Contents: BucketContent[];
-  }
-  
-  interface ParsedXmlResponse {
-    ListBucketResult: ListBucketResult;
-  }
-
-  async function fetchAndParseXml(url: string): Promise<ParsedXmlResponse | undefined> {
-    let xmlText: string | undefined;
-    try {
-      const response = await fetch(url);
-      xmlText = await response.text();
-    } catch (error) {
-      console.error('Error fetching XML:', error);
-      return undefined;
-    }
-
-    try {
-      return await parseStringPromise(xmlText, { explicitArray: false }) as ParsedXmlResponse;
-    } catch (error) {
-      console.error('Error parsing XML:', error);
-    }
-  }
-
-
   async function getFileModificationDate(filePath: string): Promise<Date | null> {
     try {
       const stats = await stat(filePath);
@@ -196,8 +163,23 @@ export async function checkVersion() {
     }
   }
   
-  const data = await fetchAndParseXml("https://storage.googleapis.com/imandra-prod-imandrax-releases");
-  const item = data?.ListBucketResult.Contents.find(item => item.Key === "imandrax-macos-aarch64-latest.pkg");
+  async function getData() {
+    const url = 'https://storage.googleapis.com/storage/v1/b/imandra-prod-imandrax-releases/o';
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Response status: ${response.status}`);
+      }
+  
+      const result = await response.json()
+      return result;
+    } catch (e) {
+      console.error((e as Error).message);
+    }
+  }
+  
+  const data = await getData();
+  const item = data?.items.find(item => item.name === "imandrax-macos-aarch64-latest.pkg");
 
   const homeDir = process.env.HOME;
   if (!homeDir) {
@@ -212,7 +194,7 @@ export async function checkVersion() {
 
   const binaryPath = Path.join(homeDir, '.local', 'bin', 'imandrax-cli');
 
-  const remoteGeneration = Math.floor(Number(item?.Generation) / 1000)
+  const remoteGeneration = Number(item?.generation) / 1000
   const localGeneration = Number((await getFileModificationDate(binaryPath))?.getTime() ?? 0);
 
   return remoteGeneration > localGeneration;
