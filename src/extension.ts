@@ -28,8 +28,9 @@ export async function activate(context: ExtensionContext) {
   if (imandraxLanguageClient.configuration.isFoundPath(languageClientConfig)) {
 
     const versionOutdated = await installer.checkVersion();
+    const installedByVscode = await installer.checkForMarker();
 
-    if (versionOutdated) {
+    if (versionOutdated && installedByVscode) {
       console.log('ImandraX binary is outdated, updating...');
       const args = { revealSetting: { key: "imandrax.lsp.binary", edit: true } };
       const openUri = Uri.parse(

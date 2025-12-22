@@ -6,7 +6,7 @@ import * as Which from "which";
 import { commands, ConfigurationTarget, env, MessageItem, ProgressLocation, QuickPickItem, QuickPickOptions, Uri, window, workspace } from "vscode";
 import { exec } from 'child_process';
 
-import { stat } from 'fs/promises';
+import { stat, writeFile } from 'fs/promises';
 
 
 async function getApiKeyInput() {
@@ -85,10 +85,32 @@ async function setBinaryPaths(openUri: Uri) {
   await config.update('terminal.binary', binaryPath, ConfigurationTarget.Global);
 }
 
+async function markInstalled() {
+  const config = workspace.getConfiguration('imandrax');
+  const binaryPath = await config.get('lsp.binary');
+  const binaryDir = Path.dirname(binaryPath as string);
+  const markerFile = Path.join(binaryDir, 'imandrax-cli.installed_by_vscode');
+  await writeFile(markerFile, '');
+}
+
+export async function checkForMarker() {
+  const config = workspace.getConfiguration('imandrax');
+  const binaryPath = await config.get('lsp.binary');
+  const binaryDir = Path.dirname(binaryPath as string);
+  const markerFile = Path.join(binaryDir, 'imandrax-cli.installed_by_vscode');
+  try {
+    await stat(markerFile);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function handleSuccess(openUri: Uri) {
   await setBinaryPaths(openUri);
   await promptForApiKey();
   await promptToReloadWindow();
+  await markInstalled();
 }
 
 async function runInstallerForUnix(itemT: MessageItem, title: string): Promise<void> {
@@ -152,6 +174,16 @@ export async function promptToInstall(openUri: Uri, update?: boolean) {
   }
 }
 
+interface ReleaseObject {
+  name: string;
+  generation: string;
+}
+
+interface ReleaseList {
+  kind: string;
+  items: ReleaseObject[];
+}
+
 export async function checkVersion() {
   async function getFileModificationDate(filePath: string): Promise<Date | null> {
     try {
@@ -171,8 +203,7 @@ export async function checkVersion() {
         throw new Error(`Response status: ${response.status}`);
       }
   
-      const result = await response.json()
-      return result;
+      return await response.json() as ReleaseList;
     } catch (e) {
       console.error((e as Error).message);
     }
