@@ -10,7 +10,7 @@
     "theme": "dark"
   },
   "license": "MIT",
-  "version": "0.0.48",
+  "version": "0.0.49",
   "repository": {
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
@@ -213,33 +213,33 @@
     "test-clean": "npm run clean && npm run build && npm run esbuild && vscode-test"
   },
   "dependencies": {
-    "@vscode/vsce": "^3.6.0",
+    "@vscode/vsce": "^3.7.1",
     "async-mutex": "^0.5.0",
-    "jest": "^30.0.5",
-    "ovsx": "^0.10.7",
-    "prettier": "^3.5.0",
+    "jest": "^30.2.0",
+    "ovsx": "^0.10.8",
+    "prettier": "^3.7.4",
     "vscode-languageclient": "^8.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
     "@types/assert": "^1.5.11",
     "@types/eslint": "^9.6.1",
-    "@types/mocha": "^10.0.0",
-    "@types/node": "^16.18.34",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^16.18.126",
     "@types/vscode": "^1.96.2",
     "@types/which": "^3.0.4",
     "@typescript-eslint/eslint-plugin": "^8.34.0",
     "@typescript-eslint/parser": "^8.34.0",
-    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
-    "esbuild": "^0.25.3",
-    "eslint": "^9.29.0",
-    "glob": "^11.0.2",
-    "mocha": "^11.7.0",
+    "esbuild": "^0.25.12",
+    "eslint": "^9.39.2",
+    "glob": "^11.1.0",
+    "mocha": "^11.7.5",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3",
-    "typescript-eslint": "^8.34.1"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.52.0"
   }
 }
