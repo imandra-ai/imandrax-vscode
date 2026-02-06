@@ -68,8 +68,7 @@ export async function activate(context: ExtensionContext) {
   console.log(`extensionMode: ${context.extensionMode}, Test: ${ExtensionMode.Test}`);
   if (context.extensionMode === ExtensionMode.Test || context.extensionMode === undefined) {
     (global as any).testExtensionContext = context;
-  }
-  if (context.extensionMode !== (ExtensionMode.Test || undefined)) {
+  } else {
     console.log('Checking ImandraX binary version');
     const versionOutdated = await installer.checkVersion();
     const installedByVscode = await installer.checkForMarker();
