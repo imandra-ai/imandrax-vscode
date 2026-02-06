@@ -80,4 +80,17 @@ export async function activate(context: ExtensionContext) {
   if (context.extensionMode === ExtensionMode.Test || context.extensionMode === undefined) {
     (global as any).testExtensionContext = context;
   }
+  if (context.extensionMode !== (ExtensionMode.Test || undefined)) {
+    const versionOutdated = await installer.checkVersion();
+    const installedByVscode = await installer.checkForMarker();
+
+    if (versionOutdated && installedByVscode) {
+      console.log('ImandraX binary is outdated, updating...');
+      const args = { revealSetting: { key: "imandrax.lsp.binary", edit: true } };
+      const openUri = Uri.parse(
+        `command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
+      );
+      await installer.promptToInstall(openUri, true);
+    }
+  }
 }
