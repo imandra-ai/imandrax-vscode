@@ -65,6 +65,7 @@ export async function activate(context: ExtensionContext) {
       await env.openExternal(await env.asExternalUri(Uri.parse("https://code.visualstudio.com/docs/remote/wsl-tutorial")));
     }
   }
+  console.log(`extensionMode: ${context.extensionMode}, Test: ${ExtensionMode.Test}`);
   if (context.extensionMode === ExtensionMode.Test || context.extensionMode === undefined) {
     (global as any).testExtensionContext = context;
   }
