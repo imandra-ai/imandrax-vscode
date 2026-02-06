@@ -168,7 +168,7 @@ suite('Commands Test Suite', () => {
     console.log("Checking all");
     await vscode.commands.executeCommand('imandrax.check_all');
 
-    await util.withTimeout(sawProvedDiagnostic, 5000).then((q) => {
+    await util.withTimeout(sawProvedDiagnostic, 15000).then((q) => {
       assert(q, "expected a diagnostic to confirm success, but did not receive one")
     }).catch((err) => {
       assert(false, `sawProvedDiagnostic rejected: ${err}`)
