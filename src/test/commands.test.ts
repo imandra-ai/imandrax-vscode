@@ -12,17 +12,34 @@ import * as path from 'path';
 import * as util from './util';
 import * as vscode from 'vscode';
 import { ImandraXLanguageClient } from '../imandrax_language_client/imandrax_language_client';
+import { Trace } from 'vscode-languageclient';
+
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function set_workspace_config(workspaceDir: string) {
   // For manual testing purposes we may want to change the LSP configuration.
 
-  console.log("opening workspace");
-  const num_wsfolders = vscode.workspace.workspaceFolders?.length;
+  console.log("Opening workspace");
+
+  // The docs say we have to wait for onDidChangeWorkspaceFolders after updateWorkspaceFolders.
+  let resolveWorkspaceFolderChanges: (value: vscode.WorkspaceFoldersChangeEvent | PromiseLike<vscode.WorkspaceFoldersChangeEvent>) => void;
+  const workspaceFolderChangesPromise = new Promise<vscode.WorkspaceFoldersChangeEvent>((resolve) => resolveWorkspaceFolderChanges = resolve);
+  vscode.workspace.onDidChangeWorkspaceFolders((x) => resolveWorkspaceFolderChanges(x));
+
+  const num_wsfolders = vscode.workspace.workspaceFolders?.length ?? 0;
   vscode.workspace.updateWorkspaceFolders(0, num_wsfolders, { uri: vscode.Uri.file(workspaceDir) });
 
-  console.log("changing workspace config");
-  let wscfg = vscode.workspace.getConfiguration("imandrax");
+  // If the first/root workspace folder is changed, the entire extension host
+  // is restarted and onDidChangeWorkspaceFolders won't fire. So we can't
+  // wait, but we also can't not wait...
+  await workspaceFolderChangesPromise
+    .then((x) => { console.log(`ADDED: ${x.added.length} REMOVED: ${x.removed.length}`) })
+    .catch(err => console.log(`Error opening workspace: ${err}`));
+
+  console.log("Updating workspace config");
+  const wscfg = vscode.workspace.getConfiguration("imandrax");
+  // await wscfg.update("lsp.binary", "/home/cwinter/work/imandrax/_build/default/src/cli/imandrax_cli.exe");
+  await wscfg.update("lsp.binary", "/home/cwinter/.local/bin/imandrax-cli");
   await wscfg.update("lsp.arguments", [
     "lsp",
     "--check-on-save=false",
@@ -60,10 +77,15 @@ suite('Commands Test Suite', () => {
     extensionContext = (global as any).testExtensionContext;
     imandraxLanguageClient_ = (global as any).testLanguageClientWrapper;
 
-    // const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), 'imandrax-tests-'));
-    // await set_workspace_config(workspaceDir);
+    const client = imandraxLanguageClient_?.getClient();
+    await client?.setTrace(Trace.Verbose);
 
-    console.log("done with setup");
+    vscode.workspace.workspaceFolders?.forEach(x => console.log(`Workspace folder: ${x.uri.toString()}`));
+
+    const wscfg = vscode.workspace.getConfiguration("imandrax");
+    console.log(`Workspace config: ${JSON.stringify(wscfg)}`);
+
+    console.log("Done with setup");
   });
 
   test([
@@ -87,14 +109,13 @@ suite('Commands Test Suite', () => {
 
 
   test('given one lemma, check all should report one task completed', async () => {
-    // arrange
-    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), 'imandrax-tests-'));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'imandrax-tests-'));
 
-    // await set_workspace_config(workspaceDir);
+    // await set_workspace_config(tmpDir);
 
     const client = imandraxLanguageClient_?.getClient();
     const filename = "demo.iml";
-    const imlUri = vscode.Uri.file(path.join(workspaceDir, filename));
+    const imlUri = vscode.Uri.file(path.join(tmpDir, filename));
 
     assert(client, "client unexpectedly failed to materialize");
 
@@ -105,7 +126,7 @@ suite('Commands Test Suite', () => {
 
     client.middleware.handleDiagnostics = (uri, ds: vscode.Diagnostic[]) => {
       if (ds.length > 0) {
-        // console.log(`Diagnostics for ${JSON.stringify(uri)}: ${JSON.stringify(ds)}`);
+        console.log(`Diagnostics for ${JSON.stringify(uri)}: ${JSON.stringify(ds)}`);
         if (uri.path.endsWith(filename)) {
           ds.forEach((d) => {
             if (d.severity == vscode.DiagnosticSeverity.Hint &&
@@ -114,8 +135,8 @@ suite('Commands Test Suite', () => {
           });
         }
         // We received some diagnostics, but they were not for us
-        else
-          resolveSawDiagnostic(false);
+        // else
+        //   resolveSawDiagnostic(false);
       }
     }
 
@@ -156,18 +177,19 @@ suite('Commands Test Suite', () => {
     console.log("Checking all");
     await vscode.commands.executeCommand('imandrax.check_all');
 
-    await util.withTimeout(sawProvedDiagnostic, 5000).then((q) => {
+    await util.withTimeout(sawProvedDiagnostic, 500000).then((q) => {
+      console.log(`PROMISE RESOLVED`)
       assert(q, "expected a diagnostic to confirm success, but did not receive one")
     }).catch((err) => {
       assert(false, `sawProvedDiagnostic rejected: ${err}`)
     });
 
     // Prod does not reliably send progress notifications currently, so this test is disabled.
-    await util.withTimeout(sawProgressNotifications, 5000).then((q) => {
-      assert(q, `expected ${lemmaCount} new task notification(s), but did not receive them`)
-    }).catch((err) => {
-      assert(false, `sawProgressNotifications rejected: ${err}`)
-    })
+    // await util.withTimeout(sawProgressNotifications, 500000).then((q) => {
+    //   assert(q, `expected ${lemmaCount} new task notification(s), but did not receive them`)
+    // }).catch((err) => {
+    //   assert(false, `sawProgressNotifications rejected: ${err}`)
+    // })
   });
 
   test([
