@@ -13,6 +13,31 @@ import * as util from './util';
 import * as vscode from 'vscode';
 import { ImandraXLanguageClient } from '../imandrax_language_client/imandrax_language_client';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function set_workspace_config(workspaceDir: string) {
+  // For manual testing purposes we may want to change the LSP configuration.
+
+  console.log("opening workspace");
+  const num_wsfolders = vscode.workspace.workspaceFolders?.length;
+  vscode.workspace.updateWorkspaceFolders(0, num_wsfolders, { uri: vscode.Uri.file(workspaceDir) });
+
+  console.log("changing workspace config");
+  let wscfg = vscode.workspace.getConfiguration("imandrax");
+  await wscfg.update("lsp.arguments", [
+    "lsp",
+    "--check-on-save=false",
+    "--unicode=true",
+    "--log-level=info",
+    // "--log-file=test-lsp.log",
+    // "--log-jsonrpc=test-lsp.jrpc",
+    // "--deployment=prod"
+  ]).then(
+    () => { console.log("changing workspace config was successful"); },
+    (e) => { console.log(`changing workspace config failed: ${e}`); });
+
+  wscfg = vscode.workspace.getConfiguration("imandrax");
+  console.log(`workspace config: ${JSON.stringify(wscfg)}`);
+}
 
 suite('Commands Test Suite', () => {
   suiteTeardown(() => {
@@ -34,6 +59,10 @@ suite('Commands Test Suite', () => {
     console.log("get globals");
     extensionContext = (global as any).testExtensionContext;
     imandraxLanguageClient_ = (global as any).testLanguageClientWrapper;
+
+    // const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), 'imandrax-tests-'));
+    // await set_workspace_config(workspaceDir);
+
     console.log("done with setup");
   });
 
@@ -56,32 +85,6 @@ suite('Commands Test Suite', () => {
     assert.strictEqual(vscode.window.terminals.length, term_count + 1);
   });
 
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async function set_workspace_config(workspaceDir: string) {
-    // For manual testing purposes we may want to change the LSP configuration.
-
-    console.log("opening workspace");
-    const num_wsfolders = vscode.workspace.workspaceFolders?.length;
-    vscode.workspace.updateWorkspaceFolders(0, num_wsfolders, { uri: vscode.Uri.file(workspaceDir) });
-
-    console.log("changing workspace config");
-    let wscfg = vscode.workspace.getConfiguration("imandrax");
-    await wscfg.update("lsp.arguments", [
-      "lsp",
-      "--check-on-save=false",
-      "--unicode=true",
-      "--log-level=info",
-      // "--log-file=test-lsp.log",
-      // "--log-jsonrpc=test-lsp.jrpc",
-      // "--deployment=prod"
-    ]).then(
-      () => { console.log("changing workspace config was successful"); },
-      (e) => { console.log(`changing workspace config failed: ${e}`); });
-
-    wscfg = vscode.workspace.getConfiguration("imandrax");
-    console.log(`workspace config: ${JSON.stringify(wscfg)}`);
-  }
 
   test('given one lemma, check all should report one task completed', async () => {
     // arrange
@@ -111,7 +114,8 @@ suite('Commands Test Suite', () => {
           });
         }
         // We received some diagnostics, but they were not for us
-        resolveSawDiagnostic(false);
+        else
+          resolveSawDiagnostic(false);
       }
     }
 
@@ -159,11 +163,11 @@ suite('Commands Test Suite', () => {
     });
 
     // Prod does not reliably send progress notifications currently, so this test is disabled.
-    // await util.withTimeout(sawProgressNotifications, 5000).then((q) => {
-    //   assert(q, `expected ${lemmaCount} new task notification(s), but did not receive them`)
-    // }).catch((err) => {
-    //   assert(false, `sawProgressNotifications rejected: ${err}`)
-    // })
+    await util.withTimeout(sawProgressNotifications, 5000).then((q) => {
+      assert(q, `expected ${lemmaCount} new task notification(s), but did not receive them`)
+    }).catch((err) => {
+      assert(false, `sawProgressNotifications rejected: ${err}`)
+    })
   });
 
   test([

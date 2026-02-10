@@ -27,6 +27,7 @@ export interface ImandraXLanguageClientConfiguration {
   serverArgs: string[],
   mergedEnv: object,
   binPathAvailability: BinPathAvailability,
+  outputToConsole: boolean
 }
 
 export interface FoundPathConfig extends ImandraXLanguageClientConfiguration {
@@ -74,5 +75,8 @@ export function get(): ImandraXLanguageClientConfiguration | FoundPathConfig {
 
   const binPathAvailability = getBinPathAvailability(platformConfiguration, binary);
 
-  return binPathAvailability.status === 'foundPath' ? { serverArgs, mergedEnv, binPathAvailability: binPathAvailability } as FoundPathConfig : { serverArgs, mergedEnv, binPathAvailability: binPathAvailability };
+  if (binPathAvailability.status === 'foundPath')
+    return { serverArgs, mergedEnv, binPathAvailability: binPathAvailability, outputToConsole: false } as FoundPathConfig
+  else
+    return { serverArgs, mergedEnv, binPathAvailability: binPathAvailability, outputToConsole: false };
 }
