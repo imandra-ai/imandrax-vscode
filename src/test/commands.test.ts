@@ -12,7 +12,7 @@ import * as path from 'path';
 import * as util from './util';
 import * as vscode from 'vscode';
 import { ImandraXLanguageClient } from '../imandrax_language_client/imandrax_language_client';
-import { Trace } from 'vscode-languageclient';
+// import { Trace } from 'vscode-languageclient';
 
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -45,9 +45,9 @@ async function set_workspace_config(workspaceDir: string) {
     "--check-on-save=false",
     "--unicode=true",
     "--log-level=info",
-    // "--log-file=test-lsp.log",
-    // "--log-jsonrpc=test-lsp.jrpc",
-    // "--deployment=prod"
+    "--log-file=/home/cwinter/work/imandrax-vscode/test-lsp.log",
+    "--log-jsonrpc=/home/cwinter/work/imandrax-vscode/test-lsp.jrpc",
+    "--deployment=prod",
   ]).then(
     () => { console.log("changing workspace config was successful"); },
     (e) => { console.log(`changing workspace config failed: ${e}`); });
@@ -74,8 +74,8 @@ suite('Commands Test Suite', () => {
     extensionContext = (global as any).testExtensionContext;
     imandraxLanguageClient_ = (global as any).testLanguageClientWrapper;
 
-    const client = imandraxLanguageClient_?.getClient();
-    await client?.setTrace(Trace.Verbose);
+    // const client = imandraxLanguageClient_?.getClient();
+    // await client?.setTrace(Trace.Verbose);
 
     vscode.workspace.workspaceFolders?.forEach(x => console.log(`Workspace folder: ${x.uri.toString()}`));
 
@@ -132,8 +132,8 @@ suite('Commands Test Suite', () => {
           });
         }
         // We received some diagnostics, but they were not for us
-        // else
-        //   resolveSawDiagnostic(false);
+        else
+          resolveSawDiagnostic(false);
       }
     }
 
@@ -174,8 +174,7 @@ suite('Commands Test Suite', () => {
     console.log("Checking all");
     await vscode.commands.executeCommand('imandrax.check_all');
 
-    await util.withTimeout(sawProvedDiagnostic, 500000).then((q) => {
-      console.log(`PROMISE RESOLVED`)
+    await util.withTimeout(sawProvedDiagnostic, 5000).then((q) => {
       assert(q, "expected a diagnostic to confirm success, but did not receive one")
     }).catch((err) => {
       assert(false, `sawProvedDiagnostic rejected: ${err}`)
