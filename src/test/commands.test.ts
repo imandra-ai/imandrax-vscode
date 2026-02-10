@@ -51,9 +51,6 @@ async function set_workspace_config(workspaceDir: string) {
   ]).then(
     () => { console.log("changing workspace config was successful"); },
     (e) => { console.log(`changing workspace config failed: ${e}`); });
-
-  wscfg = vscode.workspace.getConfiguration("imandrax");
-  console.log(`workspace config: ${JSON.stringify(wscfg)}`);
 }
 
 suite('Commands Test Suite', () => {
