@@ -181,11 +181,11 @@ suite('Commands Test Suite', () => {
     });
 
     // Prod does not reliably send progress notifications currently, so this test is disabled.
-    // await util.withTimeout(sawProgressNotifications, 500000).then((q) => {
-    //   assert(q, `expected ${lemmaCount} new task notification(s), but did not receive them`)
-    // }).catch((err) => {
-    //   assert(false, `sawProgressNotifications rejected: ${err}`)
-    // })
+    await util.withTimeout(sawProgressNotifications, 5000).then((q) => {
+      assert(q, `expected ${lemmaCount} new task notification(s), but did not receive them`)
+    }).catch((err) => {
+      assert(false, `sawProgressNotifications rejected: ${err}`)
+    })
   });
 
   test([
