@@ -127,7 +127,7 @@ suite('Commands Test Suite', () => {
         }
         // We received some diagnostics, but they were not for us
         // else
-        //   resolveSawDiagnostic(false);
+        resolveSawDiagnostic(false);
       }
     }
 
