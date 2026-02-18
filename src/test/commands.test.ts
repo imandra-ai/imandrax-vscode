@@ -117,7 +117,7 @@ suite('Commands Test Suite', () => {
 
     client.middleware.handleDiagnostics = (uri, ds: vscode.Diagnostic[]) => {
       if (ds.length > 0) {
-        console.log(`Diagnostics for ${JSON.stringify(uri)}: ${JSON.stringify(ds)}`);
+        // console.log(`Diagnostics for ${JSON.stringify(uri)}: ${JSON.stringify(ds)}`);
         if (uri.path.endsWith(filename)) {
           ds.forEach((d) => {
             if (d.severity == vscode.DiagnosticSeverity.Hint &&
