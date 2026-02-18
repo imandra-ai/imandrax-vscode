@@ -94,7 +94,7 @@ export class ImandraXLanguageClient {
       this.client.onRequest("$imandrax/copy-model",
         (params) => { commands.copy_model(params); });
       this.client.onRequest("$imandrax/visualize-decomp",
-        async (params) => { await commands.visualize_decomp(extensionUri, params); });
+        (params) => { commands.visualize_decomp(extensionUri, params); });
       this.client.onNotification("$imandrax/vfs-file-changed",
         (params) => {
           const uri = Uri.parse(params.uri);
