@@ -16,7 +16,8 @@ import { ImandraXLanguageClient } from '../imandrax_language_client/imandrax_lan
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function set_workspace_config(workspaceDir: string) {
-  // For manual testing purposes we may want to change the LSP configuration.
+  // For manual testing purposes we may want to change the LSP configuration
+  // along these lines:
 
   console.log("Opening workspace");
 
