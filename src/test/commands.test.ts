@@ -73,10 +73,10 @@ suite('Commands Test Suite', () => {
     extensionContext = (global as any).testExtensionContext;
     imandraxLanguageClient_ = (global as any).testLanguageClientWrapper;
 
-    vscode.workspace.workspaceFolders?.forEach(x => console.log(`Workspace folder: ${x.uri.toString()}`));
+    // vscode.workspace.workspaceFolders?.forEach(x => console.log(`Workspace folder: ${x.uri.toString()}`));
 
-    const wscfg = vscode.workspace.getConfiguration("imandrax");
-    console.log(`Workspace config: ${JSON.stringify(wscfg)}`);
+    // const wscfg = vscode.workspace.getConfiguration("imandrax");
+    // console.log(`Workspace config: ${JSON.stringify(wscfg)}`);
 
     console.log("Done with setup");
   });
