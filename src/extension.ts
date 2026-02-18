@@ -56,7 +56,7 @@ export async function activate(context: ExtensionContext) {
     const openUri = Uri.parse(
       `command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
     );
-    await installer.promptToInstall(openUri);
+    await installer.promptToInstall(openUri, false);
   } else if (languageClientConfig.binPathAvailability.status === "onWindows") {
     const item = { title: "Go to docs" };
     const itemT = await window.showErrorMessage(`ImandraX can't run natively on Windows. Please start a remote VSCode session against WSL`, item);
@@ -67,17 +67,14 @@ export async function activate(context: ExtensionContext) {
   if (context.extensionMode === ExtensionMode.Test || context.extensionMode === undefined) {
     (global as any).testExtensionContext = context;
   } else {
-    console.log('Checking ImandraX binary version');
-    const versionOutdated = await installer.checkVersion();
-    const installedByVscode = await installer.checkForMarker();
-
-    if (versionOutdated && installedByVscode) {
-      console.log('ImandraX binary is outdated, updating...');
-      const args = { revealSetting: { key: "imandrax.lsp.binary", edit: true } };
-      const openUri = Uri.parse(
-        `command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
-      );
-      await installer.promptToInstall(openUri, true);
+    if (await installer.installedByUs()) {
+      if (await installer.updateAvailable()) {
+        const args = { revealSetting: { key: "imandrax.lsp.binary", edit: true } };
+        const openUri = Uri.parse(
+          `command:workbench.action.openWorkspaceSettingsFile?${encodeURIComponent(JSON.stringify(args))}`
+        );
+        await installer.promptToInstall(openUri, true);
+      }
     }
   }
 }

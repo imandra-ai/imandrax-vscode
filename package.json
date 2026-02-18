@@ -10,7 +10,7 @@
     "theme": "dark"
   },
   "license": "MIT",
-  "version": "0.0.50",
+  "version": "0.0.51",
   "repository": {
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
@@ -231,6 +231,7 @@
     "@vscode/vsce": "^3.7.1",
     "async-mutex": "^0.5.0",
     "jest": "^30.2.0",
+    "node-fetch": "^3.3.2",
     "ovsx": "^0.10.8",
     "prettier": "^3.7.4",
     "vscode-languageclient": "^8.1.0"
