@@ -2,6 +2,7 @@ import * as commands from '../commands/commands';
 import * as decorations from '../decorations';
 import * as vfsProvider from '../vfs_provider';
 import * as configuration from './configuration';
+import * as test_output_channel from './test_output_channel';
 
 import { ConfigurationChangeEvent, ExtensionContext, ExtensionMode, Uri, window, workspace, WorkspaceConfiguration } from 'vscode';
 import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-languageclient/node';
@@ -35,7 +36,7 @@ export class ImandraXLanguageClient {
     return this.vfsProvider_;
   }
 
-  constructor(getConfig:()=>configuration.ImandraXLanguageClientConfiguration) {
+  constructor(getConfig: () => configuration.ImandraXLanguageClientConfiguration) {
     this.getConfig = getConfig;
     this.vfsProvider_ = new vfsProvider.VFSContentProvider(() => { return this.getClient(); });
   }
@@ -72,6 +73,10 @@ export class ImandraXLanguageClient {
         fileEvents: workspace.createFileSystemWatcher("**/*.iml")
       }
     };
+
+    if (config.outputToConsole) {
+      clientOptions.outputChannel = new test_output_channel.TestOutputChannel();
+    }
 
     // Create the language client and start the client.
     this.client = new LanguageClient(

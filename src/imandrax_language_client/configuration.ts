@@ -1,5 +1,10 @@
 import * as Which from "which";
 import {
+  ExtensionContext,
+  ExtensionMode,
+} from "vscode";
+
+import {
   env,
   workspace
 } from "vscode";
@@ -27,6 +32,7 @@ export interface ImandraXLanguageClientConfiguration {
   serverArgs: string[],
   mergedEnv: object,
   binPathAvailability: BinPathAvailability,
+  outputToConsole: boolean
 }
 
 export interface FoundPathConfig extends ImandraXLanguageClientConfiguration {
@@ -61,7 +67,7 @@ function getPlatformConfiguration(): PlatformConfiguration {
   return { onWindows, inRemoteWsl };
 }
 
-export function get(): ImandraXLanguageClientConfiguration | FoundPathConfig {
+export function get(context : ExtensionContext): ImandraXLanguageClientConfiguration | FoundPathConfig {
   const config = workspace.getConfiguration("imandrax");
   const binary = config.lsp.binary;
   const serverArgs = config.lsp.arguments;
@@ -74,5 +80,11 @@ export function get(): ImandraXLanguageClientConfiguration | FoundPathConfig {
 
   const binPathAvailability = getBinPathAvailability(platformConfiguration, binary);
 
-  return binPathAvailability.status === 'foundPath' ? { serverArgs, mergedEnv, binPathAvailability: binPathAvailability } as FoundPathConfig : { serverArgs, mergedEnv, binPathAvailability: binPathAvailability };
+  // const outputToConsole = (context.extensionMode === ExtensionMode.Test);
+  const outputToConsole = false;
+
+  if (binPathAvailability.status === 'foundPath')
+    return { serverArgs, mergedEnv, binPathAvailability: binPathAvailability, outputToConsole } as FoundPathConfig
+  else
+    return { serverArgs, mergedEnv, binPathAvailability: binPathAvailability, outputToConsole };
 }

@@ -14,6 +14,44 @@ import * as vscode from 'vscode';
 import { ImandraXLanguageClient } from '../imandrax_language_client/imandrax_language_client';
 
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function _set_workspace_config(workspaceDir: string) {
+  // Call this function in a test if you want to manipulate the LSP config during development of that test
+
+  console.log("Opening workspace");
+
+  // The docs say we have to wait for onDidChangeWorkspaceFolders after updateWorkspaceFolders.
+  let resolveWorkspaceFolderChanges: (value: vscode.WorkspaceFoldersChangeEvent | PromiseLike<vscode.WorkspaceFoldersChangeEvent>) => void;
+  const workspaceFolderChangesPromise = new Promise<vscode.WorkspaceFoldersChangeEvent>((resolve) => resolveWorkspaceFolderChanges = resolve);
+  vscode.workspace.onDidChangeWorkspaceFolders((x) => resolveWorkspaceFolderChanges(x));
+
+  const num_wsfolders = vscode.workspace.workspaceFolders?.length ?? 0;
+  vscode.workspace.updateWorkspaceFolders(0, num_wsfolders, { uri: vscode.Uri.file(workspaceDir) });
+
+  // If the first/root workspace folder is changed, the entire extension host is
+  // restarted and onDidChangeWorkspaceFolders won't fire. So, this may
+  // invalidate any event listeners that registered at this time because they
+  // won't be registered at the new extension host.
+  await workspaceFolderChangesPromise
+    .then((x) => { console.log(`Added ${x.added.length} and removed ${x.removed.length} workspace folders`) })
+    .catch(err => console.log(`Error opening workspace: ${err}`));
+
+  console.log("Updating workspace config");
+  const wscfg = vscode.workspace.getConfiguration("imandrax");
+  // await wscfg.update("lsp.binary", ".../imandrax-cli");
+  await wscfg.update("lsp.arguments", [
+    "lsp",
+    "--check-on-save=false",
+    "--unicode=true",
+    "--log-level=info",
+    "--log-file=test-lsp.log",
+    "--log-jsonrpc=test-lsp.jrpc",
+    "--deployment=prod",
+  ]).then(
+    () => { console.log("changing workspace config was successful"); },
+    (e) => { console.log(`changing workspace config failed: ${e}`); });
+}
+
 suite('Commands Test Suite', () => {
   suiteTeardown(() => {
     vscode.window.showInformationMessage('All tests done!');
@@ -34,7 +72,13 @@ suite('Commands Test Suite', () => {
     console.log("get globals");
     extensionContext = (global as any).testExtensionContext;
     imandraxLanguageClient_ = (global as any).testLanguageClientWrapper;
-    console.log("done with setup");
+
+    vscode.workspace.workspaceFolders?.forEach(x => console.log(`Workspace folder: ${x.uri.toString()}`));
+
+    const wscfg = vscode.workspace.getConfiguration("imandrax");
+    console.log(`Workspace config: ${JSON.stringify(wscfg)}`);
+
+    console.log("Done with setup");
   });
 
   test([
@@ -57,41 +101,12 @@ suite('Commands Test Suite', () => {
   });
 
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async function set_workspace_config(workspaceDir: string) {
-    // For manual testing purposes we may want to change the LSP configuration.
-
-    console.log("opening workspace");
-    const num_wsfolders = vscode.workspace.workspaceFolders?.length;
-    vscode.workspace.updateWorkspaceFolders(0, num_wsfolders, { uri: vscode.Uri.file(workspaceDir) });
-
-    console.log("changing workspace config");
-    let wscfg = vscode.workspace.getConfiguration("imandrax");
-    await wscfg.update("lsp.arguments", [
-      "lsp",
-      "--check-on-save=false",
-      "--unicode=true",
-      "--log-level=info",
-      // "--log-file=test-lsp.log",
-      // "--log-jsonrpc=test-lsp.jrpc",
-      // "--deployment=prod"
-    ]).then(
-      () => { console.log("changing workspace config was successful"); },
-      (e) => { console.log(`changing workspace config failed: ${e}`); });
-
-    wscfg = vscode.workspace.getConfiguration("imandrax");
-    console.log(`workspace config: ${JSON.stringify(wscfg)}`);
-  }
-
   test('given one lemma, check all should report one task completed', async () => {
-    // arrange
-    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), 'imandrax-tests-'));
-
-    // await set_workspace_config(workspaceDir);
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'imandrax-tests-'));
 
     const client = imandraxLanguageClient_?.getClient();
     const filename = "demo.iml";
-    const imlUri = vscode.Uri.file(path.join(workspaceDir, filename));
+    const imlUri = vscode.Uri.file(path.join(tmpDir, filename));
 
     assert(client, "client unexpectedly failed to materialize");
 
@@ -102,7 +117,7 @@ suite('Commands Test Suite', () => {
 
     client.middleware.handleDiagnostics = (uri, ds: vscode.Diagnostic[]) => {
       if (ds.length > 0) {
-        // console.log(`Diagnostics for ${JSON.stringify(uri)}: ${JSON.stringify(ds)}`);
+        console.log(`Diagnostics for ${JSON.stringify(uri)}: ${JSON.stringify(ds)}`);
         if (uri.path.endsWith(filename)) {
           ds.forEach((d) => {
             if (d.severity == vscode.DiagnosticSeverity.Hint &&
@@ -111,7 +126,8 @@ suite('Commands Test Suite', () => {
           });
         }
         // We received some diagnostics, but they were not for us
-        resolveSawDiagnostic(false);
+        else
+          resolveSawDiagnostic(false);
       }
     }
 
