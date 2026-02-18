@@ -28,9 +28,10 @@ async function set_workspace_config(workspaceDir: string) {
   const num_wsfolders = vscode.workspace.workspaceFolders?.length ?? 0;
   vscode.workspace.updateWorkspaceFolders(0, num_wsfolders, { uri: vscode.Uri.file(workspaceDir) });
 
-  // If the first/root workspace folder is changed, the entire extension host
-  // is restarted and onDidChangeWorkspaceFolders won't fire. So we can't
-  // wait, but we also can't not wait...
+  // If the first/root workspace folder is changed, the entire extension host is
+  // restarted and onDidChangeWorkspaceFolders won't fire. So, this may
+  // invalidate any event listeners that registered at this time because they
+  // won't be registered at the new extension host.
   await workspaceFolderChangesPromise
     .then((x) => { console.log(`Added ${x.added.length} and removed ${x.removed.length} workspace folders`) })
     .catch(err => console.log(`Error opening workspace: ${err}`));
