@@ -80,7 +80,8 @@ export function get(context : ExtensionContext): ImandraXLanguageClientConfigura
 
   const binPathAvailability = getBinPathAvailability(platformConfiguration, binary);
 
-  const outputToConsole = (context.extensionMode === ExtensionMode.Test);
+  // const outputToConsole = (context.extensionMode === ExtensionMode.Test);
+  const outputToConsole = false;
 
   if (binPathAvailability.status === 'foundPath')
     return { serverArgs, mergedEnv, binPathAvailability: binPathAvailability, outputToConsole } as FoundPathConfig
