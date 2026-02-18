@@ -103,7 +103,7 @@ export class Listeners {
       const editor = window.visibleTextEditors.find(e => e.document.uri.path == uri.path)
       if (editor) {
         const doc = editor.document;
-        if (doc && doc.languageId === "imandrax") {
+        if (doc?.languageId === "imandrax") {
           this.diagnostics_for_editor(editor);
           if (doc.uri.scheme === "file") {
             await this.req_file_progress(doc.uri);
@@ -119,7 +119,7 @@ export class Listeners {
   async active_editor_listener(editor: TextEditor | undefined) {
     if (editor) {
       const doc = editor.document;
-      if (doc && doc.languageId === "imandrax") {
+      if (doc?.languageId === "imandrax") {
         this.diagnostics_for_editor(editor);
         if (doc.uri.scheme === "file") {
           if (this.getClient()?.isRunning()) {

@@ -12,7 +12,6 @@ import * as path from 'path';
 import * as util from './util';
 import * as vscode from 'vscode';
 import { ImandraXLanguageClient } from '../imandrax_language_client/imandrax_language_client';
-// import { Trace } from 'vscode-languageclient';
 
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -33,20 +32,19 @@ async function set_workspace_config(workspaceDir: string) {
   // is restarted and onDidChangeWorkspaceFolders won't fire. So we can't
   // wait, but we also can't not wait...
   await workspaceFolderChangesPromise
-    .then((x) => { console.log(`ADDED: ${x.added.length} REMOVED: ${x.removed.length}`) })
+    .then((x) => { console.log(`Added ${x.added.length} and removed ${x.removed.length} workspace folders`) })
     .catch(err => console.log(`Error opening workspace: ${err}`));
 
   console.log("Updating workspace config");
   const wscfg = vscode.workspace.getConfiguration("imandrax");
-  // await wscfg.update("lsp.binary", "/home/cwinter/work/imandrax/_build/default/src/cli/imandrax_cli.exe");
-  await wscfg.update("lsp.binary", "/home/cwinter/.local/bin/imandrax-cli");
+  // await wscfg.update("lsp.binary", ".../imandrax-cli");
   await wscfg.update("lsp.arguments", [
     "lsp",
     "--check-on-save=false",
     "--unicode=true",
     "--log-level=info",
-    "--log-file=/home/cwinter/work/imandrax-vscode/test-lsp.log",
-    "--log-jsonrpc=/home/cwinter/work/imandrax-vscode/test-lsp.jrpc",
+    "--log-file=test-lsp.log",
+    "--log-jsonrpc=test-lsp.jrpc",
     "--deployment=prod",
   ]).then(
     () => { console.log("changing workspace config was successful"); },
@@ -73,9 +71,6 @@ suite('Commands Test Suite', () => {
     console.log("get globals");
     extensionContext = (global as any).testExtensionContext;
     imandraxLanguageClient_ = (global as any).testLanguageClientWrapper;
-
-    // const client = imandraxLanguageClient_?.getClient();
-    // await client?.setTrace(Trace.Verbose);
 
     vscode.workspace.workspaceFolders?.forEach(x => console.log(`Workspace folder: ${x.uri.toString()}`));
 
