@@ -116,8 +116,6 @@ suite('Commands Test Suite', () => {
     });
 
     client.middleware.handleDiagnostics = (uri, ds: vscode.Diagnostic[]) => {
-      console.log(`Received ${ds.length} diagnostics for ${uri.path}`);
-      ds.forEach(d => console.log(`  - ${d.severity}: ${d.message}`));
       if (ds.length > 0) {
         console.log(`Diagnostics for ${JSON.stringify(uri)}: ${JSON.stringify(ds)}`);
         if (uri.path.endsWith(filename)) {
@@ -127,8 +125,8 @@ suite('Commands Test Suite', () => {
               resolveSawDiagnostic(true);
           });
         }
-        // We received some diagnostics, but they were not for us
         else
+          // We received some diagnostics, but they were not for us
           resolveSawDiagnostic(false);
       }
     }
@@ -170,7 +168,7 @@ suite('Commands Test Suite', () => {
     console.log("Checking all");
     await vscode.commands.executeCommand('imandrax.check_all');
 
-    await util.withTimeout(sawProvedDiagnostic, 15000).then((q) => {
+    await util.withTimeout(sawProvedDiagnostic, 5000).then((q) => {
       assert(q, "expected a diagnostic to confirm success, but did not receive one")
     }).catch((err) => {
       assert(false, `sawProvedDiagnostic rejected: ${err}`)

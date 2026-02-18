@@ -26,7 +26,6 @@ export async function activate(context: ExtensionContext) {
   const languageClientConfig = getConfig();
 
   if (imandraxLanguageClient.configuration.isFoundPath(languageClientConfig)) {
-
     const languageClientWrapper_ = new imandraxLanguageClient.ImandraXLanguageClient(getConfig);
     const getClient: () => LanguageClient = () => { return languageClientWrapper_.getClient(); };
 
@@ -65,7 +64,6 @@ export async function activate(context: ExtensionContext) {
       await env.openExternal(await env.asExternalUri(Uri.parse("https://code.visualstudio.com/docs/remote/wsl-tutorial")));
     }
   }
-  console.log(`extensionMode: ${context.extensionMode}, Test: ${ExtensionMode.Test}`);
   if (context.extensionMode === ExtensionMode.Test || context.extensionMode === undefined) {
     (global as any).testExtensionContext = context;
   } else {
