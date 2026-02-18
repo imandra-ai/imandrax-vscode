@@ -21,10 +21,7 @@ import {
 
 export async function activate(context: ExtensionContext) {
   const getConfig = () => {
-    const r = imandraxLanguageClient.configuration.get();
-    if (context.extensionMode === ExtensionMode.Test)
-      r.outputToConsole = true;
-    return r;
+    return imandraxLanguageClient.configuration.get(context);
   };
   const languageClientConfig = getConfig();
 
