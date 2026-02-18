@@ -73,10 +73,10 @@ suite('Commands Test Suite', () => {
     extensionContext = (global as any).testExtensionContext;
     imandraxLanguageClient_ = (global as any).testLanguageClientWrapper;
 
-    // vscode.workspace.workspaceFolders?.forEach(x => console.log(`Workspace folder: ${x.uri.toString()}`));
+    vscode.workspace.workspaceFolders?.forEach(x => console.log(`Workspace folder: ${x.uri.toString()}`));
 
-    // const wscfg = vscode.workspace.getConfiguration("imandrax");
-    // console.log(`Workspace config: ${JSON.stringify(wscfg)}`);
+    const wscfg = vscode.workspace.getConfiguration("imandrax");
+    console.log(`Workspace config: ${JSON.stringify(wscfg)}`);
 
     console.log("Done with setup");
   });
@@ -117,7 +117,7 @@ suite('Commands Test Suite', () => {
 
     client.middleware.handleDiagnostics = (uri, ds: vscode.Diagnostic[]) => {
       if (ds.length > 0) {
-        // console.log(`Diagnostics for ${JSON.stringify(uri)}: ${JSON.stringify(ds)}`);
+        console.log(`Diagnostics for ${JSON.stringify(uri)}: ${JSON.stringify(ds)}`);
         if (uri.path.endsWith(filename)) {
           ds.forEach((d) => {
             if (d.severity == vscode.DiagnosticSeverity.Hint &&
@@ -126,8 +126,8 @@ suite('Commands Test Suite', () => {
           });
         }
         // We received some diagnostics, but they were not for us
-        // else
-        resolveSawDiagnostic(false);
+        else
+          resolveSawDiagnostic(false);
       }
     }
 
