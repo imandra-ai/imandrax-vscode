@@ -211,7 +211,7 @@ export async function updateAvailable() {
     else if (process.platform == "darwin" && process.arch == "x64")
       pkg_name = "imandrax-macos-x64-latest.pkg";
     else {
-      throw new Error(`Update check failed: unsupported platform/architecture ${process.platform}-${process.arch}`);
+      throw new Error(`Unsupported platform/architecture ${process.platform}-${process.arch}`);
     }
 
     const data: ReleaseObject = await getData(pkg_name);
