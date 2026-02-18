@@ -2,7 +2,7 @@ import * as commands from '../commands/commands';
 import * as decorations from '../decorations';
 import * as vfsProvider from '../vfs_provider';
 import * as configuration from './configuration';
-import * as test_output_channel from './test_output_channel.ts';
+import * as test_output_channel from './test_output_channel';
 
 import { ConfigurationChangeEvent, ExtensionContext, ExtensionMode, Uri, window, workspace, WorkspaceConfiguration } from 'vscode';
 import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-languageclient/node';
