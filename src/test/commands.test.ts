@@ -104,8 +104,6 @@ suite('Commands Test Suite', () => {
   test('given one lemma, check all should report one task completed', async () => {
     const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'imandrax-tests-'));
 
-    // await set_workspace_config(tmpDir);
-
     const client = imandraxLanguageClient_?.getClient();
     const filename = "demo.iml";
     const imlUri = vscode.Uri.file(path.join(tmpDir, filename));
