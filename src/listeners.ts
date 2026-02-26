@@ -45,7 +45,7 @@ export class Listeners {
       const all_bad: DecorationOptions[] = [];
       const diags = languages.getDiagnostics(uri);
       diags.forEach(d => {
-        if (d.source === "lsp") {
+        if (d.source == "lsp" || d.source === "ImandraX") {
           const good = d.severity === DiagnosticSeverity.Information || d.severity === DiagnosticSeverity.Hint;
           const range = d.range.with(d.range.start, d.range.start);
           const decoration_options: DecorationOptions = { range: range };

@@ -6,6 +6,11 @@ import * as Which from "which";
 import { commands, ConfigurationTarget, env, MessageItem, ProgressLocation, QuickPickItem, QuickPickOptions, Uri, window, workspace } from "vscode";
 import { exec } from 'child_process';
 
+import { stat, writeFile, utimes } from 'fs/promises';
+
+import fetch, { Response } from 'node-fetch';
+
+
 async function getApiKeyInput() {
   const result = await window.showInputBox({
     placeHolder: 'Paste your API key here',
@@ -82,10 +87,33 @@ async function setBinaryPaths(openUri: Uri) {
   await config.update('terminal.binary', binaryPath, ConfigurationTarget.Global);
 }
 
+async function markerFilename(): Promise<string> {
+  const config = workspace.getConfiguration('imandrax');
+  const binaryPath = await config.get('lsp.binary');
+  const binaryDir = Path.dirname(binaryPath as string);
+  return Path.join(binaryDir, 'imandrax-cli.installed_by_vscode');
+}
+
+async function markInstalled(): Promise<void> {
+  const markerFile = await markerFilename();
+  await writeFile(markerFile, '');
+  await utimes(markerFile, Date.now(), Date.now());
+}
+
+export async function installedByUs(): Promise<boolean> {
+  try {
+    await stat(await markerFilename());
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function handleSuccess(openUri: Uri) {
   await setBinaryPaths(openUri);
   await promptForApiKey();
   await promptToReloadWindow();
+  await markInstalled();
 }
 
 async function runInstallerForUnix(itemT: MessageItem, title: string): Promise<void> {
@@ -127,12 +155,15 @@ async function runInstallerForUnix(itemT: MessageItem, title: string): Promise<v
   }
 }
 
-export async function promptToInstall(openUri: Uri) {
+export async function promptToInstall(openUri: Uri, update?: boolean) {
   const launchInstallerItem = { title: "Launch installer" } as const;
   const items: readonly MessageItem[] = [launchInstallerItem];
-
-  const itemT: MessageItem | undefined = await window.showErrorMessage(`Could not find ImandraX. Please install it or ensure the imandrax-cli binary is in your PATH or its location is set in [Workspace Settings](${openUri.toString()}).`, ...items);
-
+  let itemT: MessageItem | undefined;
+  if (update) {
+    itemT = await window.showInformationMessage(`An updated imandrax-cli binary is available.`, ...items);
+  } else {
+    itemT = await window.showErrorMessage(`Could not find ImandraX. Please install it or ensure the imandrax-cli binary is in your PATH or its location is set in [Workspace Settings](${openUri.toString()}).`, ...items);
+  }
   if (itemT) {
     await window.withProgress(
       {
@@ -141,7 +172,56 @@ export async function promptToInstall(openUri: Uri) {
       },
       () => runInstallerForUnix(itemT, launchInstallerItem.title)).then(
         () => handleSuccess(openUri),
-        async (reason) => { await window.showErrorMessage(`ImandraX install failed\n ${reason}`); }
+        async (reason) => { await window.showErrorMessage(`ImandraX installation failed\n ${reason}`); }
       );
+  }
+}
+
+interface ReleaseObject {
+  name: string;
+  generation: string; // not guaranteed to increase
+  meta_generation: string; // guaranteed to increase, but not a time
+  timeCreated: string;
+  timeFinalized: string;
+  timeStorageClassUpdated: string;
+  updated: string
+}
+
+export async function updateAvailable() {
+  try {
+    async function getFileModificationDate(filePath: string): Promise<Date> {
+      const stats = await stat(filePath);
+      return stats.mtime;
+    }
+
+    async function getData(pkg_name: string): Promise<ReleaseObject> {
+      const url = `https://storage.googleapis.com/storage/v1/b/imandra-prod-imandrax-releases/o/${pkg_name}`;
+      const response: Response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Response status: ${response.status}`);
+      }
+      return await response.json() as ReleaseObject;
+    }
+
+    let pkg_name = "";
+    if (process.platform == "linux" && process.arch == "x64")
+      pkg_name = "imandrax-linux-x86_64-latest.tar.gz";
+    else if (process.platform == "darwin" && process.arch == "arm64")
+      pkg_name = "imandrax-macos-aarch64-latest.pkg";
+    else if (process.platform == "darwin" && process.arch == "x64")
+      pkg_name = "imandrax-macos-x64-latest.pkg";
+    else {
+      throw new Error(`Unsupported platform/architecture ${process.platform}-${process.arch}`);
+    }
+
+    const data: ReleaseObject = await getData(pkg_name);
+    const marker: string = await markerFilename();
+    const remoteTime: number = Date.parse(data.updated)
+    const markerTime: number | undefined = (await getFileModificationDate(marker))?.getTime();
+
+    return markerTime && remoteTime > markerTime;
+  } catch (e) {
+    // Don't annoy the user with a showErrorMessage about our bugs or network outages, just log them.
+    console.log(`Update check failed: ${(e as Error).message}.`);
   }
 }
