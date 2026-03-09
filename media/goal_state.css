@@ -1,0 +1,121 @@
+html,
+body {
+  justify-content: left;
+  font-family: var(--vscode-font-family);
+  font-weight: var(--vscode-font-weight);
+  font-size: var(--vscode-font-size);
+}
+
+body {
+  padding-bottom: 100%;
+}
+
+li>span {
+  display: inline-block;
+  vertical-align: top;
+}
+
+.logo {
+  position: absolute;
+  top: 1px;
+  right: 25px;
+  width: 10%;
+}
+
+.goal-state-content {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  display: flex;
+  justify-content: left;
+  align-items: left;
+  background-repeat: repeat;
+  flex-direction: column;
+}
+
+.code-like {
+  font-family: var(--vscode-editor-font-family);
+  font-weight: var(--vscode-editor-font-weight);
+  font-size: var(--vscode-editor-font-size);
+  color: var(--vscode-editor-foreground);
+}
+
+.code-like-title {
+  font-family: var(--vscode-editor-font-family);
+  font-weight: var(--vscode-editor-font-weight);
+  font-size: calc(var(--vscode-editor-font-size) * 1.25);
+  color: var(--vscode-editor-foreground);
+}
+
+.hoverable {
+  cursor: pointer;
+  /* border-bottom: 1px dotted var(--vscode-editor-foreground); */
+}
+
+.goal-state-hover-box {
+  position: fixed;
+  background: var(--vscode-editorHoverWidget-background);
+  color: var(--vscode-editorHoverWidget-foreground);
+  border: 1px solid var(--vscode-editorHoverWidget-border, #555);
+  border-radius: 4px;
+  padding-left: 1ch;
+  padding-right: 1ch;
+  padding-top: 0.25em;
+  padding-bottom: 0.25em;
+  font-family: var(--vscode-editor-font-family);
+  font-weight: var(--vscode-editor-font-weight);
+  font-size: var(--vscode-editor-font-size);
+  max-width: 95%;
+  z-index: 10000;
+  word-wrap: break-word;
+  pointer-events: auto;
+  user-select: text;
+}
+
+.keyword {
+  color: #859900;
+}
+
+.type {
+  color: #859900;
+}
+
+.constant {
+  color: #d33682;
+}
+
+.string-constant {
+  color: #2aa198;
+}
+
+.bool-constant {
+  color: #b58900;
+}
+
+.value-definition {
+  color: #268bd2;
+}
+
+.subterm {
+  display: inline-block;
+  text-indent: -1em;
+  padding-left: 1em;
+}
+
+/* .subterm {
+  display: flex;
+  flex-wrap: wrap;
+  padding-left: 1em;
+} */
+
+.expandable {
+  user-select: none;
+}
+
+.focus-lock-icon {
+  float: right;
+}
+
+.focus-lock-icon i {
+  opacity: 0.25;
+}

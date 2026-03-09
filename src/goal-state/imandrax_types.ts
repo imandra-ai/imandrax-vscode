@@ -1,0 +1,209 @@
+export interface AppliedSymbol {
+  id: string;
+}
+
+export interface ConstFloatView {
+  constructor: "Const_float";
+  v: number;
+}
+
+export interface ConstStringView {
+  constructor: "Const_string";
+  v: string;
+}
+
+export interface ConstZView {
+  constructor: "Const_z";
+  v: bigint;
+}
+
+export interface ConstQView {
+  constructor: "Const_q";
+  num: string;
+  den: string;
+}
+
+export interface ConstRealApprox {
+  constructor: "Const_real_approx";
+  v: string;
+}
+
+export interface ConstUid {
+  constructor: "Const_uid";
+  v: string;
+}
+
+export interface ConstBool {
+  constructor: "Const_bool";
+  v: boolean;
+}
+
+export type ConstantView = ConstFloatView | ConstStringView | ConstZView | ConstQView | ConstRealApprox | ConstUid | ConstBool
+
+export interface Constant {
+  view: ConstantView;
+}
+
+export interface ConstView {
+  constructor: "Const";
+  c: Constant;
+}
+
+export interface IfView {
+  constructor: "If";
+  c: Term;
+  t: Term;
+  f: Term;
+}
+
+export interface ApplyView {
+  constructor: "Apply";
+  f: Term;
+  l: Term[];
+}
+
+export interface VarView {
+  constructor: "Var";
+  id: string;
+}
+
+export interface SymView {
+  constructor: "Sym";
+  sym: AppliedSymbol;
+}
+
+export interface ConstructView {
+  constructor: "Construct";
+  c: AppliedSymbol;
+  args: Term[];
+  labels: string[] | undefined;
+}
+
+export interface DestructView {
+  constructor: "Destruct";
+  c: AppliedSymbol;
+  i: bigint;
+  t: Term;
+}
+
+export interface Is_aView {
+  constructor: "Is_a";
+  c: AppliedSymbol;
+  t: Term;
+}
+
+export interface TupleView {
+  constructor: "Tuple";
+  l: Term[];
+}
+
+export interface FieldView {
+  constructor: "Field";
+  f: AppliedSymbol;
+  t: Term;
+}
+
+export interface TupleFieldView {
+  constructor: "Tuple_field";
+  i: bigint;
+  t: Term;
+}
+
+export interface RecordView {
+  constructor: "Record";
+  rows: [AppliedSymbol, Term][];
+  rest: Term | undefined;
+}
+
+export interface CaseView {
+  constructor: "Case";
+  u: Term;
+  cases: [AppliedSymbol, Term][];
+  default: Term | undefined;
+}
+
+export interface SequenceView {
+  constructor: "Sequence";
+  s: [Term[], Term];
+}
+
+type TermView =
+  | ConstView
+  | IfView
+  | ApplyView
+  | VarView
+  | SymView
+  | ConstructView
+  | DestructView
+  | Is_aView
+  | TupleView
+  | FieldView
+  | TupleFieldView
+  | RecordView
+  | CaseView
+  | SequenceView
+
+export interface Term {
+  view: TermView;
+  type: string;
+}
+
+export interface NamedTerm {
+  name: string | undefined;
+  term: Term;
+}
+
+export interface Sequent {
+  hypotheses: NamedTerm[];
+  conclusions: NamedTerm[];
+}
+
+export interface Subresult {
+  subanchor: { name: string, anchor: number };
+  goal: Sequent | undefined;
+  subgoals: Sequent[];
+  res: string;
+}
+
+export interface ReportEvent {
+  description: string;
+  sub_report: Report | undefined;
+}
+
+export interface Report {
+  events: ReportEvent[];
+}
+
+export interface Definition {
+  name: string;
+  vars: string[];
+  body: Term;
+}
+
+export interface SourceLocation {
+  uri: string;
+  from: {
+    line: bigint;
+    column: bigint;
+  };
+  to: {
+    line: bigint;
+    column: bigint;
+  }
+}
+
+export interface ProofObligation {
+  name: string;
+  anchor: string;
+  subgoals: (Sequent | string)[];
+  subresults: Subresult[][];
+  errors: string[];
+  report: Report | undefined;
+  definitions: Definition[];
+  location: SourceLocation | undefined;
+  byLocation: SourceLocation | undefined;
+}
+
+export interface GoalState {
+  proof_obligations: ProofObligation[];
+}

@@ -121,11 +121,17 @@
             "experimental"
           ]
         },
-        "imandrax.lsp.showProvenGoals": {
+        "imandrax.showProvenGoals": {
           "scope": "window",
           "type": "boolean",
           "default": false,
           "description": "Show proven goals in goal state."
+        },
+        "imandrax.showUnattemptedGoals": {
+          "scope": "window",
+          "type": "boolean",
+          "default": false,
+          "description": "Show goals in goal state even if they have never been attempted to be checked."
         },
         "imandrax.largeDecompConfirmation": {
           "scope": "window",
@@ -204,19 +210,25 @@
         "title": "Imandrax: Reset goal state"
       },
       {
-        "command": "imandrax.show-subgoal",
-        "title": "Imandrax: Show Subgoal"
-      },
-      {
-        "command": "imandrax.show-goal",
-        "title": "Imandrax: Show Goal"
-      },
-      {
         "command": "imandrax.open-prelude",
         "title": "Imandrax: Open Prelude"
       }
+    ],
+    "customEditors": [
+      {
+        "viewType": "imandrax.GoalState",
+        "displayName": "ImandraX Goal State",
+        "selector": [
+          {
+            "filenamePattern": "*.ixgs"
+          }
+        ]
+      }
     ]
   },
+  "activationEvents": [
+    "onFileSystem:imandrax-vfs"
+  ],
   "scripts": {
     "check-types": "npx tsc --noEmit",
     "compile": "npm run check-types && npm run lint && esbuild",
@@ -234,12 +246,14 @@
     "test-clean": "npm run clean && npm run build && npm run esbuild && vscode-test"
   },
   "dependencies": {
+    "@vscode/codicons": "^0.0.44",
     "@vscode/vsce": "^3.7.1",
     "async-mutex": "^0.5.0",
     "jest": "^30.2.0",
     "node-fetch": "^3.3.2",
     "ovsx": "^0.10.8",
     "prettier": "^3.7.4",
+    "renderjson": "^1.4.0",
     "vscode-languageclient": "^8.1.0"
   },
   "devDependencies": {

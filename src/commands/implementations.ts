@@ -154,7 +154,7 @@ export async function visualize_decomp(extensionUri: Uri, params: { decomps: Dec
     enableScripts: true, localResourceRoots: [
       Uri.joinPath(extensionUri, "assets")
     ],
-    enableCommandUris: true,
+    enableCommandUris: true
   });
 
   const pwv = panel.webview;

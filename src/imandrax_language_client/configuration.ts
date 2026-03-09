@@ -56,7 +56,11 @@ function getBinPathAvailability(platform_configuration: PlatformConfiguration, b
       return { status: "missingPath" };
     }
   } else {
-    return { status: "onWindows" };
+    const path = Which.sync(binary, { nothrow: true });
+    if (path !== "" && path !== null)
+      return { status: "foundPath", path: binary };
+    else
+      return { status: "onWindows" };
   }
 }
 

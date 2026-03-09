@@ -1,0 +1,247 @@
+// @ts-check
+
+// This script is run within the webview itself
+(function () {
+  // @ts-ignore
+  const vscode = acquireVsCodeApi();
+
+  class GoalStateEditor {
+    constructor( /** @type {HTMLElement} */ parent) {
+      this.ready = false;
+      this.focusLockAnchor = undefined;
+      this._initElements(parent);
+      this.hover_timeout = undefined;
+    }
+
+    _initElements(/** @type {HTMLElement} */ parent) {
+      if (!parent)
+        return;
+
+      this.wrapper = document.createElement('div');
+      this.wrapper.style.position = 'relative';
+      parent.append(this.wrapper);
+
+      this.pos = document.createElement('div');
+      this.wrapper.append(this.pos)
+
+      // Create hover box element
+      this.hoverBox = document.createElement('div');
+      this.hoverBox.className = 'goal-state-hover-box';
+      this.hoverBox.style.display = 'none';
+      document.body.appendChild(this.hoverBox);
+
+      parent.addEventListener('mousedown', () => {
+        if (!this.ready) {
+          return;
+        }
+      });
+
+      document.body.addEventListener('mouseup', async () => {
+        if (!this.ready) {
+          return;
+        }
+      });
+
+      parent.addEventListener('mousemove', e => {
+        if (!this.ready) {
+          return;
+        }
+      });
+    }
+
+    _setupHoverHandlers() {
+      const hoverable = this.pos?.querySelectorAll('[data-hover], .hoverable');
+
+      hoverable?.forEach(element => {
+        element.addEventListener('mouseenter', (e) => {
+          const hoverText = element.getAttribute('data-hover');
+          if (this.hoverBox && hoverText) {
+            this._updateHoverBox(hoverText, e);
+          }
+        });
+
+        element.addEventListener('mouseleave', () => {
+          if (this.hoverBox) {
+            clearTimeout(this.hover_timeout);
+            this.hover_timeout = setTimeout(() => {
+              if (this.hoverBox && !this.hoverBox.matches(':hover'))
+                this.hoverBox.style.display = 'none';
+            }, 100);
+          }
+        });
+      });
+
+      document.querySelectorAll('.focus-lock-icon').forEach(a => {
+        a.addEventListener('mouseenter', (e) => {
+          let img = a.childNodes[0];
+          img.style.opacity = 1.0;
+        });
+        a.addEventListener('mouseleave', (e) => {
+          if (!this.focusLockAnchor) {
+            let img = a.childNodes[0];
+            img.style.opacity = 0.25;
+          }
+          else
+            if (a.getAttribute('po_anchor') != this.focusLockAnchor) {
+              let img = a.childNodes[0];
+              img.style.opacity = 0.25;
+            }
+        });
+      });
+    }
+
+    _lockFocus(/** @type {string | undefined} */ po_anchor, /** @type {Element | undefined} */ elem) {
+      let setFocus = (/** @type {Element} */ e) => {
+        let img = e.childNodes[0];
+        img.classList.remove('codicon-unlock');
+        img.classList.add('codicon-lock');
+        img.style.opacity = 1.0;
+        window.scrollTo({ top: e.offsetTop, left: 0, behavior: "smooth" });
+      };
+      if (po_anchor) {
+        document.querySelectorAll('.focus-lock-icon').forEach((/** @type {Element} */ a) => {
+          let img = a.childNodes[0];
+          img.classList.remove('codicon-lock');
+          img.classList.add('codicon-unlock');
+          img.style.opacity = 0.25;
+        });
+        this.focusLockAnchor = po_anchor;
+        vscode.setState({ lockFocusAnchor: this.focusLockAnchor });
+        if (elem)
+          setFocus(elem);
+        else {
+          document.querySelectorAll('.focus-lock-icon').forEach((/** @type {Element} */ a) => {
+            let anchor = a.getAttribute('po_anchor');
+            if (anchor == this.focusLockAnchor)
+              setFocus(a);
+          })
+        }
+      }
+    }
+
+    _unlockFocus() {
+      if (this.focusLockAnchor) {
+        this.focusLockAnchor = undefined;
+        vscode.setState({ lockFocusAnchor: this.focusLockAnchor });
+        document.querySelectorAll('.focus-lock-icon').forEach((/** @type {Element} */ a) => {
+          let img = a.childNodes[0];
+          img.classList.remove('codicon-lock');
+          img.classList.add('codicon-unlock');
+          img.style.opacity = 0.25;
+        });
+      }
+    }
+
+    _setupClickHandlers() {
+      document.querySelectorAll('.jump-to').forEach(a => {
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          const args = a.getAttribute('arguments');
+          if (args)
+            vscode.postMessage({
+              command: 'jump-to',
+              arguments: JSON.parse(args)
+            });
+        });
+      });
+      document.querySelectorAll('.expandable').forEach(a => {
+        a.addEventListener('dblclick', (e) => {
+          e.preventDefault();
+          const args = a.getAttribute('arguments');
+          if (args)
+            vscode.postMessage({
+              command: 'expand',
+              arguments: JSON.parse(args)
+            });
+        });
+      });
+      document.querySelectorAll('.focus-lock-icon').forEach(a => {
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          let po_anchor = a.getAttribute('po_anchor')
+          if (po_anchor) {
+            if (this.focusLockAnchor == po_anchor)
+              this._unlockFocus();
+            else
+              this._lockFocus(po_anchor, a)
+            window.scrollTo({ top: a.offsetTop, left: 0, behavior: "smooth" });
+          }
+        });
+      });
+    }
+
+    _updateHoverBox(/** @type string */ hoverText, event) {
+      const event_rect = event.target.getBoundingClientRect();
+      const offset = 4;
+      let left = event_rect.left;
+      let top = event_rect.top;
+
+      clearTimeout(this.hover_timeout);
+      this.hover_timeout = setTimeout(() => {
+        if (this.hoverBox) {
+          this.hoverBox.style.display = 'none';
+          this.hoverBox.innerHTML = hoverText;
+
+          this.hoverBox.style.display = 'block'
+          const boxRect = this.hoverBox.getBoundingClientRect();
+
+          if (left + boxRect.width > window.innerWidth) {
+            left = window.innerWidth - boxRect.width - 10;
+          }
+
+          this.hoverBox.style.left = left + 'px';
+
+          top = top - boxRect.height - offset;
+
+          if (top < 0)
+            top = 0;
+
+          this.hoverBox.style.top = top + 'px';
+        }
+      },
+        250);
+    }
+
+    _redraw() {
+    }
+
+    async reset( /** @type {string} */ content) {
+      this._redraw();
+      if (this.pos && content)
+        this.pos.innerHTML = content;
+      if (this.hoverBox)
+        this.hoverBox.style.display = 'none';
+      this._setupHoverHandlers();
+      this._setupClickHandlers();
+      this.focusLockAnchor = vscode.getState().lockFocusAnchor;
+      this._lockFocus(this.focusLockAnchor, undefined);
+      this.ready = true;
+    }
+  }
+
+  const editor = new GoalStateEditor(document.querySelector('.goal-state-content'));
+
+  // Handle messages from the extension
+  window.addEventListener('message', async e => {
+    const { type, body, requestId } = e.data;
+    // console.log(`MESSAGE: type=${type} body=${JSON.stringify(body)}`);
+    switch (type) {
+      case 'init':
+        {
+          if (body.untitled || !body.value)
+            await editor.reset("<div style='code-like'>&#x25A0</div>");
+          else
+            await editor.reset(body.value);
+          return;
+        }
+      case 'update':
+        {
+          editor.reset(body.content);
+          return;
+        }
+    }
+  });
+
+  // Signal to VS Code that the webview is initialized.
+  vscode.postMessage({ command: 'ready' });
+}());

@@ -4,8 +4,8 @@ import * as vfsProvider from '../vfs_provider';
 import * as configuration from './configuration';
 import * as test_output_channel from './test_output_channel';
 
-import { ConfigurationChangeEvent, ExtensionContext, ExtensionMode, Uri, window, workspace, WorkspaceConfiguration } from 'vscode';
-import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-languageclient/node';
+import { ConfigurationChangeEvent, ExtensionContext, ExtensionMode, Uri, window, workspace, WorkspaceConfiguration, FileChangeType } from 'vscode';
+import { Executable, LanguageClient, LanguageClientOptions, TransportKind } from 'vscode-languageclient/node';
 
 export * as configuration from './configuration';
 
@@ -17,7 +17,7 @@ export interface RestartParams {
 
 export class ImandraXLanguageClient {
   private client!: LanguageClient;
-  private readonly vfsProvider_: vfsProvider.VFSContentProvider;
+  private readonly vfsProvider_: vfsProvider.VFSProvider;
   private restartCount = 0;
   private isInitial = () => { return this.client === undefined; };
   private readonly getConfig: () => configuration.ImandraXLanguageClientConfiguration;
@@ -38,7 +38,7 @@ export class ImandraXLanguageClient {
 
   constructor(getConfig: () => configuration.ImandraXLanguageClientConfiguration) {
     this.getConfig = getConfig;
-    this.vfsProvider_ = new vfsProvider.VFSContentProvider(() => { return this.getClient(); });
+    this.vfsProvider_ = new vfsProvider.VFSProvider(() => { return this.getClient(); })
   }
 
   // Start language server
@@ -59,6 +59,7 @@ export class ImandraXLanguageClient {
       command: config.binPathAvailability.path,
       args: config.serverArgs,
       options: { env: config.mergedEnv }
+      // transport: TransportKind.stdio
     };
 
     // Options to control the language client
@@ -71,7 +72,8 @@ export class ImandraXLanguageClient {
       },
       synchronize: {
         fileEvents: workspace.createFileSystemWatcher("**/*.iml")
-      }
+      },
+      traceOutputChannel: window.createOutputChannel("imandrax-trace")
     };
 
     if (config.outputToConsole) {
@@ -98,7 +100,7 @@ export class ImandraXLanguageClient {
       this.client.onNotification("$imandrax/vfs-file-changed",
         (params) => {
           const uri = Uri.parse(params.uri);
-          this.vfsProvider_.onDidChangeEmitter.fire(uri);
+          this.vfsProvider_.onDidChangeEmitter.fire([{ type: FileChangeType.Changed, uri }]);
         });
     }
 

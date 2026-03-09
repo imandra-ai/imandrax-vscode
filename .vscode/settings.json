@@ -9,4 +9,13 @@
   "editor.detectIndentation": false,
   "jest.rootPath": "imlformat",
   "jest.runMode": "on-demand",
+  "jest.virtualFolders": [
+    {
+      "name": "imlformat-tests",
+      "runMode": "on-demand",
+      "rootPath": "imlformat",
+      "jestCommandLine": "npm run test --",
+    },
+  ],
+  "imandrax_lsp.trace.server": "verbose"
 }
