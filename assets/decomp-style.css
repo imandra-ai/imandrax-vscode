@@ -10,9 +10,13 @@
   --color-code: #f4f0f0;
 }
 
-h1 {
-  /* font-family: var(--vscode-editor-font-family); */
-  color: var(--vscode-editor-foreground);
+body {
+	padding: 0 var(--container-paddding);
+	color: var(--vscode-foreground);
+	font-size: var(--vscode-font-size);
+	font-weight: var(--vscode-font-weight);
+	font-family: var(--vscode-font-family);
+	background-color: var(--vscode-editor-background);
 }
 
 /* code blocks and logic */
@@ -39,7 +43,7 @@ code {
     max-width: 100%;
     word-wrap: normal;  /* Prevents forced wrapping */
 }
-.ifun, .ifun * { color: #9e3b09; font-weight: 600 }
+.ifun, .ifun * { color: #9e3b09; font-weight: 600; }
 .ity, .ity * { color: #2f5c5c }
 .istrlit { color: darkgreen }
 .icstor, .icstor * { color: #6f6f01; font-weight: 600 }
@@ -209,8 +213,15 @@ table.record { border: 2px solid slategray; margin: 2px }
   border-collapse: collapse;
   /* background-color: #f1f1ff;   */
 }
-td.recordentry  { vertical-align: top; padding: 2px }
-td.recordentry.key { text-align: right }
+td.recordentry  {
+  vertical-align: top;
+  padding: 2px;
+  color: var(--vscode-editor-foreground);
+  background-color: var(--vscode-editor-background);
+}
+td.recordentry.key {
+  text-align: right
+}
 
 /* details { padding-left: 15px; } */
 details.apply { display: inline; }
