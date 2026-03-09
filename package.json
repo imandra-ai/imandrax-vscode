@@ -10,7 +10,7 @@
     "theme": "dark"
   },
   "license": "MIT",
-  "version": "0.0.51",
+  "version": "0.0.52",
   "repository": {
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
@@ -132,6 +132,12 @@
           "type": "integer",
           "default": 1000,
           "description": "Controls the minimum number of decomposition regions before asking for confirmation when opening a visualization."
+        },
+        "imandrax.largeDecompConfirmationBytes": {
+          "scope": "window",
+          "type": "integer",
+          "default": 1048576,
+          "description": "Controls the minimum size of a decomposition before asking for confirmation when opening a visualization."
         }
       }
     },
