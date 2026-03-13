@@ -97,7 +97,7 @@ async function markerFilename(): Promise<string> {
 async function markInstalled(): Promise<void> {
   const markerFile = await markerFilename();
   await writeFile(markerFile, '');
-  await utimes(markerFile, Date.now(), Date.now());
+  await utimes(markerFile, Date.now() / 1000, Date.now() / 1000);
 }
 
 export async function installedByUs(): Promise<boolean> {
@@ -219,7 +219,7 @@ export async function updateAvailable() {
     const remoteTime: number = Date.parse(data.updated)
     const markerTime: number | undefined = (await getFileModificationDate(marker))?.getTime();
 
-    return markerTime && remoteTime > markerTime;
+    return markerTime && remoteTime > markerTime || (markerTime - Date.now() > 365);
   } catch (e) {
     // Don't annoy the user with a showErrorMessage about our bugs or network outages, just log them.
     console.log(`Update check failed: ${(e as Error).message}.`);
