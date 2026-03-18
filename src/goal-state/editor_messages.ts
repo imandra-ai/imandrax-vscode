@@ -17,8 +17,23 @@ export interface ExpandMessage {
   command: "expand";
   arguments: {
     id: string;
-    po_anchor: string;
+    anchor: string;
   }
 }
 
-export type Message = ReadyMessage | JumpToMessage | ExpandMessage;
+export interface FocusLockOntoMessage {
+  command: "focus-lock-onto";
+  arguments: {
+    anchor: string | undefined;
+  }
+}
+
+export interface ResizeMessage {
+  command: "resize";
+  arguments: {
+    width: number;
+    font_size: number;
+  }
+}
+
+export type Message = ReadyMessage | JumpToMessage | ExpandMessage | FocusLockOntoMessage | ResizeMessage;

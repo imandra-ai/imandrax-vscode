@@ -18,7 +18,7 @@ li>span {
 .logo {
   position: absolute;
   top: 1px;
-  right: 25px;
+  right: 3%;
   width: 10%;
 }
 
@@ -49,6 +49,7 @@ li>span {
 
 .hoverable {
   cursor: pointer;
+  user-select: text;
   /* border-bottom: 1px dotted var(--vscode-editor-foreground); */
 }
 
@@ -96,20 +97,8 @@ li>span {
   color: #268bd2;
 }
 
-.subterm {
-  display: inline-block;
-  text-indent: -1em;
-  padding-left: 1em;
-}
-
-/* .subterm {
-  display: flex;
-  flex-wrap: wrap;
-  padding-left: 1em;
-} */
-
 .expandable {
-  user-select: none;
+  user-select: text;
 }
 
 .focus-lock-icon {
@@ -118,4 +107,10 @@ li>span {
 
 .focus-lock-icon i {
   opacity: 0.25;
+}
+
+.indent {
+  display: inline-block;
+  width: 2ex;
+  user-select: text;
 }

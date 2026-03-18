@@ -12,6 +12,7 @@ import {
   WebviewPanel,
   window,
   workspace,
+  DocumentSymbol,
 } from "vscode";
 
 import { GoalStateDocument } from "./document";
@@ -43,7 +44,8 @@ export class GoalStateEditorProvider implements CustomReadonlyEditorProvider<Goa
     private readonly _context: ExtensionContext
   ) { }
 
-  private _panel: WebviewPanel | undefined = undefined;
+  static activePanel: WebviewPanel | undefined = undefined;
+  static activeDocument: GoalStateDocument | undefined = undefined;
 
   async openCustomDocument(
     uri: Uri,
@@ -52,7 +54,7 @@ export class GoalStateEditorProvider implements CustomReadonlyEditorProvider<Goa
   ): Promise<GoalStateDocument> {
     const document: GoalStateDocument = await GoalStateDocument.create(uri, openContext.backupId, {
       getFileData: async () => {
-        if (this._panel) {
+        if (GoalStateEditorProvider.activePanel) {
           // Get stuff from the panel, e.g. to save it to disk.
           return new Promise(() => { new Uint8Array() });
         }
@@ -72,9 +74,9 @@ export class GoalStateEditorProvider implements CustomReadonlyEditorProvider<Goa
     }));
 
     listeners.push(document.onDidChangeDocument(e => {
-      // Update all webviews when the document changes
-      if (this._panel) {
-        this.postMessage(this._panel, "update", {
+      // Update all webviews when the document content changes
+      if (GoalStateEditorProvider.activePanel ) {
+        this.postMessage(GoalStateEditorProvider.activePanel, "update", {
           content: e.content,
         });
       }
@@ -95,10 +97,9 @@ export class GoalStateEditorProvider implements CustomReadonlyEditorProvider<Goa
       enableCommandUris: true,
     };
     webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
-
     webviewPanel.webview.onDidReceiveMessage(async (msg: EditorMessages.Message) => await this.onMessage(document, msg));
-
-    this._panel = webviewPanel;
+    GoalStateEditorProvider.activePanel = webviewPanel;
+    GoalStateEditorProvider.activeDocument = document;
   }
 
   private readonly _onDidChangeCustomDocument = new EventEmitter<CustomDocumentEditEvent<GoalStateDocument>>();
@@ -159,13 +160,11 @@ export class GoalStateEditorProvider implements CustomReadonlyEditorProvider<Goa
         <link href="${codiconsUri}" rel="stylesheet" />
 				<link href="${styleMainUri}" rel="stylesheet" />
 
-				<title>Goal State Terminal</title>
+				<title>Goal State</title>
 			</head>
 			<body>
-        <img class="logo" src="${logoUri}" alt="Logo">
-
         <h1>Goal State</h1>
-        <p>Perhaps a little subtitle.</p>
+        <img class="logo" src="${logoUri}" alt="Logo">
 
         <p>&nbsp;</p>
 
@@ -178,9 +177,6 @@ export class GoalStateEditorProvider implements CustomReadonlyEditorProvider<Goa
 			</html>`;
   }
 
-  private _requestId = 1;
-  private readonly _callbacks = new Map<number, (response: any) => void>();
-
   private postMessage(panel: WebviewPanel, type: string, body: any): void {
     panel.webview.postMessage({ type, body });
   }
@@ -190,14 +186,14 @@ export class GoalStateEditorProvider implements CustomReadonlyEditorProvider<Goa
 
     switch (msg.command) {
       case "ready":
-        if (this._panel) {
+        if (GoalStateEditorProvider.activePanel) {
           if (document.uri.scheme === "untitled") {
-            this.postMessage(this._panel, "init", {
+            this.postMessage(GoalStateEditorProvider.activePanel, "init", {
               untitled: true,
               editable: true
             });
           } else {
-            this.postMessage(this._panel, "init", {
+            this.postMessage(GoalStateEditorProvider.activePanel, "init", {
               value: document.documentData,
               editable: workspace.fs.isWritableFileSystem(document.uri.scheme)
             });
@@ -210,7 +206,15 @@ export class GoalStateEditorProvider implements CustomReadonlyEditorProvider<Goa
       }
       case "expand": {
         const args = msg.arguments;
-        await document.expand(args.id, args.po_anchor);
+        await document.expand(args.id, args.anchor);
+        break;
+      }
+      case "focus-lock-onto": {
+        document.focusLockOnto(msg.arguments.anchor);
+        break;
+      }
+      case "resize": {
+        await document.resize(msg.arguments.width, msg.arguments.font_size);
         break;
       }
     }

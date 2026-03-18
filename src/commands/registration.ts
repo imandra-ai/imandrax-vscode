@@ -4,6 +4,7 @@ import { commands, ExtensionContext, languages, TextDocumentShowOptions, Uri, Vi
 import { ImandraXLanguageClient } from '../imandrax_language_client/imandrax_language_client';
 import { GoalStateEditorProvider } from '../goal-state/editor_provider';
 import { FileChangeType } from 'vscode-languageclient';
+import { register as goal_state_register } from '../goal-state/commands';
 
 export function register(context: ExtensionContext, imandraxLanguageClient: ImandraXLanguageClient) {
   const getClient = () => { return imandraxLanguageClient.getClient(); };
@@ -120,5 +121,7 @@ export function register(context: ExtensionContext, imandraxLanguageClient: Iman
       await window.showTextDocument(doc);
     }));
 
-  console.log("all commands registered");
+  goal_state_register(context);
+
+  console.log("All commands registered");
 }

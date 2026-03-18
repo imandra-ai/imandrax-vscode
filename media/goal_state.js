@@ -82,7 +82,7 @@
             img.style.opacity = 0.25;
           }
           else
-            if (a.getAttribute('po_anchor') != this.focusLockAnchor) {
+            if (a.getAttribute('anchor') != this.focusLockAnchor) {
               let img = a.childNodes[0];
               img.style.opacity = 0.25;
             }
@@ -90,28 +90,34 @@
       });
     }
 
-    _lockFocus(/** @type {string | undefined} */ po_anchor, /** @type {Element | undefined} */ elem) {
+    _lockFocus(/** @type {string | undefined} */ anchor, /** @type {Element | undefined} */ elem) {
       let setFocus = (/** @type {Element} */ e) => {
         let img = e.childNodes[0];
         img.classList.remove('codicon-unlock');
         img.classList.add('codicon-lock');
         img.style.opacity = 1.0;
-        window.scrollTo({ top: e.offsetTop, left: 0, behavior: "smooth" });
+        window.scrollTo({ top: e.offsetTop, left: 0, behavior: 'smooth' });
       };
-      if (po_anchor) {
+      if (anchor) {
         document.querySelectorAll('.focus-lock-icon').forEach((/** @type {Element} */ a) => {
           let img = a.childNodes[0];
           img.classList.remove('codicon-lock');
           img.classList.add('codicon-unlock');
           img.style.opacity = 0.25;
         });
-        this.focusLockAnchor = po_anchor;
+        this.focusLockAnchor = anchor;
+
         vscode.setState({ lockFocusAnchor: this.focusLockAnchor });
+        vscode.postMessage({
+          command: 'focus-lock-onto',
+          arguments: { 'anchor': anchor }
+        });
+
         if (elem)
           setFocus(elem);
         else {
           document.querySelectorAll('.focus-lock-icon').forEach((/** @type {Element} */ a) => {
-            let anchor = a.getAttribute('po_anchor');
+            let anchor = a.getAttribute('anchor');
             if (anchor == this.focusLockAnchor)
               setFocus(a);
           })
@@ -128,6 +134,11 @@
           img.classList.remove('codicon-lock');
           img.classList.add('codicon-unlock');
           img.style.opacity = 0.25;
+        });
+
+        vscode.postMessage({
+          command: 'focus-lock-onto',
+          arguments: { 'anchor': undefined }
         });
       }
     }
@@ -158,13 +169,13 @@
       document.querySelectorAll('.focus-lock-icon').forEach(a => {
         a.addEventListener('click', (e) => {
           e.preventDefault();
-          let po_anchor = a.getAttribute('po_anchor')
-          if (po_anchor) {
-            if (this.focusLockAnchor == po_anchor)
+          let anchor = a.getAttribute('anchor')
+          if (anchor) {
+            if (this.focusLockAnchor == anchor)
               this._unlockFocus();
             else
-              this._lockFocus(po_anchor, a)
-            window.scrollTo({ top: a.offsetTop, left: 0, behavior: "smooth" });
+              this._lockFocus(anchor, a)
+            window.scrollTo({ top: a.offsetTop, left: 0, behavior: 'smooth' });
           }
         });
       });
@@ -213,18 +224,46 @@
         this.hoverBox.style.display = 'none';
       this._setupHoverHandlers();
       this._setupClickHandlers();
-      this.focusLockAnchor = vscode.getState().lockFocusAnchor;
+      this.focusLockAnchor = vscode.getState()?.lockFocusAnchor;
       this._lockFocus(this.focusLockAnchor, undefined);
       this.ready = true;
+    }
+
+    async refocus() {
+      this._lockFocus(this.focusLockAnchor, undefined);
+    }
+
+    onResize() {
+      const code_like_element = document.querySelector('.code-like');
+      if (code_like_element) {
+        const width = this.pos?.getBoundingClientRect().width;
+        const font_size = parseFloat(getComputedStyle(code_like_element).getPropertyValue('font-size'));
+        vscode.postMessage({
+          command: 'resize',
+          arguments: { width: width, font_size: font_size }
+        });
+      }
+      else console.log("no code_like");
     }
   }
 
   const editor = new GoalStateEditor(document.querySelector('.goal-state-content'));
 
+  function debounce(/** @type () => void */ fn, /** @type number */ delay) {
+    /** @type NodeJS.Timeout | undefined */
+    let timer = undefined;
+    return function (...args) {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(editor, args), delay);
+    };
+  }
+
+  window.addEventListener('resize', debounce(editor.onResize, 150));
+
   // Handle messages from the extension
   window.addEventListener('message', async e => {
     const { type, body, requestId } = e.data;
-    // console.log(`MESSAGE: type=${type} body=${JSON.stringify(body)}`);
+    // console.log(`JS Message: type=${type} body=${JSON.stringify(body)}`);
     switch (type) {
       case 'init':
         {
@@ -237,6 +276,11 @@
       case 'update':
         {
           editor.reset(body.content);
+          return;
+        }
+      case 'refocus':
+        {
+          editor.refocus();
           return;
         }
     }

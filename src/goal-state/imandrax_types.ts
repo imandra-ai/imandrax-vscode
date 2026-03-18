@@ -162,7 +162,7 @@ export interface Subresult {
   subanchor: { name: string, anchor: number };
   goal: Sequent | undefined;
   subgoals: Sequent[];
-  res: string;
+  error: string | undefined;
 }
 
 export interface ReportEvent {
@@ -192,12 +192,17 @@ export interface SourceLocation {
   }
 }
 
+export interface Error {
+  kind: string;
+  message: string;
+}
+
 export interface ProofObligation {
   name: string;
   anchor: string;
   subgoals: (Sequent | string)[];
   subresults: Subresult[][];
-  errors: string[];
+  errors: Error[];
   report: Report | undefined;
   definitions: Definition[];
   location: SourceLocation | undefined;
@@ -206,4 +211,14 @@ export interface ProofObligation {
 
 export interface GoalState {
   proof_obligations: ProofObligation[];
+}
+
+export function short_id(id: string): string {
+  const slash_inx = id.lastIndexOf("/");
+  let r;
+  if (slash_inx <= 0) // TODO: OCaml allows funky operator names that may feature `/` characters.
+    r = id;
+  else
+    r = id.slice(0, slash_inx);
+  return r;
 }
