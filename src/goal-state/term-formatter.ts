@@ -394,14 +394,18 @@ class TermFormatter {
     this._abort_signal = abort_signal;
   }
 
-  sym2doc(s: IXT.AppliedSymbol, type: string, definition?: string, hover_enabled = true): Doc {
+  sym2doc(s: IXT.AppliedSymbol, definition?: string, hover_enabled = true): Doc {
     this._abort_signal?.throwIfAborted();
 
-    let hover: string | undefined = hover_enabled ? sanitize(hvaluedef(s.id)) + " : " + htype(sanitize(type)) : undefined;
+    let hover: string | undefined = hover_enabled ? sanitize(hvaluedef(s.id)) + " : " + htype(sanitize(s.type)) : undefined;
     if (hover_enabled && definition) hover += sanitize(definition);
     const sid = IXT.short_id(s.id);
-    const r = span(sid, hover);
-    return vtext(r, sid.length);
+
+    // Map operator names to their visual form if different, e.g. `iff` vs `<==>`
+    const op_info = IXO.operator_info(sid);
+    const op_name = op_info.name == "" ? sid : op_info.name;
+
+    return vtext(span(op_name, hover), op_name.length);
   }
 
   const2doc(c: IXT.Constant, type: string, hover_enabled: boolean): Doc {
@@ -416,7 +420,7 @@ class TermFormatter {
         let q = c.view.num.toString() + ".0";
         if (c.view.den != "1")
           q = `${q} /. ${c.view.den.toString()}.0`;
-        c_vstr = new VisString("(" + vconstant(q).content + ")", q.length + 2);
+        c_vstr = new VisString(vconstant(q).content, q.length);
         break;
       }
       case "Const_real_approx": c_vstr = vconstant(c.view.v); break;
@@ -435,6 +439,15 @@ class TermFormatter {
     const rec = (x: IXT.Term) => this.term2doc(x, hover_enabled);
     const rec_nohover = (x: IXT.Term) => this.term2doc(x, false);
     const sts = (w: string, h?: string): string => { return hover_enabled ? span(w, h) : span(w) };
+    const recwp = (parent_oi: IXO.OperatorInfo, x: IXT.Term, is_left?: boolean) => {
+      const child_oi = IXO.operator_info_of_term(x);
+      const needs_par = IXO.needs_parentheses(parent_oi, child_oi, is_left) ||
+        (x.view.constructor == "Const" &&
+          x.view.c.view.constructor == "Const_q" &&
+          x.view.c.view.den != "1" &&
+          parent_oi.precedence > IXO.operator_info("/.").precedence);
+      return par_if(needs_par, [rec(x)]);
+    }
 
     const v = t.view;
     switch (v.constructor) {
@@ -455,16 +468,36 @@ class TermFormatter {
               fn = vtext(hcmdspan(fn.s.content, "expandable", { id: v.f.view.sym.id, anchor: this._po?.anchor }), fn.s.visual_length);
             }
             const sid = IXT.short_id(v.f.view.sym.id);
-            const pi = IXO.precedence_info(sid, v.l.length > 1);
-            // TODO: parenthesis by precedence info
-            const hargs = indent([line, join(line, v.l.map(x => par_if(true, [rec(x)])))]);
-            return v.l.length == 0 ? fn : g([fn, hargs]);
+            const pi = IXO.operator_info(sid, v.l.length > 1);
+
+            if (v.l.length == 0)
+              return fn;
+            else {
+              switch (pi.notation) {
+                case IXO.Notation.Infix: {
+                  if (v.l.length == 2) {
+                    const lhs = recwp(pi, v.l[0], true);
+                    const rhs = recwp(pi, v.l[1], false);
+                    return g([lhs, line, fn, line, rhs]);
+                  }
+                  else {
+                    const hargs = indent([line, join(line, v.l.map(x => recwp(pi, x)))]);
+                    return g([text("( "), fn, text(" )"), hargs]);
+                  }
+                }
+                default: {
+                  const hargs = indent([line, join(line, v.l.map(x => recwp(pi, x)))]);
+                  return v.l.length == 0 ? fn : g([fn, hargs]);
+                }
+              }
+            }
           }
           else {
             // fn is a function term
-            const hargs = indent([line, join(line, v.l.map(rec))]);
-            return g([fn, hargs]);
+            const hargs = indent([line, join(line, v.l.map(x => recwp(IXO.default_(), x)))]);
+            return par_if(v.l.length > 0, [fn, hargs]);
           }
+          break;
         }
       case "Var": {
         const sid = IXT.short_id(v.id);
@@ -477,35 +510,70 @@ class TermFormatter {
           if (hover_enabled && def) {
             const pretty_body = pretty(Math.max(this._width * 0.5, 16), indent([rec_nohover(def.body)]));
             const extra = " =<br/>" + hkw("fun") + " " + def.vars.join(" ") + " -> " + pretty_body;
-            return this.sym2doc(s, t.type, extra, hover_enabled);
+            return this.sym2doc(s, extra, hover_enabled);
           }
           else
-            return this.sym2doc(s, t.type, undefined, hover_enabled);
+            return this.sym2doc(s, undefined, hover_enabled);
         }
       case "Construct": {
         if (v.args.length == 0)
           return text(IXT.short_id(v.c.id));
         else {
-          const c = IXT.short_id(v.c.id);
-          const args = v.args.map(rec);
-          return g([par_if(true, [text(c), indent([line, join(line, args)])])]);
+          const op_doc = this.sym2doc(v.c, undefined, hover_enabled);
+          const sid = IXT.short_id(v.c.id);
+          const pi = IXO.operator_info(sid, v.args.length > 1);
+          switch (pi.notation) {
+            case IXO.Notation.Infix: {
+              if (v.args.length == 2) {
+                const lhs = recwp(pi, v.args[0], true);
+                const rhs = recwp(pi, v.args[1], false);
+                return g([lhs, line, op_doc, line, rhs]);
+              }
+              else {
+                const hargs = indent([line, join(line, v.args.map(x => recwp(pi, x)))]);
+                return g([text("( "), op_doc, text(" )"), hargs]);
+              }
+            }
+            default: {
+              const args = v.args.map(rec);
+              return g([par_if(true, [op_doc, indent([line, join(line, args)])])]);
+            }
+          }
         }
       }
       case "Destruct":
-        return parens(g([kw("destruct"), brackets(hcat([this.sym2doc(v.c, t.type, undefined, hover_enabled), text("|"), text(v.i.toString())])), line, rec(v.t)]));
+        return parens(g([
+          kw("destruct"),
+          brackets(hcat([
+            this.sym2doc(v.c, undefined, hover_enabled),
+            text("|"),
+            text(v.i.toString())])),
+          line,
+          rec(v.t)]));
       case "Is_a": {
-        return parens(g([rec(v.t), line, kw("is_a"), line, this.sym2doc(v.c, t.type, undefined, hover_enabled)]));
+        return g([rec(v.t), line, kw("is_a"), indent([line, this.sym2doc(v.c, undefined, hover_enabled)])]);
       }
       case "Tuple": return g([parens(indent([join(hcat([text(","), line]), v.l.map(rec))]))]);
       case "Field": return g([rec(v.t), text("."), linebreak, text(IXT.short_id(v.f.id))]);
-      case "Tuple_field": return g([rec(v.t), text("."), line, text(v.i.toString())]);
+      case "Tuple_field": return g([rec(v.t), text("."), linebreak, text(v.i.toString())]);
       case "Record": {
-        const hrows: Doc = join(hcat([text(";"), line]), v.rows.map(([sym, term]) => g([this.sym2doc(sym, term.type, undefined, hover_enabled), text(":"), rec(term)])));
+        const hrows: Doc = join(hcat([text(";"), line]), v.rows.map(([sym, term]) =>
+          g([
+            this.sym2doc(sym, undefined, hover_enabled),
+            text(":"),
+            rec(term)])));
         const hrest: Doc = v.rest ? g([rec(v.rest), line, kw("with"), line]) : nil;
         return braces(hcat([hrest, hrows]));
       }
       case "Case": {
-        const hcases = join(line, v.cases.map(([sym, term]) => g([text("|"), line, this.sym2doc(sym, term.type, undefined, hover_enabled), line, text("->"), line, rec(term)])));
+        const hcases = join(line, v.cases.map(([sym, term]) => g([
+          text("|"),
+          line,
+          this.sym2doc(sym, undefined, hover_enabled),
+          line,
+          text("->"),
+          line,
+          rec(term)])));
         const hdefault = v.default ? g([line, text("|"), line, text("_"), line, text("->"), line, rec(v.default)]) : nil;
         return g([kw("case"), line, rec(v.u), kw("of"), line, hcases, hdefault]);
       }

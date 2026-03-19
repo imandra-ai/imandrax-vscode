@@ -27,6 +27,12 @@ import sanitizeHtml from 'sanitize-html';
 
 function sanitize(x: string): string { return sanitizeHtml(x); }
 
+function capitalize(x: string): string {
+  if (x.length == 0)
+    return x;
+  else
+    return x.charAt(0).toUpperCase() + x.slice(1);
+}
 
 function exc2string(e: unknown): string {
   if (e instanceof Error) {
@@ -60,11 +66,11 @@ class GoalStateConverter {
   }
 
   turnstile(): string {
-    return "<div class='code-like'>|---</div>";
+    return "<div class='turnstile'>|---</div>";
   }
 
   term2html(t: IX.Term): string {
-    const fmttd : string = TermFormatter.prettify(this._num_columns, t, this._po);
+    const fmttd: string = TermFormatter.prettify(this._num_columns, t, this._po);
     let r = "";
     // r = `${this._num_columns} `;
     // r = r + '-'.repeat(this._num_columns - r.length) + `<br/>`
@@ -72,15 +78,15 @@ class GoalStateConverter {
       .replaceAll("\t", "<span class='indent'></span>")
       .replaceAll("\n", "<br/>") +
       "<br/>";
-    return `<div class='code-like'>${r}</div>`;
+    return r;
   }
 
   namedTerm2html(h: IX.NamedTerm): string {
-    const thtml = this.term2html(h.term);
+    const trm = this.term2html(h.term);
     if (h.name)
-      return `${h.name}: ${thtml}`;
+      return `<div class='code-like'>${h.name}: ${trm}</div>`;
     else
-      return thtml;
+      return `<div class='code-like'>${trm}</div>`;
   }
 
   subgoal2html(sg: IX.Sequent | string): string {
@@ -179,13 +185,25 @@ class GoalStateConverter {
     }).join("\n");
   }
 
-  proof_obligation2html(po: IX.ProofObligation): string {
+  proof_obligation2html(po: IX.ProofObligation, multiple_in_modules: boolean, index_in_file: number): string {
     this._abort_signal?.throwIfAborted();
 
     const qed = "&#x25A0";
     let title = "<span class='code-like-title'>";
     this._po = po;
     if (po.location) {
+      let name = po.name
+      if (multiple_in_modules) {
+        const slash_inx = po.location.uri.lastIndexOf('/');
+        if (slash_inx >= 0 && slash_inx < po.location.uri.length) {
+          const filename = po.location.uri.substring(slash_inx + 1);
+          const dot_inx = filename.lastIndexOf(".");
+          const module = capitalize(dot_inx > 0 ? filename.substring(0, dot_inx) : filename);
+          name = `${module}.${name}`
+        }
+      }
+      if (index_in_file > 0)
+        name = name + ` (#${index_in_file})`;
       const loc_uri = Uri.parse(po.location.uri);
       const opts = { viewColumn: ViewColumn.One, preserveFocus: false } as TextDocumentShowOptions;
       const cmd_args = {
@@ -195,7 +213,9 @@ class GoalStateConverter {
           to: { line: Number(po.location.to.line), column: Number(po.location.to.column) }
         }
       };
-      title = `<a href='#/' class='jump-to' arguments='${JSON.stringify(cmd_args)}'>${po.name}</a>`;
+      title = `<a href='#/' class='jump-to' arguments='${JSON.stringify(cmd_args)}'>${name}</a>`;
+      const vars = po.vars.join(" ");
+      title = `<div class='hoverable' data-hover='${po.name} ${vars}'>${title}</div>`;
     } else
       title = `${po.name}`;
     title += "</span>";
@@ -230,6 +250,25 @@ class GoalStateConverter {
     return po.report === undefined;
   }
 
+  po_counts(pos: IX.ProofObligation[]): Map<string | undefined, Map<string, number>> {
+    const r = new Map<string | undefined, Map<string, number>>();
+    pos.forEach(po => {
+      const at_uri = r.get(po.location?.uri);
+      if (!at_uri) {
+        r.set(po.location?.uri, new Map([[po.name, 1]]));
+      }
+      else {
+        const at_name = at_uri.get(po.name);
+        if (!at_name)
+          r.set(po.location?.uri, at_uri.set(po.name, 1));
+        else
+          r.set(po.location?.uri, at_uri.set(po.name, at_name + 1));
+      }
+    }
+    );
+    return r;
+  }
+
   to_html(data: IX.GoalState): [string, GoalStateConverterMetaData] {
     const config = workspace.getConfiguration("imandrax");
     const metadata: GoalStateConverterMetaData = new GoalStateConverterMetaData();
@@ -242,7 +281,35 @@ class GoalStateConverter {
     metadata.only_anchor = pos.length == 1 ? pos[0].anchor : undefined;
     if (pos.length > 0) {
       r += "<h2>Proof obligations</h2>\n";
-      const gs = pos.map(x => this.proof_obligation2html(x));
+
+      pos = pos.sort((x, y) => {
+        if (!x.location) return +1
+        else if (!y.location) return -1;
+        else if (x.location.uri < y.location.uri) return -1;
+        else if (x.location.uri > y.location.uri) return +1;
+        else if (x.location.from.line < y.location.from.line) return -1;
+        else if (x.location.from.line > y.location.from.line) return +1;
+        else if (x.location.from.column < y.location.from.column) return -1;
+        else if (x.location.from.column > y.location.from.column) return +1;
+        else return 0;
+      });
+
+      const counts = this.po_counts(pos);
+      const done = new Map<string, number>();
+
+      const gs = pos.map(po => {
+        const at_uri = counts.get(po.location?.uri);
+        const num_in_same_module = at_uri?.get(po.name) ?? 0; // Number of times the PO name appears in the current module
+        let num_modules_with_name = 0; // Number of modules in which this PO name appears
+        for (const [_, value] of counts)
+          if (value.get(po.name))
+            num_modules_with_name++;
+
+        const longname = po.location?.uri + "." + po.name;
+        const inx_in_same_module = done.get(longname) ?? (num_in_same_module == 1 ? 0 : 1); // Index of the PO name in the current module
+        done.set(longname, inx_in_same_module + 1);
+        return this.proof_obligation2html(po, num_modules_with_name > 1, inx_in_same_module);
+      });
       r += "<p><ul>\n" +
         gs.map(x => { return `<li>${x}</li>`; }).join("\n")
         + "</ul></p>\n";
@@ -291,7 +358,12 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
       const content_bytes = await GoalStateDocument.readFile(uri);
       const content_string = txtdec.decode(content_bytes);
       if (content_string !== "") {
-        this._goalStateData = JSON.parse(content_string) as IX.GoalState; // Todo: Proper type check with ts-json-object or similar?
+        const data = JSON.parse(content_string) as IX.GoalState; // Todo: Proper type-check with ts-json-object or similar?
+        if (!data.format_version)
+          console.warn(`Missing goal state data format version`);
+        else if (data.format_version != 1)
+          console.warn(`Unexpected goal state data format version: ${data.format_version}`);
+        this._goalStateData = data;
       } else {
         this._goalStateData = undefined;
       }
@@ -466,20 +538,20 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
       console.log(`Anchor ${anchor} not found`);
   }
 
-  async expand(id: string, anchor: string) : Promise<void> {
+  async expand(id: string, anchor: string): Promise<void> {
     await this.add_to_by(anchor, `expand "${IX.short_id(id)}"`);
   }
 
-  focusLockOnto(anchor: string | undefined) : void {
+  focusLockOnto(anchor: string | undefined): void {
     this._focusLockAnchor = anchor;
   }
 
-  async simplify() : Promise<void> {
+  async simplify(): Promise<void> {
     const anchor = this._focusLockAnchor ?? this._documentMetaData?.only_anchor;
     await this.add_to_by(anchor, `simplify ()`);
   }
 
-  resize(width: number, font_size: number) : void {
+  resize(width: number, font_size: number): void {
     this._num_columns = Math.max(Math.trunc(2.0 * (width * 0.80) / font_size), 10);
     this.run_update(this._goalStateData);
   }

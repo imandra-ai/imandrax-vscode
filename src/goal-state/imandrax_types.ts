@@ -1,5 +1,6 @@
 export interface AppliedSymbol {
   id: string;
+  type: string;
 }
 
 export interface ConstFloatView {
@@ -200,6 +201,7 @@ export interface Error {
 export interface ProofObligation {
   name: string;
   anchor: string;
+  vars: string[];
   subgoals: (Sequent | string)[];
   subresults: Subresult[][];
   errors: Error[];
@@ -210,6 +212,7 @@ export interface ProofObligation {
 }
 
 export interface GoalState {
+  format_version: number | undefined;
   proof_obligations: ProofObligation[];
 }
 

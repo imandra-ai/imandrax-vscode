@@ -33,7 +33,8 @@ li>span {
   flex-direction: column;
 }
 
-.code-like {
+.code-like,
+.turnstile {
   font-family: var(--vscode-editor-font-family);
   font-weight: var(--vscode-editor-font-weight);
   font-size: var(--vscode-editor-font-size);
@@ -45,6 +46,11 @@ li>span {
   font-weight: var(--vscode-editor-font-weight);
   font-size: calc(var(--vscode-editor-font-size) * 1.25);
   color: var(--vscode-editor-foreground);
+}
+
+.jump-to {
+  font-size: calc(var(--vscode-editor-font-size));
+  text-decoration: none;
 }
 
 .hoverable {
@@ -113,4 +119,8 @@ li>span {
   display: inline-block;
   width: 2ex;
   user-select: text;
+}
+
+.turnstile {
+  color: #859900;
 }
