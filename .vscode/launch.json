@@ -30,16 +30,7 @@
       "cwd": "${workspaceFolder}/imlformat",
       "program": "${workspaceFolder}/imlformat/imlformat.ts",
       "args": [
-        // "${workspaceFolder}/imlformat/test/blah.iml"
         "${workspaceFolder}/bug.iml"
-        // "~/work/imandrax/test/iml-neg/reg_1089_1.iml"
-        // "~/work/imandrax/test/expect/t_tyinfer1.iml"
-        // "~/work/imandrax/test/iml-neg/reg_317_3.iml"
-        // "~/work/imandrax/test/expect/reg_865.iml"
-        // "~/work/imandrax/test/iml/reg_236a.iml"
-        // "~/work/imandrax/test/integration/ieee-p3109/implementation/implementation.iml"
-        // "~/work/imandrax/test/db/t4.t/a.iml"
-        // "~/work/imandrax/test/iml/reg_903.iml"
       ],
       "outFiles": [
         "${workspaceFolder}/imlformat/out-dbg/**/*.js"
