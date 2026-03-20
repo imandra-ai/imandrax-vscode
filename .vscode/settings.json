@@ -7,15 +7,20 @@
   "editor.tabSize": 2,
   "editor.insertSpaces": true,
   "editor.detectIndentation": false,
-  "jest.rootPath": "imlformat",
   "jest.runMode": "on-demand",
+  "jest.nodeEnv": { "NODE_OPTIONS": "--experimental-vm-modules"},
   "jest.virtualFolders": [
     {
-      "name": "imlformat-tests",
+      "name": "IML Formatting Tests",
       "runMode": "on-demand",
       "rootPath": "imlformat",
-      "jestCommandLine": "npm run test --",
+      "jestCommandLine": "npx jest --config jest.config.ts",
+    },
+    {
+      "name": "Goal State Tests",
+      "runMode": "on-demand",
+      "rootPath": "src/goal-state",
+      "jestCommandLine": "npx jest --config jest.config.ts",
     },
   ],
-  "imandrax_lsp.trace.server": "verbose"
 }

@@ -15,6 +15,10 @@ li>span {
   vertical-align: top;
 }
 
+h2 {
+  padding-bottom: 1%;
+}
+
 .logo {
   position: absolute;
   top: 1px;

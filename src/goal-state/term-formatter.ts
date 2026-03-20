@@ -9,9 +9,8 @@
 
 /** All credits to Phil and Claude. */
 
-import sanitizeHtml from 'sanitize-html';
-
-function sanitize(x: string): string { return sanitizeHtml(x); }
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+import sanitize = require('sanitize-html');
 
 import * as IXT from "./imandrax_types"
 import * as IXO from "./imandrax_operators"
@@ -388,7 +387,7 @@ class TermFormatter {
   private _width: number;
   private _po: IXT.ProofObligation | undefined;
 
-  constructor(width: number, po: IXT.ProofObligation | undefined, abort_signal?: AbortSignal) {
+  constructor(width: number, po?: IXT.ProofObligation, abort_signal?: AbortSignal) {
     this._width = width;
     this._po = po;
     this._abort_signal = abort_signal;
@@ -597,7 +596,7 @@ class TermFormatter {
  * Pretty-print term `t` with `width` line size, with an optional `po` for context
  * (e.g. to look up definitions of lambdas).
  */
-export function prettify(width: number, t: IXT.Term, po: IXT.ProofObligation | undefined, abort_signal?: AbortSignal): string {
+export function prettify(width: number, t: IXT.Term, po?: IXT.ProofObligation  , abort_signal?: AbortSignal): string {
   try {
     return new TermFormatter(width, po, abort_signal).prettify(t);
   }

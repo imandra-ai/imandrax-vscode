@@ -210,7 +210,7 @@
           this.hoverBox.style.top = top + 'px';
         }
       },
-        250);
+        200);
     }
 
     _redraw() {

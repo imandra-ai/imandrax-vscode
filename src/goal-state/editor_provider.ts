@@ -12,7 +12,6 @@ import {
   WebviewPanel,
   window,
   workspace,
-  DocumentSymbol,
 } from "vscode";
 
 import { GoalStateDocument } from "./document";

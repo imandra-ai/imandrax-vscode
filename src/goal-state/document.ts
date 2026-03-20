@@ -20,12 +20,11 @@ import {
   CodeLens
 } from 'vscode';
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+import sanitize = require('sanitize-html');
+
 import * as IX from "./imandrax_types"
 import * as TermFormatter from "./term-formatter";
-
-import sanitizeHtml from 'sanitize-html';
-
-function sanitize(x: string): string { return sanitizeHtml(x); }
 
 function capitalize(x: string): string {
   if (x.length == 0)
@@ -69,123 +68,127 @@ class GoalStateConverter {
     return "<div class='turnstile'>|---</div>";
   }
 
-  term2html(t: IX.Term): string {
+  async term2html(t: IX.Term): Promise<string> {
+    this._abort_signal?.throwIfAborted();
+
     const fmttd: string = TermFormatter.prettify(this._num_columns, t, this._po);
-    let r = "";
-    // r = `${this._num_columns} `;
-    // r = r + '-'.repeat(this._num_columns - r.length) + `<br/>`
-    r += fmttd
+    const r = fmttd
       .replaceAll("\t", "<span class='indent'></span>")
       .replaceAll("\n", "<br/>") +
       "<br/>";
-    return r;
+    return Promise.resolve(r);
   }
 
-  namedTerm2html(h: IX.NamedTerm): string {
-    const trm = this.term2html(h.term);
+  async namedTerm2html(h: IX.NamedTerm): Promise<string> {
+    this._abort_signal?.throwIfAborted();
+
+    const trm = await this.term2html(h.term);
+    let r;
     if (h.name)
-      return `<div class='code-like'>${h.name}: ${trm}</div>`;
+      r = `<div class='code-like'>${h.name}: ${trm}</div>`;
     else
-      return `<div class='code-like'>${trm}</div>`;
+      r = `<div class='code-like'>${trm}</div>`;
+    return Promise.resolve(r);
   }
 
-  subgoal2html(sg: IX.Sequent | string): string {
+  async subgoal2html(sg: IX.Sequent | string): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
     if (typeof sg === "string")
-      return sg;
+      return Promise.resolve(sg);
     else {
-      const hyps = sg.hypotheses.map(x => this.namedTerm2html(x));
-      const concls = sg.conclusions.map(x => this.namedTerm2html(x));
-      return hyps.join("") + this.turnstile() + concls.join("");
+      const hyps = await Promise.all(sg.hypotheses.map(async x => await this.namedTerm2html(x)));
+      const concls = await Promise.all(sg.conclusions.map(async x => this.namedTerm2html(x)));
+      return Promise.resolve(hyps.join("") + this.turnstile() + concls.join(""));
     }
   }
 
-  subgoals2html(sgs: (IX.Sequent | string)[]): string {
+  async subgoals2html(sgs: (IX.Sequent | string)[]): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
+    let r;
     if (sgs.length == 0)
-      return "";
+      r = "";
     else if (sgs.length == 1)
-      return this.subgoal2html(sgs[0]);
+      r = this.subgoal2html(sgs[0]);
     else {
-      const sgsp = sgs.map(x => this.subgoal2html(x));
+      const sgsp = await Promise.all(sgs.map(async x => await this.subgoal2html(x)));
       const sgs_html = sgsp.map(x => `<li>${x}</li>`).join("");
-      return `<ul>${sgs_html}</ul>`;
+      r = `<ul>${sgs_html}</ul>`;
     }
+
+    return Promise.resolve(r);
   }
 
-  subresult2html(sr: IX.Subresult): string {
+  async subresult2html(sr: IX.Subresult): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
     let r = "<span><table>";
     if (sr.goal)
-      r += `<tr><td valign=top>Goal:</td><td>${this.subgoal2html(sr.goal)}</td></tr>`;
+      r += `<tr><td valign=top>Goal:</td><td>${await this.subgoal2html(sr.goal)}</td></tr>`;
     if (sr.subgoals)
-      r += `<tr><td valign=top>Subgoals:</td><td>${this.subgoals2html(sr.subgoals)}</td></tr>`;
+      r += `<tr><td valign=top>Subgoals:</td><td>${await this.subgoals2html(sr.subgoals)}</td></tr>`;
     if (sr.error)
       r += `<tr><td valign=top>Error:</td><td>${sr.error}</td></tr>`;
-    // if (sr.subanchor)
-    //   r += `<tr><td valign=top>Sub-anchor:</td><td><div>${sr.subanchor.name}/${sr.subanchor.anchor}</div></td></tr>`;
-    // r += `<div>${JSON.stringify(sr)}</div>`;
     r += "</table></span>"
-    return r;
+
+    return Promise.resolve(r);
   }
 
-  subresults2html(srs: IX.Subresult[]): string {
+  async subresults2html(srs: IX.Subresult[]): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
     if (srs.length == 0)
       return "";
     else if (srs.length == 1)
-      return this.subresult2html(srs[0]);
+      return await this.subresult2html(srs[0]);
     else {
-      const srsp = srs.map(x => this.subresult2html(x));
+      const srsp = await Promise.all(srs.map(async x => await this.subresult2html(x)));
       const srs_html = srsp.map(x => `<li>${x}</li>`).join("");
       return `<ul>${srs_html}</ul>`;
     }
   }
 
-  subresultss2html(srs: IX.Subresult[][]): string {
+  async subresultss2html(srs: IX.Subresult[][]): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
     if (srs.length == 0)
       return "";
     else if (srs.length == 1)
-      return this.subresults2html(srs[0]);
+      return await this.subresults2html(srs[0]);
     else {
-      const srsp = srs.map(x => this.subresults2html(x));
+      const srsp = await Promise.all(srs.map(async x => await this.subresults2html(x)));
       const srs_html = srsp.map(x => `<li>${x}</li>`).join("");
       return `<ul>${srs_html}</ul>`;
     }
   }
 
-  report2html(rep: IX.Report): string {
+  async report2html(rep: IX.Report): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
-    return rep.events.map((event: IX.ReportEvent) => {
+    return (await Promise.all(rep.events.map(async (event: IX.ReportEvent) => {
       let res = `<div>${event.description}</div>`;
       if (event.sub_report && event.sub_report.events.length > 0) {
-        res += this.report2html(event.sub_report);
+        res += await this.report2html(event.sub_report);
       }
       return res;
-    }).join("");
+    }))).join("");
   }
 
-  errors2html(errors: IX.Error[]): string {
+  async errors2html(errors: IX.Error[]): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
-    return errors.map(x => {
+    return Promise.resolve((errors.map(x => {
       this._abort_signal?.throwIfAborted();
 
       let msg = `${x.message.replaceAll('\n', '<br/>')}`;
       if (x.kind != "TacticEvalErr")
         msg = `${x.kind}: ${msg}`
       return `<div class='code-like'>${msg}</div>`
-    }).join("\n");
+    })).join("\n"));
   }
 
-  proof_obligation2html(po: IX.ProofObligation, multiple_in_modules: boolean, index_in_file: number): string {
+  async proof_obligation2html(po: IX.ProofObligation, multiple_in_modules: boolean, index_in_file: number): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
     const qed = "&#x25A0";
@@ -220,26 +223,26 @@ class GoalStateConverter {
       title = `${po.name}`;
     title += "</span>";
     title = `<span>${title}<span class='focus-lock-icon' anchor="${sanitize(po.anchor)}"><i class="codicon codicon-unlock"></i></span></span><br/>`;
+    let r = title;
     if ((po.subgoals?.length > 0) || (po.subresults?.length > 0) || (po.errors?.length > 0)) {
-      let r = title;
       if (po.subgoals?.length > 1)
         r += "<h3>Subgoals:</h3>"
-      const sgs_html = this.subgoals2html(po.subgoals);
+      const sgs_html = await this.subgoals2html(po.subgoals);
       r += `${sgs_html}`;
       if (po.errors?.length > 0) {
-        r += `<details><summary>Problems (${po.errors.length})</summary><ul>${this.errors2html(po.errors)}</ul></details>`;
+        r += `<details><summary>Problems (${po.errors.length})</summary><ul>${await this.errors2html(po.errors)}</ul></details>`;
       }
       if (po.subresults?.length > 0) {
-        const srs_html = this.subresultss2html(po.subresults);
+        const srs_html = await this.subresultss2html(po.subresults);
         r += `<details><summary>Subresults</summary><ul>${srs_html}</ul></details>`;
       }
       if (po.report && po.report.events?.length > 0) {
-        r += `<details><summary>Report</summary><ul>${this.report2html(po.report)}</ul></details>`;
+        r += `<details><summary>Report</summary><ul>${await this.report2html(po.report)}</ul></details>`;
       }
-      return r;
+      return Promise.resolve(r);
     }
     else
-      return title + `<div class='code-like'>${qed}</div>`;
+      return Promise.resolve(r + `<div class='code-like'>${qed}</div>`);
   }
 
   isProven(po: IX.ProofObligation): boolean {
@@ -269,7 +272,7 @@ class GoalStateConverter {
     return r;
   }
 
-  to_html(data: IX.GoalState): [string, GoalStateConverterMetaData] {
+  async to_html(data: IX.GoalState): Promise<[string, GoalStateConverterMetaData]> {
     const config = workspace.getConfiguration("imandrax");
     const metadata: GoalStateConverterMetaData = new GoalStateConverterMetaData();
     let r = "";
@@ -297,7 +300,7 @@ class GoalStateConverter {
       const counts = this.po_counts(pos);
       const done = new Map<string, number>();
 
-      const gs = pos.map(po => {
+      const gs = pos.map(async po => {
         const at_uri = counts.get(po.location?.uri);
         const num_in_same_module = at_uri?.get(po.name) ?? 0; // Number of times the PO name appears in the current module
         let num_modules_with_name = 0; // Number of modules in which this PO name appears
@@ -308,10 +311,10 @@ class GoalStateConverter {
         const longname = po.location?.uri + "." + po.name;
         const inx_in_same_module = done.get(longname) ?? (num_in_same_module == 1 ? 0 : 1); // Index of the PO name in the current module
         done.set(longname, inx_in_same_module + 1);
-        return this.proof_obligation2html(po, num_modules_with_name > 1, inx_in_same_module);
+        return await this.proof_obligation2html(po, num_modules_with_name > 1, inx_in_same_module);
       });
       r += "<p><ul>\n" +
-        gs.map(x => { return `<li>${x}</li>`; }).join("\n")
+        (await Promise.all(gs.map(async x => { return `<li>${await x}</li>`; }))).join("\n")
         + "</ul></p>\n";
     }
     else {
@@ -319,8 +322,18 @@ class GoalStateConverter {
       // r += hbox("<div class='code-like'>ABCDEFGHIJKLM</div><div class='code-like'>NOPQRSTUVWXYZ</div>");
       r += "<ul><li><h2>Nothing as of yet.</h2></li><ul>";
     }
+
     return [r, metadata];
   }
+}
+
+function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise((resolve, reject) => {
+    signal.addEventListener('abort', () =>
+      reject(new Error('Aborted')), { once: true }
+    );
+    promise.then(resolve, reject);
+  });
 }
 
 export class GoalStateDocument extends Disposable implements CustomDocument {
@@ -343,57 +356,65 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
     const txtdec = new TextDecoder();
     this._uri = uri;
     if (data) {
-      const gsc = new GoalStateConverter(this._num_columns);
-      const [d, md] = gsc.to_html(JSON.parse(txtdec.decode(data)) as IX.GoalState);
-      this._documentData = d;
-      this._documentMetaData = md;
+      // Note: VS Code could be giving us data from a backup here.
+      this._goalStateData = JSON.parse(txtdec.decode(data)) as IX.GoalState;
+      this._abort_controller = (new AbortController());
+      void this._update_data(this._goalStateData, this._abort_controller.signal);
+      this._documentData = "";
+      this._documentMetaData = undefined;
     }
     this._delegate = delegate;
     this._file_watcher = workspace.createFileSystemWatcher(new RelativePattern(uri, '*'));
 
     this._file_watcher.onDidChange(async uri => {
-      if (this._abort_controller && !this._abort_controller.signal.aborted)
-        this._abort_controller.abort();
+      this._abort_controller?.abort();
+      this._abort_controller = new AbortController();
 
       const content_bytes = await GoalStateDocument.readFile(uri);
       const content_string = txtdec.decode(content_bytes);
-      if (content_string !== "") {
-        const data = JSON.parse(content_string) as IX.GoalState; // Todo: Proper type-check with ts-json-object or similar?
-        if (!data.format_version)
-          console.warn(`Missing goal state data format version`);
-        else if (data.format_version != 1)
-          console.warn(`Unexpected goal state data format version: ${data.format_version}`);
-        this._goalStateData = data;
-      } else {
+      try {
+        if (content_string !== "")
+          this._goalStateData = JSON.parse(content_string) as IX.GoalState; // Todo: Proper type-check with ts-json-object or similar?
+        else
+          this._goalStateData = undefined;
+      } catch (e) {
         this._goalStateData = undefined;
       }
-      this.run_update(this._goalStateData);
+
+      await this._update_data(this._goalStateData, this._abort_controller?.signal);
     });
   }
 
-  run_update(gsd: IX.GoalState | undefined) {
-    // TODO: Remember unfolded <detail> elements somehow
-
+  private async _update_data(gsd: IX.GoalState | undefined, signal: AbortSignal): Promise<void> {
     try {
+      signal.throwIfAborted();
+
       if (!gsd) {
         this._documentData = "<div class='code-like'>&#x25A0</div>";
       } else {
-        this._abort_controller = new AbortController();
-        const gsc = new GoalStateConverter(this._num_columns, this._abort_controller.signal);
-        const [d, md] = gsc.to_html(gsd);
+        // TODO: Remember unfolded <detail> elements somehow
+
+        if (!gsd.format_version)
+          console.warn(`Missing goal state data format version`);
+        else if (gsd.format_version != 1)
+          console.warn(`Unexpected goal state data format version: ${gsd.format_version}`);
+
+        const gsc = new GoalStateConverter(this._num_columns, signal);
+        const [d, md] = await gsc.to_html(gsd);
         this._documentData = d;
         this._documentMetaData = md;
-        this._abort_controller = undefined;
 
         if (this._focusLockAnchor && !this._goalStateData?.proof_obligations.find(x => x.anchor == this._focusLockAnchor))
           this._focusLockAnchor = undefined;
+
+        signal.throwIfAborted();
 
         this._onDidChangeDocument.fire({ content: this._documentData });
       }
     }
     catch (e) {
-      if (e !== null && typeof e === 'object' && "name" in e && e.name == "AbortError")
-        this._abort_controller = undefined;
+      if (e instanceof Error && e.name === 'AbortError')
+        console.log(`Aborted!`);
       else
         console.log(`Caught exception while updating goal state view: ${exc2string(e)}`);
     }
@@ -551,8 +572,11 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
     await this.add_to_by(anchor, `simplify ()`);
   }
 
-  resize(width: number, font_size: number): void {
+  async resize(width: number, font_size: number): Promise<void> {
     this._num_columns = Math.max(Math.trunc(2.0 * (width * 0.80) / font_size), 10);
-    this.run_update(this._goalStateData);
+
+    this._abort_controller?.abort();
+    this._abort_controller = new AbortController();
+    await this._update_data(this._goalStateData, this._abort_controller.signal);
   }
 }
