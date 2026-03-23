@@ -417,7 +417,7 @@ class TermFormatter {
       case "Const_z": c_vstr = vconstant(c.view.v.toString()); break;
       case "Const_q": {
         let q = c.view.num.toString() + ".0";
-        if (c.view.den != "1")
+        if (c.view.den != BigInt(1))
           q = `${q} /. ${c.view.den.toString()}.0`;
         c_vstr = new VisString(vconstant(q).content, q.length);
         break;
@@ -443,7 +443,7 @@ class TermFormatter {
       const needs_par = IXO.needs_parentheses(parent_oi, child_oi, is_left) ||
         (x.view.constructor == "Const" &&
           x.view.c.view.constructor == "Const_q" &&
-          x.view.c.view.den != "1" &&
+          x.view.c.view.den != BigInt(1) &&
           parent_oi.precedence > IXO.operator_info("/.").precedence);
       return par_if(needs_par, [rec(x)]);
     }

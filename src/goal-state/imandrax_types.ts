@@ -20,8 +20,8 @@ export interface ConstZView {
 
 export interface ConstQView {
   constructor: "Const_q";
-  num: string;
-  den: string;
+  num: bigint;
+  den: bigint;
 }
 
 export interface ConstRealApprox {
