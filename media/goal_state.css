@@ -58,7 +58,7 @@ h2 {
 }
 
 .hoverable {
-  cursor: pointer;
+  cursor: default;
   user-select: text;
   /* border-bottom: 1px dotted var(--vscode-editor-foreground); */
 }
