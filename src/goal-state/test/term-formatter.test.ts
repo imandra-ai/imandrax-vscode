@@ -34,7 +34,7 @@ test("Rationals", () => {
     type: "bool",
     view: {
       constructor: "Const",
-      c: { view: { constructor: 'Const_q', num: "1", den: "3" } }
+      c: { view: { constructor: 'Const_q', num: BigInt("1"), den: BigInt("3") } }
     }
   });
   assert.strictEqual(stripHtml(p), "1.0 /. 3.0");

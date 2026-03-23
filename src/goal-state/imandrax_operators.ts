@@ -113,7 +113,7 @@ export function operator_info_of_term(t: IX.Term): OperatorInfo {
     case "Case": return operator_info("match", false);
     case "Construct": return operator_info(IX.short_id(v.c.id), v.args.length > 0);
     case "Const": {
-      if ((v.c.view.constructor) == "Const_q" && v.c.view.den != "1")
+      if ((v.c.view.constructor) == "Const_q" && v.c.view.den != BigInt("1"))
         return operator_info(IX.short_id("/."), true);
       else
         return default_();
