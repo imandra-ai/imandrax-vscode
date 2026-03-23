@@ -24,6 +24,7 @@ import {
 import sanitize = require('sanitize-html');
 
 import * as IX from "./imandrax_types"
+import * as IXRE from "./imandrax_report_event"
 import * as TermFormatter from "./term-formatter";
 
 function capitalize(x: string): string {
@@ -91,16 +92,21 @@ class GoalStateConverter {
     return Promise.resolve(r);
   }
 
+  async sequent2html(sg: IX.Sequent): Promise<string> {
+    this._abort_signal?.throwIfAborted();
+
+    const hyps = await Promise.all(sg.hypotheses.map(async x => await this.namedTerm2html(x)));
+    const concls = await Promise.all(sg.conclusions.map(async x => this.namedTerm2html(x)));
+    return Promise.resolve(hyps.join("") + this.turnstile() + concls.join(""));
+  }
+
   async subgoal2html(sg: IX.Sequent | string): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
     if (typeof sg === "string")
       return Promise.resolve(sg);
-    else {
-      const hyps = await Promise.all(sg.hypotheses.map(async x => await this.namedTerm2html(x)));
-      const concls = await Promise.all(sg.conclusions.map(async x => this.namedTerm2html(x)));
-      return Promise.resolve(hyps.join("") + this.turnstile() + concls.join(""));
-    }
+    else
+      return await this.sequent2html(sg);
   }
 
   async subgoals2html(sgs: (IX.Sequent | string)[]): Promise<string> {
@@ -163,11 +169,44 @@ class GoalStateConverter {
     }
   }
 
+  async report_event2html(e: IXRE.ReportEvent): Promise<string> {
+    let r: string;
+    const d: IXRE.Description = e.description;
+    switch (d.constructor) {
+      case "E_message": r = `${d.message}`; break;
+      case "E_title": r = `${d.title}`; break;
+      case "E_enter_waterfall": r = `Enter waterfall with variables [${d.vars.join(", ")}] and goal <div class='code-like'>${await this.term2html(d.goal)}</div>`; break;
+      case "E_enter_tactic": r = `Enter '${d.tactic}'`; break;
+      case "E_rw_success": r = `Rewriting success: by '${d.rule}' from ${await this.term2html(d.from)} to ${await this.term2html(d.to)}`; break;
+      case "E_rw_fail": r = `Rewriting failure: by '${d.rule}' from ${await this.term2html(d.term)} because '${d.reason}'`; break;
+      case "E_inst_success": r = `Instantiation success: by '${d.rule}' obtain ${await this.term2html(d.term)}`; break;
+      case "E_waterfall_checkpoint": {
+        const cs = await Promise.all(d.checkpoints.map(x => this.sequent2html(x)));
+        r = `Waterfall checkpoint(s): ${cs.join("<br/>")}`;
+        break;
+      }
+      case "E_induction_scheme": r = `Induction scheme: ${await this.term2html(d.scheme)}`; break;
+      case "E_attack_subgoal": r = `Subgoal ${d.name} (depth ${d.depth}): <div class='code-like'>${await this.sequent2html(d.goal)}</div>`; break;
+      case "E_simplify_t": r = `Simplify ${await this.term2html(d.from)} into ${await this.term2html(d.to)}`; break;
+      case "E_simplify_clause": {
+        const to_ = await Promise.all(d.to.map(x => this.term2html(x)));
+        r = `Simplify clause ${await this.term2html(d.from)} into ${to_.join("")}`;
+        break;
+      }
+      case "E_proved_by_smt": r = `Proved by SMT; Proof: ${d.proof}`; break;
+      case "E_refuted_by_smt": r = `Refuted by SMT; Model: ${d.model}`; break;
+      case "E_fun_expansion": r = `Expand ${await this.term2html(d.from)} into ${await this.term2html(d.to)}`; break;
+      default:
+        r = JSON.stringify(d);
+    }
+    return Promise.resolve(r);
+  }
+
   async report2html(rep: IX.Report): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
-    return (await Promise.all(rep.events.map(async (event: IX.ReportEvent) => {
-      let res = `<div>${event.description}</div>`;
+    return (await Promise.all(rep.events.map(async (event: IXRE.ReportEvent) => {
+      let res = `<div>${await this.report_event2html(event)}</div>`;
       if (event.sub_report && event.sub_report.events.length > 0) {
         res += await this.report2html(event.sub_report);
       }

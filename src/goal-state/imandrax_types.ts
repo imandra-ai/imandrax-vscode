@@ -1,3 +1,5 @@
+import * as IXRE from './imandrax_report_event';
+
 export interface AppliedSymbol {
   id: string;
   type: string;
@@ -166,13 +168,8 @@ export interface Subresult {
   error: string | undefined;
 }
 
-export interface ReportEvent {
-  description: string;
-  sub_report: Report | undefined;
-}
-
 export interface Report {
-  events: ReportEvent[];
+  events: IXRE.ReportEvent[];
 }
 
 export interface Definition {
