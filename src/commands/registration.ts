@@ -1,6 +1,6 @@
 import * as implementations from './implementations';
 
-import { commands, ExtensionContext, languages, TextDocumentShowOptions, Uri, ViewColumn, window, workspace, FileType, FileSystemError } from 'vscode';
+import { commands, ExtensionContext, languages, TextDocumentShowOptions, Uri, ViewColumn, window, workspace, FileType, FileSystemError, CodeLens, Position } from 'vscode';
 import { ImandraXLanguageClient } from '../imandrax_language_client/imandrax_language_client';
 import { GoalStateEditorProvider } from '../goal-state/editor_provider';
 import { FileChangeType } from 'vscode-languageclient';
@@ -122,6 +122,38 @@ export function register(context: ExtensionContext, imandraxLanguageClient: Iman
     }));
 
   goal_state_register(context);
+
+  const check_closest_cmd = "imandrax.check-closest";
+  context.subscriptions.push(commands.registerCommand(check_closest_cmd,
+    async () => {
+      const editor = window.activeTextEditor;
+      let position = editor?.selection.active;
+      if (editor && position) {
+        const lenses = await commands.executeCommand<CodeLens[]>(
+          'vscode.executeCodeLensProvider',
+          editor.document.uri
+        );
+
+        const lens = lenses.reduce((closest, x) => {
+          if (x.isResolved && x.command &&
+            (x.command.command == "check" || x.command?.command == "recheck") &&
+            position
+          ) {
+            if (x.range.start.line <= position.line &&
+              (!closest || x.range.start.line > closest?.range.start.line))
+              return x;
+            else
+              return closest;
+          } else
+            return closest;
+        }, undefined as (CodeLens | undefined))
+
+        if (lens?.command) {
+          await commands.executeCommand(lens.command.command, ...(lens.command.arguments ?? []));
+          position = undefined;
+        }
+      }
+    }));
 
   console.log("All commands registered");
 }

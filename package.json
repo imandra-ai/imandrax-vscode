@@ -212,6 +212,10 @@
       {
         "command": "imandrax.open-prelude",
         "title": "Imandrax: Open Prelude"
+      },
+      {
+        "command": "imandrax.check-closest",
+        "title": "Imandrax: Check closest proof obligation"
       }
     ],
     "keybindings": [
@@ -220,6 +224,12 @@
         "key": "ctrl-s",
         "mac": "cmd-s",
         "when": "activeCustomEditorId == 'imandrax.GoalState'"
+      },
+      {
+        "command": "imandrax.check-closest",
+        "key": "ctrl-c ctrl-c",
+        "mac": "cmd-c cmd-c",
+        "when": "editorLangId == imandrax"
       }
     ],
     "customEditors": [
