@@ -36,4 +36,22 @@ export interface ResizeMessage {
   }
 }
 
-export type Message = ReadyMessage | JumpToMessage | ExpandMessage | FocusLockOntoMessage | ResizeMessage;
+export type Incoming = ReadyMessage | JumpToMessage | ExpandMessage | FocusLockOntoMessage | ResizeMessage;
+
+export interface InitMessage {
+  type: "init";
+  body: {
+    untitled?: boolean;
+    editable: boolean | undefined;
+    value?: string;
+  };
+}
+
+export interface UpdateMessage {
+  type: "update",
+  body: {
+    content?: string,
+  }
+}
+
+export type Outgoing = InitMessage | UpdateMessage

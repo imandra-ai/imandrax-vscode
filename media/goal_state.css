@@ -125,6 +125,12 @@ h2 {
   user-select: text;
 }
 
+.indented {
+  display: inline-block;
+  padding-left: 2ex;
+  user-select: text;
+}
+
 .turnstile {
   color: #859900;
 }

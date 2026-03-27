@@ -181,36 +181,38 @@
       });
     }
 
-    _updateHoverBox(/** @type string */ hoverText, event) {
-      const event_rect = event.target.getBoundingClientRect();
-      const offset = 4;
-      let left = event_rect.left;
-      let top = event_rect.top;
+    _updateHoverBox(/** @type string */ hoverText, /** @type Event */ event) {
+      const event_rect = event.target?.getBoundingClientRect();
+      if (event_rect) {
+        const offset = 4;
+        let left = event_rect.left;
+        let top = event_rect.top;
 
-      clearTimeout(this.hover_timeout);
-      this.hover_timeout = setTimeout(() => {
-        if (this.hoverBox) {
-          this.hoverBox.style.display = 'none';
-          this.hoverBox.innerHTML = hoverText;
+        clearTimeout(this.hover_timeout);
+        this.hover_timeout = setTimeout(() => {
+          if (this.hoverBox) {
+            this.hoverBox.style.display = 'none';
+            this.hoverBox.innerHTML = hoverText;
 
-          this.hoverBox.style.display = 'block'
-          const boxRect = this.hoverBox.getBoundingClientRect();
+            this.hoverBox.style.display = 'block'
+            const boxRect = this.hoverBox.getBoundingClientRect();
 
-          if (left + boxRect.width > window.innerWidth) {
-            left = window.innerWidth - boxRect.width - 10;
+            if (left + boxRect.width > window.innerWidth) {
+              left = window.innerWidth - boxRect.width - 10;
+            }
+
+            this.hoverBox.style.left = left + 'px';
+
+            top = top - boxRect.height - offset;
+
+            if (top < 0)
+              top = 0;
+
+            this.hoverBox.style.top = top + 'px';
           }
-
-          this.hoverBox.style.left = left + 'px';
-
-          top = top - boxRect.height - offset;
-
-          if (top < 0)
-            top = 0;
-
-          this.hoverBox.style.top = top + 'px';
-        }
-      },
-        200);
+        },
+          200);
+      }
     }
 
     _redraw() {

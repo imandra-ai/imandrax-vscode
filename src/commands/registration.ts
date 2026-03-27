@@ -1,6 +1,6 @@
 import * as implementations from './implementations';
 
-import { commands, ExtensionContext, languages, TextDocumentShowOptions, Uri, ViewColumn, window, workspace, FileType, FileSystemError, CodeLens, Position } from 'vscode';
+import { commands, ExtensionContext, languages, TextDocumentShowOptions, Uri, ViewColumn, window, workspace, FileType, FileSystemError, CodeLens } from 'vscode';
 import { ImandraXLanguageClient } from '../imandrax_language_client/imandrax_language_client';
 import { GoalStateEditorProvider } from '../goal-state/editor_provider';
 import { FileChangeType } from 'vscode-languageclient';

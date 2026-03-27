@@ -11,7 +11,8 @@ import {
   ExtensionMode,
   Uri,
   window,
-  workspace
+  workspace,
+  OutputChannel
 } from "vscode";
 
 import {
@@ -45,7 +46,13 @@ export async function activate(context: ExtensionContext) {
       await languageClientWrapper_.update_configuration(context.extensionUri, event);
     });
 
-    await languageClientWrapper_.start({ extensionUri: context.extensionUri });
+    if (context.extensionMode != ExtensionMode.Production) {
+      const trace_channel : OutputChannel = window.createOutputChannel("ImandraX Trace")
+      context.subscriptions.push(trace_channel);
+      await languageClientWrapper_.start(context, trace_channel);
+    }
+    else
+      await languageClientWrapper_.start(context);
 
     if (context.extensionMode === ExtensionMode.Test || context.extensionMode === undefined) {
       (global as any).testLanguageClientWrapper = languageClientWrapper_;

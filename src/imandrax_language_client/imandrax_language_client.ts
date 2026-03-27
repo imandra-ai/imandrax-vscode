@@ -4,8 +4,8 @@ import * as vfsProvider from '../vfs_provider';
 import * as configuration from './configuration';
 import * as test_output_channel from './test_output_channel';
 
-import { ConfigurationChangeEvent, ExtensionContext, ExtensionMode, Uri, window, workspace, WorkspaceConfiguration, FileChangeType } from 'vscode';
-import { Executable, LanguageClient, LanguageClientOptions, TransportKind } from 'vscode-languageclient/node';
+import { ConfigurationChangeEvent, ExtensionContext, ExtensionMode, Uri, window, workspace, WorkspaceConfiguration, FileChangeType, OutputChannel } from 'vscode';
+import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-languageclient/node';
 
 export * as configuration from './configuration';
 
@@ -21,6 +21,7 @@ export class ImandraXLanguageClient {
   private restartCount = 0;
   private isInitial = () => { return this.client === undefined; };
   private readonly getConfig: () => configuration.ImandraXLanguageClientConfiguration;
+  private clientOptions: LanguageClientOptions | undefined;
 
   getRestartCount(context: ExtensionContext) {
     if (context?.extensionMode === ExtensionMode.Test) {
@@ -42,7 +43,7 @@ export class ImandraXLanguageClient {
   }
 
   // Start language server
-  async start(params: { extensionUri: Uri }): Promise<void> {
+  async start(params: { extensionUri: Uri }, traceOutputChannel?: OutputChannel): Promise<void> {
     const config = this.getConfig();
 
     if (!configuration.isFoundPath(config)) {
@@ -59,11 +60,10 @@ export class ImandraXLanguageClient {
       command: config.binPathAvailability.path,
       args: config.serverArgs,
       options: { env: config.mergedEnv }
-      // transport: TransportKind.stdio
     };
 
     // Options to control the language client
-    const clientOptions: LanguageClientOptions = {
+    this.clientOptions = {
       // Register the server for plain text documents
       documentSelector: [{ scheme: "file", language: "imandrax" }],
       stdioEncoding: "utf-8",
@@ -73,19 +73,18 @@ export class ImandraXLanguageClient {
       synchronize: {
         fileEvents: workspace.createFileSystemWatcher("**/*.iml")
       },
-      traceOutputChannel: window.createOutputChannel("imandrax-trace")
+      traceOutputChannel
     };
 
-    if (config.outputToConsole) {
-      clientOptions.outputChannel = new test_output_channel.TestOutputChannel();
-    }
+    if (config.outputToConsole)
+      this.clientOptions.outputChannel = new test_output_channel.TestOutputChannel();
 
     // Create the language client and start the client.
     this.client = new LanguageClient(
       "imandrax_lsp",
       "ImandraX LSP",
       serverOptions,
-      clientOptions
+      this.clientOptions
     );
 
     const { extensionUri } = params;
@@ -96,7 +95,7 @@ export class ImandraXLanguageClient {
       this.client.onRequest("$imandrax/copy-model",
         (params) => { commands.copy_model(params); });
       this.client.onRequest("$imandrax/visualize-decomp",
-        (params) => { commands.visualize_decomp(extensionUri, params); });
+        async (params) => { await commands.visualize_decomp(extensionUri, params); });
       this.client.onNotification("$imandrax/vfs-file-changed",
         (params) => {
           const uri = Uri.parse(params.uri);
@@ -127,7 +126,7 @@ export class ImandraXLanguageClient {
       // todo seb or christoph: sleeping is a hack, replace it with something that's not a hack
       await new Promise(resolve => setTimeout(resolve, 500));
     }
-    return this.start({ extensionUri: params.extensionUri });
+    return this.start({ extensionUri: params.extensionUri }, this.clientOptions?.traceOutputChannel);
   }
 
   deactivate(): Thenable<void> | undefined {

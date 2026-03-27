@@ -221,14 +221,20 @@
     "keybindings": [
       {
         "command": "imandrax.goal-state.simplify",
-        "key": "ctrl-s",
-        "mac": "cmd-s",
+        "key": "shift-s",
+        "mac": "shift-s",
+        "when": "activeCustomEditorId == 'imandrax.GoalState'"
+      },
+      {
+        "command": "imandrax.goal-state.auto",
+        "key": "shift-a",
+        "mac": "shift-a",
         "when": "activeCustomEditorId == 'imandrax.GoalState'"
       },
       {
         "command": "imandrax.check-closest",
-        "key": "ctrl-c ctrl-c",
-        "mac": "cmd-c cmd-c",
+        "key": "ctrl-d ctrl-c",
+        "mac": "cmd-d cmd-c",
         "when": "editorLangId == imandrax"
       }
     ],

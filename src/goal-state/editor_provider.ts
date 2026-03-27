@@ -1,7 +1,5 @@
 import {
   CancellationToken,
-  CustomDocumentBackup,
-  CustomDocumentBackupContext,
   CustomDocumentEditEvent,
   CustomReadonlyEditorProvider,
   EventEmitter,
@@ -14,6 +12,8 @@ import {
   workspace,
 } from "vscode";
 
+import { disposeAll } from './dispose';
+import { cancellable } from './cancellation';
 import { GoalStateDocument } from "./document";
 import * as EditorMessages from "./editor_messages";
 
@@ -49,9 +49,9 @@ export class GoalStateEditorProvider implements CustomReadonlyEditorProvider<Goa
   async openCustomDocument(
     uri: Uri,
     openContext: { backupId?: string },
-    _token: CancellationToken
+    cancelToken: CancellationToken
   ): Promise<GoalStateDocument> {
-    const document: GoalStateDocument = await GoalStateDocument.create(uri, openContext.backupId, {
+    return cancellable(GoalStateDocument.create(uri, openContext.backupId, {
       getFileData: async () => {
         if (GoalStateEditorProvider.activePanel) {
           // Get stuff from the panel, e.g. to save it to disk.
@@ -60,65 +60,54 @@ export class GoalStateEditorProvider implements CustomReadonlyEditorProvider<Goa
         else
           throw new Error("No webview panel");
       }
-    });
+    }).then(document => {
+      const listeners: Disposable[] = [];
 
-    const listeners: Disposable[] = [];
-
-    listeners.push(document.onDidChange(e => {
-      // Tell VS Code that the document has been edited by the user.
-      this._onDidChangeCustomDocument.fire({
-        document,
-        ...e,
-      });
-    }));
-
-    listeners.push(document.onDidChangeDocument(e => {
-      // Update all webviews when the document content changes
-      if (GoalStateEditorProvider.activePanel ) {
-        this.postMessage(GoalStateEditorProvider.activePanel, "update", {
-          content: e.content,
+      listeners.push(document.onDidChange(e => {
+        // Tell VS Code that the document has been edited by the user.
+        this._onDidChangeCustomDocument.fire({
+          document,
+          ...e,
         });
-      }
-    }));
+      }));
 
-    document.onDidDispose(() => { /* TODO */ });
+      listeners.push(document.onDidChangeDocument(e => {
+        // Update all webviews when the document content changes
+        if (GoalStateEditorProvider.activePanel) {
+          this.postMessage(GoalStateEditorProvider.activePanel, {
+            type: "update",
+            body: { content: e.content },
+          });
+        }
+      }));
 
-    return document;
+      document.onDidDispose(() => {
+        disposeAll(listeners);
+      });
+
+      return document;
+    }), cancelToken);
   }
 
-  public async resolveCustomEditor(
+  public resolveCustomEditor(
     document: GoalStateDocument,
     webviewPanel: WebviewPanel,
-    _token: CancellationToken
-  ): Promise<void> {
-    webviewPanel.webview.options = {
-      enableScripts: true,
-      enableCommandUris: true,
-    };
-    webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
-    webviewPanel.webview.onDidReceiveMessage(async (msg: EditorMessages.Message) => await this.onMessage(document, msg));
-    GoalStateEditorProvider.activePanel = webviewPanel;
-    GoalStateEditorProvider.activeDocument = document;
+    cancelToken: CancellationToken
+  ): void {
+    if (!cancelToken.isCancellationRequested) {
+      webviewPanel.webview.options = {
+        enableScripts: true,
+        enableCommandUris: true,
+      };
+      webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
+      webviewPanel.webview.onDidReceiveMessage(async (msg: EditorMessages.Incoming) => await this.onMessage(document, msg));
+      GoalStateEditorProvider.activePanel = webviewPanel;
+      GoalStateEditorProvider.activeDocument = document;
+    }
   }
 
   private readonly _onDidChangeCustomDocument = new EventEmitter<CustomDocumentEditEvent<GoalStateDocument>>();
   public readonly onDidChangeCustomDocument = this._onDidChangeCustomDocument.event;
-
-  public saveCustomDocument(document: GoalStateDocument, cancellation: CancellationToken): Thenable<void> {
-    return document.save(cancellation);
-  }
-
-  public saveCustomDocumentAs(document: GoalStateDocument, destination: Uri, cancellation: CancellationToken): Thenable<void> {
-    return document.saveAs(destination, cancellation);
-  }
-
-  public revertCustomDocument(document: GoalStateDocument, cancellation: CancellationToken): Thenable<void> {
-    return document.revert(cancellation);
-  }
-
-  public backupCustomDocument(document: GoalStateDocument, context: CustomDocumentBackupContext, cancellation: CancellationToken): Thenable<CustomDocumentBackup> {
-    return document.backup(context.destination, cancellation);
-  }
 
   private getHtmlForWebview(webview: Webview): string {
     const exturi = this._context.extensionUri;
@@ -176,25 +165,31 @@ export class GoalStateEditorProvider implements CustomReadonlyEditorProvider<Goa
 			</html>`;
   }
 
-  private postMessage(panel: WebviewPanel, type: string, body: any): void {
-    panel.webview.postMessage({ type, body });
+  private postMessage(panel: WebviewPanel, msg: EditorMessages.Outgoing): void {
+    panel.webview.postMessage(msg);
   }
 
-  private async onMessage(document: GoalStateDocument, msg: EditorMessages.Message) {
+  private async onMessage(document: GoalStateDocument, msg: EditorMessages.Incoming) {
     console.log(`onMessage: ${JSON.stringify(msg)}`)
 
     switch (msg.command) {
       case "ready":
         if (GoalStateEditorProvider.activePanel) {
           if (document.uri.scheme === "untitled") {
-            this.postMessage(GoalStateEditorProvider.activePanel, "init", {
-              untitled: true,
-              editable: true
+            this.postMessage(GoalStateEditorProvider.activePanel, {
+              type: "init",
+              body: {
+                untitled: true,
+                editable: true,
+              }
             });
           } else {
-            this.postMessage(GoalStateEditorProvider.activePanel, "init", {
-              value: document.documentData,
-              editable: workspace.fs.isWritableFileSystem(document.uri.scheme)
+            this.postMessage(GoalStateEditorProvider.activePanel, {
+              type: "init",
+              body: {
+                value: document.documentData,
+                editable: workspace.fs.isWritableFileSystem(document.uri.scheme)
+              }
             });
           }
         }

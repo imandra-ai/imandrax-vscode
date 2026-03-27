@@ -1,5 +1,4 @@
 import * as Path from 'path';
-import { listenerCount } from 'process';
 
 import { commands, env, Range, TerminalOptions, Uri, ViewColumn, window, workspace } from 'vscode';
 import { LanguageClient } from 'vscode-languageclient/node';
@@ -29,8 +28,8 @@ export function create_terminal(cwd: string | undefined) {
 export function interact_model(params: Record<string, any>) {
   const config = workspace.getConfiguration("imandrax");
 
-  const uri = Uri.parse(params.uri);
-  const models = params.models;
+  const uri = Uri.parse(params.uri as string);
+  const models: string[] = params.models as string[];
 
   const wsf = workspace.getWorkspaceFolder(uri);
 
@@ -51,20 +50,21 @@ export function interact_model(params: Record<string, any>) {
 
   const t = create_terminal(cwd);
 
-  models.forEach((model_mod_name: string) => {
+  models.forEach((model_src: string) => {
     if (config.terminal.freshModelModules) {
-      model_mod_name = model_mod_name.replace("module M", "module M" + (model_count++).toString());
+      model_src = model_src.replace("module M =", "module M" + (model_count++).toString() + " =");
     }
+    model_src = model_src.replace("= struct", "= struct "); // Avoids errors with empty models
     t.sendText(`[@@@import ${file_mod_name}, "${filename}"];;\n`);
     t.sendText(`open ${file_mod_name};;\n`);
-    t.sendText(model_mod_name + ";;\n");
+    t.sendText(model_src + ";;\n");
   });
 
   t.show();
 }
 
 export function copy_model(params: Record<string, any>) {
-  const models = params.models;
+  const models : string[] = params.models as string[];
   let str = "";
   models.join();
   models.forEach((m: string) => {
@@ -79,17 +79,17 @@ interface Decomp {
   num_regions: number // Number of regions
 }
 
-function num_bytes_to_string (num : number) : string {
-    const units = ["Bytes", "KB", "MB", "GB", "TB" ];
-    let n = num;
-    let i = 0
-    for (; i < units.length; i++) {
-      if (n > 1024)
-        n /= 1024;
-      else
-        break;
-    }
-    return `${n.toFixed(0)} ${units[i]}`;
+function num_bytes_to_string(num: number): string {
+  const units = ["Bytes", "KB", "MB", "GB", "TB"];
+  let n = num;
+  let i = 0
+  for (; i < units.length; i++) {
+    if (n > 1024)
+      n /= 1024;
+    else
+      break;
+  }
+  return `${n.toFixed(0)} ${units[i]}`;
 }
 
 export async function visualize_decomp(extensionUri: Uri, params: { decomps: Decomp[] }) {
@@ -201,7 +201,7 @@ export function browse(uri: string): Thenable<boolean> | undefined {
   if (config.useSimpleBrowser) {
     return commands.executeCommand("simpleBrowser.api.open", uri);
   } else {
-    return env.openExternal(uri as any);
+    return env.openExternal(Uri.parse(uri));
   }
 }
 
