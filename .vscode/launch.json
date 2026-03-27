@@ -11,6 +11,9 @@
         "--extensionDevelopmentPath=${workspaceRoot}",
         "--disable-extensions"
       ],
+      "env": {
+        "VSCODE_DEBUG_MODE": "true"
+      },
       "outFiles": [
         "${workspaceRoot}/src/out/**/*.js",
         "${workspaceRoot}/out/**/*.js"

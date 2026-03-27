@@ -18,6 +18,7 @@ import {
 import { Disposable } from './dispose';
 import * as IX from "./imandrax_types"
 import * as GSC from "./state-converter";
+import { getConfig } from "../config";
 
 function exc2string(e: unknown): string {
   if (e instanceof Error) {
@@ -106,7 +107,7 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
           console.warn(`Unexpected goal state data format version: ${gsd.format_version}`);
 
         const gsc = new GSC.Converter(this._num_columns, signal);
-        const config = workspace.getConfiguration("imandrax");
+        const config = getConfig();
         const opts = new GSC.Options(is_bool_true(config.showProvenGoals), is_bool_true(config.showUnattemptedGoals));
         const [d, md] = await gsc.to_html(gsd, opts);
         this._documentData = d;

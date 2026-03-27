@@ -2,13 +2,14 @@ import * as Path from 'path';
 
 import { commands, env, Range, TerminalOptions, Uri, ViewColumn, window, workspace } from 'vscode';
 import { LanguageClient } from 'vscode-languageclient/node';
+import { getConfig } from '../config';
 
 let next_terminal_id = 0;
 let model_count = 0;
 export let showFullIds = false;
 
 export function create_terminal(cwd: string | undefined) {
-  const config = workspace.getConfiguration("imandrax");
+  const config = getConfig();
 
   let name = "ImandraX";
   if (next_terminal_id++ > 0) {
@@ -25,11 +26,16 @@ export function create_terminal(cwd: string | undefined) {
   return t;
 }
 
-export function interact_model(params: Record<string, any>) {
-  const config = workspace.getConfiguration("imandrax");
+interface Models {
+  uri: string;
+  models: string[];
+}
 
-  const uri = Uri.parse(params.uri as string);
-  const models: string[] = params.models as string[];
+export function interact_model(params: Models) {
+  const config = getConfig();
+
+  const uri = Uri.parse(params.uri);
+  const models = params.models;
 
   const wsf = workspace.getWorkspaceFolder(uri);
 
@@ -51,10 +57,10 @@ export function interact_model(params: Record<string, any>) {
   const t = create_terminal(cwd);
 
   models.forEach((model_src: string) => {
+    model_src = model_src.replaceAll("\n", " \n"); // Avoids errors with empty models
     if (config.terminal.freshModelModules) {
       model_src = model_src.replace("module M =", "module M" + (model_count++).toString() + " =");
     }
-    model_src = model_src.replace("= struct", "= struct "); // Avoids errors with empty models
     t.sendText(`[@@@import ${file_mod_name}, "${filename}"];;\n`);
     t.sendText(`open ${file_mod_name};;\n`);
     t.sendText(model_src + ";;\n");
@@ -63,12 +69,12 @@ export function interact_model(params: Record<string, any>) {
   t.show();
 }
 
-export function copy_model(params: Record<string, any>) {
-  const models : string[] = params.models as string[];
+export function copy_model(params: Models) {
+  const models = params.models;
   let str = "";
   models.join();
   models.forEach((m: string) => {
-    str += m;
+    str += "\n" + m.replaceAll("\n\n", "\n");
   });
   env.clipboard.writeText(str);
 }
@@ -93,7 +99,7 @@ function num_bytes_to_string(num: number): string {
 }
 
 export async function visualize_decomp(extensionUri: Uri, params: { decomps: Decomp[] }) {
-  const config = workspace.getConfiguration("imandrax");
+  const config = getConfig();
 
   const decomps = params.decomps;
 
@@ -197,7 +203,7 @@ export async function checkAll(getClient: () => LanguageClient) {
 }
 
 export function browse(uri: string): Thenable<boolean> | undefined {
-  const config = workspace.getConfiguration("imandrax");
+  const config = getConfig();
   if (config.useSimpleBrowser) {
     return commands.executeCommand("simpleBrowser.api.open", uri);
   } else {

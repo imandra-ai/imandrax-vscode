@@ -8,6 +8,7 @@ import { ConfigurationChangeEvent, ExtensionContext, ExtensionMode, Uri, window,
 import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-languageclient/node';
 
 export * as configuration from './configuration';
+import { getConfig } from '../config';
 
 const MAX_RESTARTS = 10;
 
@@ -150,13 +151,12 @@ export class ImandraXLanguageClient {
       }
 
       if (client?.isRunning()) {
-        const config: WorkspaceConfiguration = workspace.getConfiguration("imandrax");
+        const config = getConfig();
         return client.sendNotification("workspace/didChangeConfiguration", {
           "settings":
           {
             "show-full-ids": commands.showFullIds,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-            "goal-state-show-proven": config.lsp.showProvenGoals
+            "goal-state-show-proven": config.showProvenGoals
           }
         });
       }

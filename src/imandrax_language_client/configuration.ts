@@ -4,9 +4,10 @@ import {
   ExtensionMode,
 } from "vscode";
 
+import { getConfig } from "../config";
+
 import {
-  env,
-  workspace
+  env
 } from "vscode";
 
 interface PlatformConfiguration {
@@ -72,7 +73,7 @@ function getPlatformConfiguration(): PlatformConfiguration {
 }
 
 export function get(context : ExtensionContext): ImandraXLanguageClientConfiguration | FoundPathConfig {
-  const config = workspace.getConfiguration("imandrax");
+  const config = getConfig();
   const binary = config.lsp.binary;
   const serverArgs = config.lsp.arguments;
   const serverEnv = config.lsp.environment;

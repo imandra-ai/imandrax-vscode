@@ -17,6 +17,8 @@ import { cancellable } from './cancellation';
 import { GoalStateDocument } from "./document";
 import * as EditorMessages from "./editor_messages";
 
+const inDebugMode = process.env.VSCODE_DEBUG_MODE === 'true';
+
 function getNonce() {
   let text = "";
   const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -170,7 +172,8 @@ export class GoalStateEditorProvider implements CustomReadonlyEditorProvider<Goa
   }
 
   private async onMessage(document: GoalStateDocument, msg: EditorMessages.Incoming) {
-    console.log(`onMessage: ${JSON.stringify(msg)}`)
+    if (inDebugMode)
+      console.log(`onMessage: ${JSON.stringify(msg)}`)
 
     switch (msg.command) {
       case "ready":

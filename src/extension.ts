@@ -21,13 +21,13 @@ import {
 
 
 export async function activate(context: ExtensionContext) {
-  const getConfig = () => {
+  const getClientConfig = () => {
     return imandraxLanguageClient.configuration.get(context);
   };
-  const languageClientConfig = getConfig();
+  const languageClientConfig = getClientConfig();
 
   if (imandraxLanguageClient.configuration.isFoundPath(languageClientConfig)) {
-    const languageClientWrapper_ = new imandraxLanguageClient.ImandraXLanguageClient(getConfig);
+    const languageClientWrapper_ = new imandraxLanguageClient.ImandraXLanguageClient(getClientConfig);
     const getClient: () => LanguageClient = () => { return languageClientWrapper_.getClient(); };
 
     formatter.register();

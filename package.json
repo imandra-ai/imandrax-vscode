@@ -40,22 +40,11 @@
       "type": "object",
       "title": "ImandraX configuration",
       "properties": {
-        "imandrax.trace.server": {
-          "scope": "window",
-          "type": "string",
-          "enum": [
-            "off",
-            "messages",
-            "verbose"
-          ],
-          "default": "off",
-          "description": "Traces the communication between VS Code and the language server"
-        },
         "imandrax.debugMode": {
           "scope": "window",
           "type": "boolean",
           "default": false,
-          "description": "Enables running some commands directly from the Command Palette"
+          "description": "Enables running some debugging commands directly from the Command Palette"
         },
         "imandrax.lsp.binary": {
           "scope": "machine-overridable",
