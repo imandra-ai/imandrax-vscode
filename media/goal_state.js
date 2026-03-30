@@ -143,7 +143,7 @@
       }
     }
 
-    _setupClickHandlers() {
+    _setupEventHandlers() {
       document.querySelectorAll('.jump-to').forEach(a => {
         a.addEventListener('click', (e) => {
           e.preventDefault();
@@ -176,6 +176,30 @@
             else
               this._lockFocus(anchor, a)
             window.scrollTo({ top: a.offsetTop, left: 0, behavior: 'smooth' });
+          }
+        });
+      });
+      document.querySelectorAll('.identifier').forEach(a => {
+        a.addEventListener('mouseenter', (e) => {
+          if (e.ctrlKey)
+            a.style.textDecoration = 'underline';
+        });
+        a.addEventListener('keydown', (e) => {
+          if (e.ctrlKey)
+            a.style.textDecoration = 'underline';
+        });
+        a.addEventListener('mouseleave', (e) => {
+          a.style.textDecoration = 'none';
+        });
+        a.addEventListener('click', (e) => {
+          if (e.ctrlKey) {
+            e.preventDefault();
+            const name = a.getAttribute('name');
+            if (name)
+              vscode.postMessage({
+                command: 'jump-to-declaration',
+                arguments: {name: name}
+              });
           }
         });
       });
@@ -225,7 +249,7 @@
       if (this.hoverBox)
         this.hoverBox.style.display = 'none';
       this._setupHoverHandlers();
-      this._setupClickHandlers();
+      this._setupEventHandlers();
       this.focusLockAnchor = vscode.getState()?.lockFocusAnchor;
       this._lockFocus(this.focusLockAnchor, undefined);
       this.ready = true;

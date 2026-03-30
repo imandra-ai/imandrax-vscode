@@ -1,13 +1,15 @@
 import * as implementations from './implementations';
 
-import { commands, ExtensionContext, languages, TextDocumentShowOptions, Uri, ViewColumn, window, workspace, FileType, FileSystemError, CodeLens } from 'vscode';
+import { commands, ExtensionContext, languages, TextDocumentShowOptions, Uri, ViewColumn, window, workspace, FileType, FileSystemError, CodeLens, LanguageClient } from 'vscode';
 import { ImandraXLanguageClient } from '../imandrax_language_client/imandrax_language_client';
 import { GoalStateEditorProvider } from '../goal-state/editor_provider';
 import { FileChangeType } from 'vscode-languageclient';
 import { register as goal_state_register } from '../goal-state/commands';
 
+export let getClient: (() => LanguageClient) | undefined = undefined;
+
 export function register(context: ExtensionContext, imandraxLanguageClient: ImandraXLanguageClient) {
-  const getClient = () => { return imandraxLanguageClient.getClient(); };
+  getClient = () => { return imandraxLanguageClient.getClient(); };
 
   const restart_cmd = "imandrax.restart_language_server";
   const restart_handler = async () => {

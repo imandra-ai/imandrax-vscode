@@ -214,6 +214,10 @@ export class GoalStateEditorProvider implements CustomReadonlyEditorProvider<Goa
         await document.resize(msg.arguments.width, msg.arguments.font_size);
         break;
       }
+      case "jump-to-declaration": {
+        await document.jump_to_declaration(msg.arguments.name);
+        break;
+      }
     }
   }
 }

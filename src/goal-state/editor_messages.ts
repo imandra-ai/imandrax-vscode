@@ -1,3 +1,4 @@
+import { StringSupportOption } from 'prettier';
 import { TextDocumentShowOptions, Uri } from "vscode";
 
 export interface ReadyMessage {
@@ -10,6 +11,13 @@ export interface JumpToMessage {
     uri: Uri;
     options: TextDocumentShowOptions;
     location: { from: { line: number, column: number }; to: { line: number, column: number } };
+  };
+}
+
+export interface JumpToDeclarationMessage {
+  command: "jump-to-declaration";
+  arguments: {
+    name: string;
   };
 }
 
@@ -36,7 +44,7 @@ export interface ResizeMessage {
   }
 }
 
-export type Incoming = ReadyMessage | JumpToMessage | ExpandMessage | FocusLockOntoMessage | ResizeMessage;
+export type Incoming = ReadyMessage | JumpToMessage | JumpToDeclarationMessage | ExpandMessage | FocusLockOntoMessage | ResizeMessage;
 
 export interface InitMessage {
   type: "init";

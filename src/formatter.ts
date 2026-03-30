@@ -1,4 +1,4 @@
-import { languages, Range, TextDocument, TextEdit, workspace } from 'vscode';
+import { languages, Range, TextDocument, TextEdit } from 'vscode';
 
 import * as prettier from 'prettier';
 import * as iml_prettier from '../imlformat/iml-prettier';

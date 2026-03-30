@@ -366,6 +366,10 @@ function hvaluedef(w: string): string {
   return `<span class='value-definition'>${sanitize(w)}</span>`;
 }
 
+function hid(w: string, id: string): string {
+  return `<span class='identifier' name='${id}'>${w}</span>`;
+}
+
 function vconstant(w: string): VisString {
   return new VisString(`<span class='constant'>${sanitize(w)}</span>`, w.length);
 }
@@ -404,7 +408,7 @@ class TermFormatter {
     const op_info = IXO.operator_info(sid);
     const op_name = op_info.name == "" ? sid : op_info.name;
 
-    return vtext(span(op_name, hover), op_name.length);
+    return vtext(span(hid(op_name, s.id), hover), op_name.length);
   }
 
   const2doc(c: IXT.Constant, type: string, hover_enabled: boolean): Doc {

@@ -12,13 +12,19 @@ import {
   Range,
   Selection,
   commands,
-  CodeLens
+  CodeLens,
+  SymbolInformation,
+  SymbolKind,
+  TextEditorRevealType
 } from 'vscode';
 
+import { LanguageClient } from 'vscode-languageclient/node';
+
+import { getConfig } from "../config";
+import { getClient } from '../commands/registration';
 import { Disposable } from './dispose';
 import * as IX from "./imandrax_types"
 import * as GSC from "./state-converter";
-import { getConfig } from "../config";
 
 function exc2string(e: unknown): string {
   if (e instanceof Error) {
@@ -265,5 +271,38 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
     this._abort_controller?.abort();
     this._abort_controller = new AbortController();
     await this.update_data(this._goalStateData, this._abort_controller.signal);
+  }
+
+  async jump_to_declaration(symbol: string): Promise<void> {
+    if (getClient) {
+      const client: LanguageClient = getClient();
+      const symbols: SymbolInformation[] = await client.sendRequest("workspace/symbol", { "query": symbol });
+      console.log(JSON.stringify(symbols));
+
+      let sym_to_show;
+      if (symbols.length > 0) {
+        if (symbols.length > 1) {
+          const picks = symbols.map(s => ({
+            label: `$(symbol-${SymbolKind[s.kind].toLowerCase()}) ${s.name}`,
+            description: s.containerName,
+            detail: workspace.asRelativePath(s.location.uri),
+            symbol: s
+          }));
+          const picked = await window.showQuickPick(picks);
+          sym_to_show = picked?.symbol;
+        }
+        else
+          sym_to_show = symbols[0]
+
+        if (sym_to_show) {
+          const { uri, range } = sym_to_show.location;
+          const doc = await workspace.openTextDocument(Uri.parse(uri as unknown as string));
+          const editor = await window.showTextDocument(doc, ViewColumn.One);
+
+          editor.selection = new Selection(range.start, range.end);
+          editor.revealRange(range, TextEditorRevealType.InCenter);
+        }
+      }
+    }
   }
 }
