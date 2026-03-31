@@ -34,6 +34,7 @@ jobs:
           path: imandrax-*.vsix
 
   test:
+    name: "Test"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -46,7 +47,11 @@ jobs:
         run: npm i --with-dev
 
       - name: "Run unit tests"
-        run: npx jest
+        env:
+          NODE_OPTIONS: --experimental-vm-modules
+        run: |
+          npx jest --config imlformat/jest.config.ts
+          npx jest --config src/goal-state/jest.config.ts
 
       - name: "Install ImandraX"
         run: |
@@ -59,6 +64,7 @@ jobs:
         run: xvfb-run -a npm run test-clean
 
   publish:
+    name: "Publish"
     runs-on: ubuntu-latest
     permissions:
       contents: write

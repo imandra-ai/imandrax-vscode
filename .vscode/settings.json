@@ -13,14 +13,12 @@
     {
       "name": "IML Formatting Tests",
       "runMode": "on-demand",
-      "rootPath": "imlformat",
-      "jestCommandLine": "npx jest --config jest.config.ts",
+      "jestCommandLine": "npx jest --config imlformat/jest.config.ts",
     },
     {
       "name": "Goal State Tests",
       "runMode": "on-demand",
-      "rootPath": "src/goal-state",
-      "jestCommandLine": "npx jest --config jest.config.ts",
+      "jestCommandLine": "npx jest --config src/goal-state/jest.config.ts",
     },
   ],
 }
