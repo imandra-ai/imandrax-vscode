@@ -390,11 +390,14 @@ class TermFormatter {
   private _abort_signal: AbortSignal | undefined;
   private _width: number;
   private _po: IXT.ProofObligation | undefined;
+  private _with_turnstile  = false;
 
-  constructor(width: number, po?: IXT.ProofObligation, abort_signal?: AbortSignal) {
+  constructor(width: number, po?: IXT.ProofObligation, abort_signal?: AbortSignal, with_turnstile?: boolean) {
     this._width = width;
     this._po = po;
     this._abort_signal = abort_signal;
+    if (with_turnstile !== undefined)
+      this._with_turnstile = with_turnstile;
   }
 
   sym2doc(s: IXT.AppliedSymbol, definition?: string, hover_enabled = true): Doc {
@@ -600,7 +603,10 @@ class TermFormatter {
   prettify(t: IXT.Term): string {
     this._abort_signal?.throwIfAborted();
 
-    return pretty(this._width, this.term2doc(t));
+    let doc : Doc = this.term2doc(t);
+    if (this._with_turnstile)
+      doc = g([kw("&#x22A2;"), indent([line, doc])]);
+    return pretty(this._width, doc);
   }
 }
 
@@ -608,9 +614,9 @@ class TermFormatter {
  * Pretty-print term `t` with `width` line size, with an optional `po` for context
  * (e.g. to look up definitions of lambdas).
  */
-export function prettify(width: number, t: IXT.Term, po?: IXT.ProofObligation, abort_signal?: AbortSignal): string {
+export function prettify(width: number, t: IXT.Term, po?: IXT.ProofObligation, abort_signal?: AbortSignal, with_turnstile?: boolean): string {
   try {
-    return new TermFormatter(width, po, abort_signal).prettify(t);
+    return new TermFormatter(width, po, abort_signal, with_turnstile).prettify(t);
   }
   catch (e) {
     console.log(e);

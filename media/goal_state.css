@@ -131,10 +131,18 @@ h2 {
   user-select: text;
 }
 
-.turnstile {
-  color: #859900;
-}
-
 .hash {
   opacity: 50%;
+}
+
+.invisible {
+  display: none;
+}
+
+.turnstile {
+  width: 3em;
+  height: 1em;
+  stroke: #859900;
+  stroke-width: 1px;
+  margin-left: -0.25em;
 }

@@ -42,13 +42,14 @@ export class Converter {
   }
 
   turnstile(): string {
-    return "<div class='turnstile'>|---</div>";
+    // return "<div class='turnstile'>|---</div>";
+    return "<svg class='turnstile' viewbox='0 0 60 20'><use href='#turnstile-svg'/></svg>"
   }
 
-  async term2html(t: IX.Term, ctx: Context): Promise<string> {
+  async term2html(t: IX.Term, ctx: Context, with_turnstile?: boolean): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
-    const fmttd: string = TermFormatter.prettify(this._num_columns, t, ctx.po);
+    const fmttd: string = TermFormatter.prettify(this._num_columns, t, ctx.po, this._abort_signal, with_turnstile);
     const r = fmttd
       .replaceAll("\t", "<span class='indent'></span>")
       .replaceAll("\n", "<br/>") +
@@ -56,24 +57,30 @@ export class Converter {
     return Promise.resolve(r);
   }
 
-  async namedTerm2html(h: IX.NamedTerm, ctx: Context): Promise<string> {
+  async namedTerm2html(h: IX.NamedTerm, ctx: Context, with_turnstile?: boolean): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
-    const trm = await this.term2html(h.term, ctx);
+    const trm = await this.term2html(h.term, ctx, with_turnstile);
     let r;
     if (h.name)
-      r = `<div class='code-like'>${h.name}: ${trm}</div>`;
+      r = `${h.name}: ${trm}</div>`;
     else
-      r = `<div class='code-like'>${trm}</div>`;
+      r = `${trm}</div>`;
+    r = "<div class='code-like'>" + r;
     return Promise.resolve(r);
   }
 
   async sequent2html(sg: IX.Sequent, ctx: Context): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
-    const hyps = await Promise.all(sg.hypotheses.map(async x => await this.namedTerm2html(x, ctx)));
-    const concls = await Promise.all(sg.conclusions.map(async x => this.namedTerm2html(x, ctx)));
-    return Promise.resolve(hyps.join("") + this.turnstile() + concls.join(""));
+    if (sg.hypotheses.length == 0 && sg.conclusions.length == 1)
+      return Promise.resolve(await this.namedTerm2html(sg.conclusions[0], ctx, true));
+    else {
+      const hyps = await Promise.all(sg.hypotheses.map(async x => await this.namedTerm2html(x, ctx)));
+      const concls = await Promise.all(sg.conclusions.map(async x => await this.namedTerm2html(x, ctx, false)));
+      return Promise.resolve(hyps.join("") + this.turnstile() + concls.join(""));
+    }
+
   }
 
   async subgoal2html(sg: IX.Sequent | string, ctx: Context): Promise<string> {
