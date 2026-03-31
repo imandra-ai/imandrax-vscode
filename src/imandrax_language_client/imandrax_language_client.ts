@@ -4,7 +4,7 @@ import * as vfsProvider from '../vfs_provider';
 import * as configuration from './configuration';
 import * as test_output_channel from './test_output_channel';
 
-import { ConfigurationChangeEvent, ExtensionContext, ExtensionMode, Uri, window, workspace, WorkspaceConfiguration, FileChangeType, OutputChannel } from 'vscode';
+import { ConfigurationChangeEvent, ExtensionContext, ExtensionMode, Uri, window, workspace, FileChangeType, OutputChannel } from 'vscode';
 import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-languageclient/node';
 
 export * as configuration from './configuration';
@@ -54,7 +54,7 @@ export class ImandraXLanguageClient {
 
     const was_initial = this.isInitial();
     if (was_initial) {
-      console.log("Starting ImandraX LSP server");
+      console.log("Starting ImandraX Language Server");
     }
 
     const serverOptions: Executable = {
@@ -113,7 +113,7 @@ export class ImandraXLanguageClient {
   async restart(params: RestartParams) {
     if (!this.isInitial()) {
       this.restartCount += 1;
-      console.log(`Restarting Imandrax LSP server (attempt ${this.restartCount})`);
+      console.log(`Restarting Imandrax Language Server (attempt ${this.restartCount})`);
 
       // Try to shut down gracefully.
       if (this.client?.isRunning()) {
