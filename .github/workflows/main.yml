@@ -9,6 +9,7 @@ on:
 
 jobs:
   build:
+    name: "Build"
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -32,35 +33,29 @@ jobs:
           name: artifacts.zip
           path: imandrax-*.vsix
 
-  unit-tests:
-    name: "Unit tests"
-    runs-on: ubuntu-latest
-    steps:
-      - name: "Install dependencies"
-        run: npm i --with-dev
-      - name: "Run tests"
-        run: npx jest
-
   test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: install node
+      - name: "Install node"
         uses: actions/setup-node@v4
 
-      - name: install deps
-        run: npm i
+      - name: "Install dependencies"
+        run: npm i --with-dev
 
-      - name: install imandrax
+      - name: "Run unit tests"
+        run: npx jest
+
+      - name: "Install ImandraX"
         run: |
           sh -c "$(curl -fsSL https://imandra.ai/get-imandrax.sh)" -- -y
           mkdir -p ~/.config/imandrax
           touch ~/.config/imandrax/api_key
           printf '%s' ${{ secrets.IU_API_KEY }} > ~/.config/imandrax/api_key
 
-      - name: test
+      - name: "Run integration tests"
         run: xvfb-run -a npm run test-clean
 
   publish:
