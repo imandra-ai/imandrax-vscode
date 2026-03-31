@@ -32,6 +32,15 @@ jobs:
           name: artifacts.zip
           path: imandrax-*.vsix
 
+  unit-tests:
+    name: "Unit tests"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Install dependencies"
+        run: npm i --with-dev
+      - name: "Run tests"
+        run: npx jest
+
   test:
     runs-on: ubuntu-latest
     steps:
