@@ -277,7 +277,6 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
     if (getClient) {
       const client: LanguageClient = getClient();
       const symbols: SymbolInformation[] = await client.sendRequest("workspace/symbol", { "query": symbol });
-      console.log(JSON.stringify(symbols));
 
       let sym_to_show;
       if (symbols.length > 0) {

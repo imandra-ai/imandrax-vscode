@@ -400,9 +400,14 @@ class TermFormatter {
   sym2doc(s: IXT.AppliedSymbol, definition?: string, hover_enabled = true): Doc {
     this._abort_signal?.throwIfAborted();
 
-    let hover: string | undefined = hover_enabled ? sanitize(hvaluedef(s.id)) + " : " + htype(sanitize(s.type)) : undefined;
-    if (hover_enabled && definition) hover += sanitize(definition);
     const sid = IXT.short_id(s.id);
+
+    let hover: string | undefined = undefined;
+    if (hover_enabled){
+      const hash = (s.id.length > sid.length) ? s.id.substring(sid.length) : "";
+      hover = hvaluedef(sid) + `<span class='hash'>${hash}</span> : ` + htype(sanitize(s.type));
+    }
+    if (hover_enabled && definition) hover += sanitize(definition);
 
     // Map operator names to their visual form if different, e.g. `iff` vs `<==>`
     const op_info = IXO.operator_info(sid);
@@ -444,8 +449,11 @@ class TermFormatter {
     const sts = (w: string, h?: string): string => { return hover_enabled ? span(w, h) : span(w) };
     const recwp = (parent_oi: IXO.OperatorInfo, x: IXT.Term, is_left?: boolean) => {
       const child_oi = IXO.operator_info_of_term(x);
-      const needs_par = IXO.needs_parentheses(parent_oi, child_oi, is_left) ||
-        (x.view.constructor == "Const" &&
+      const needs_par = IXO.needs_parentheses(parent_oi, child_oi, is_left, IXT.has_multiple_children(x)) ||
+        ( // Special case for rationals: they are treated as constants, but really are
+          // applications of `/.`, and we want to parenthesise them when they appear
+          // as subterms of an operator with greater precedence than `/.`
+          x.view.constructor == "Const" &&
           x.view.c.view.constructor == "Const_q" &&
           x.view.c.view.den != BigInt(1) &&
           parent_oi.precedence > IXO.operator_info("/.").precedence);
@@ -520,7 +528,7 @@ class TermFormatter {
         }
       case "Construct": {
         if (v.args.length == 0)
-          return text(IXT.short_id(v.c.id));
+          return this.sym2doc(v.c, undefined, hover_enabled);
         else {
           const op_doc = this.sym2doc(v.c, undefined, hover_enabled);
           const sid = IXT.short_id(v.c.id);
@@ -545,19 +553,19 @@ class TermFormatter {
         }
       }
       case "Destruct":
-        return parens(g([
+        return g([
           kw("destruct"),
           brackets(hcat([
             this.sym2doc(v.c, undefined, hover_enabled),
             text("|"),
             text(v.i.toString())])),
           line,
-          rec(v.t)]));
+          rec(v.t)]);
       case "Is_a": {
         return g([rec(v.t), line, kw("is_a"), indent([line, this.sym2doc(v.c, undefined, hover_enabled)])]);
       }
-      case "Tuple": return g([parens(indent([join(hcat([text(","), line]), v.l.map(rec))]))]);
-      case "Field": return g([rec(v.t), text("."), linebreak, text(IXT.short_id(v.f.id))]);
+      case "Tuple": return g([indent([join(hcat([text(","), line]), v.l.map(rec))])]);
+      case "Field": return g([rec(v.t), text("."), linebreak, this.sym2doc(v.f, undefined, hover_enabled)])
       case "Tuple_field": return g([rec(v.t), text("."), linebreak, text(v.i.toString())]);
       case "Record": {
         const hrows: Doc = join(hcat([text(";"), line]), v.rows.map(([sym, term]) =>
@@ -600,7 +608,7 @@ class TermFormatter {
  * Pretty-print term `t` with `width` line size, with an optional `po` for context
  * (e.g. to look up definitions of lambdas).
  */
-export function prettify(width: number, t: IXT.Term, po?: IXT.ProofObligation  , abort_signal?: AbortSignal): string {
+export function prettify(width: number, t: IXT.Term, po?: IXT.ProofObligation, abort_signal?: AbortSignal): string {
   try {
     return new TermFormatter(width, po, abort_signal).prettify(t);
   }

@@ -134,3 +134,7 @@ h2 {
 .turnstile {
   color: #859900;
 }
+
+.hash {
+  opacity: 50%;
+}

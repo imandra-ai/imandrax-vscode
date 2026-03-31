@@ -222,3 +222,24 @@ export function short_id(id: string): string {
     r = id.slice(0, slash_inx);
   return r;
 }
+
+export function has_multiple_children(x : Term): boolean {
+  const v = x.view;
+  switch (v.constructor) {
+   case "Const": return v.c.view.constructor == "Const_q" && v.c.view.den != BigInt(1);
+   case "If": return true;
+   case "Apply": return v.l.length > 0;
+   case "Var": return false;
+   case "Sym": return false;
+   case "Construct": return v.args.length > 0;
+   case "Destruct": return true;
+   case "Is_a": return true;
+   case "Tuple": return true;
+   case "Field": return false;
+   case "Tuple_field": return false;
+   case "Record": return false;
+   case "Case": return true;
+   case "Sequence": return true;
+    default: return false;
+  }
+}

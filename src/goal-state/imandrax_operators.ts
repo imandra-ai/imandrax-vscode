@@ -130,11 +130,12 @@ export function operator_info_of_term(t: IX.Term): OperatorInfo {
   }
 };
 
-export function needs_parentheses(parent_oi: OperatorInfo, child_oi: OperatorInfo, is_left?: boolean): boolean {
+export function needs_parentheses(parent_oi: OperatorInfo, child_oi: OperatorInfo, is_left?: boolean, child_has_multiple_children?: boolean): boolean {
   return (child_oi.name != "" && (parent_oi.precedence > child_oi.precedence ||
     (is_left !== undefined && child_oi.precedence == parent_oi.precedence) &&
     (
-      (is_left && parent_oi.associativity == Associativity.Right) ||
+      (is_left !== undefined && is_left && parent_oi.associativity == Associativity.Right) ||
       (is_left !== undefined && !is_left && parent_oi.associativity == Associativity.Left)))) ||
-    parent_oi.notation != Notation.Infix && child_oi.notation == Notation.Infix;
+    parent_oi.notation != Notation.Infix && child_oi.notation == Notation.Infix ||
+    (child_oi.precedence == parent_oi.precedence && (child_has_multiple_children ?? false));
 }
