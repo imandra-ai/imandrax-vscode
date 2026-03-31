@@ -1,6 +1,6 @@
 {
-  "typescript.tsc.autoDetect": "off",
-  "typescript.preferences.quoteStyle": "single",
+  "js/ts.tsc.autoDetect": "off",
+  "js/ts.preferences.quoteStyle": "single",
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
   },

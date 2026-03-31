@@ -56,7 +56,7 @@ test("Broken if", () => {
   });
 
   assert.strictEqual(stripHtml(p),
-`if xadsfasdfsadf > 500000 then
+    `if xadsfasdfsadf > 500000 then
 \txadsfasdfsadf < 300000
 else
 \txadsfasdfsadf > 700000`);
@@ -68,4 +68,48 @@ test("Unbroken If", () => {
   });
 
   assert.strictEqual(stripHtml(p), `if xadsfasdfsadf > 500000 then xadsfasdfsadf < 300000 else xadsfasdfsadf > 700000`);
+});
+
+test("No parentheses for plusminus", () => {
+  const p = FMT.prettify(120, {
+    view: {
+      constructor: "Apply",
+      f: { view: { constructor: "Sym", sym: { id: "+", type: "int -> int -> int" } }, type: "int -> int -> int" },
+      l: [
+        {
+          view: {
+            constructor: "Apply",
+            f: { view: { constructor: "Sym", sym: { id: "-", type: "int -> int -> int" } }, type: "int -> int -> int" },
+            l: [
+              { view: { constructor: "Apply", f: { view: { constructor: "Sym", sym: { id: "x/18", type: "int" } }, type: "int" }, l: [] }, type: "int" },
+              { view: { constructor: "Const", c: { view: { constructor: "Const_z", v: BigInt(1) } } }, type: "int" }
+            ]
+          }, type: "int"
+        },
+        { view: { constructor: "Const", c: { view: { constructor: "Const_z", v: BigInt(2) } } }, type: "int" }]
+    }, type: "int"
+  });
+
+  assert.strictEqual(stripHtml(p), `x - 1 + 2`);
+});
+
+test("Parentheses for f(f(x))", () => {
+  const p = FMT.prettify(120, {
+    view: {
+      constructor: "Apply",
+      f: { view: { constructor: "Sym", sym: { id: "f", type: "int -> int -> int" } }, type: "int -> int -> int" },
+      l: [
+        {
+          view: {
+            constructor: "Apply",
+            f: { view: { constructor: "Sym", sym: { id: "f", type: "int -> int -> int" } }, type: "int -> int -> int" },
+            l: [
+              { view: { constructor: "Apply", f: { view: { constructor: "Sym", sym: { id: "x/18", type: "int" } }, type: "int" }, l: [] }, type: "int" },
+            ]
+          }, type: "int"
+        }]
+    }, type: "int"
+  });
+
+  assert.strictEqual(stripHtml(p), `f (f x)`);
 });

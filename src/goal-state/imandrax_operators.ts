@@ -99,6 +99,10 @@ export function default_(): OperatorInfo {
   return new OperatorInfo("", Notation.Prefix, Associativity.Left, 17);
 }
 
+export function is_default(x: OperatorInfo): boolean {
+  return x.notation == Notation.Prefix && x.associativity == Associativity.Left && x.precedence == 17;
+}
+
 export function operator_info_of_term(t: IX.Term): OperatorInfo {
   const v = t.view;
   switch (v.constructor) {
@@ -137,5 +141,5 @@ export function needs_parentheses(parent_oi: OperatorInfo, child_oi: OperatorInf
       (is_left !== undefined && is_left && parent_oi.associativity == Associativity.Right) ||
       (is_left !== undefined && !is_left && parent_oi.associativity == Associativity.Left)))) ||
     parent_oi.notation != Notation.Infix && child_oi.notation == Notation.Infix ||
-    (child_oi.precedence == parent_oi.precedence && (child_has_multiple_children ?? false));
+    (child_oi.precedence == parent_oi.precedence && is_default(child_oi) && (child_has_multiple_children ?? false));
 }
