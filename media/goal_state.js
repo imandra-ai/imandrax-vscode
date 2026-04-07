@@ -198,8 +198,19 @@
             if (name)
               vscode.postMessage({
                 command: 'jump-to-declaration',
-                arguments: {name: name}
+                arguments: { name: name }
               });
+          }
+        });
+      });
+
+      document.querySelectorAll('details').forEach(a => {
+        a.addEventListener('click', (e) => {
+          if (!a.open) {
+            a.classList.add('loading');
+            a.addEventListener('toggle', () => {
+              a.classList.remove('loading');
+            }, { once: true });
           }
         });
       });
