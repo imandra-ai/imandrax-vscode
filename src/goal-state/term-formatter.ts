@@ -381,7 +381,7 @@ class TermFormatter {
     // Strip all module names preceding the op_name; it's still in the hover if
     // the user needs to see it.
     const dot_inx = sid.lastIndexOf(".");
-    if (dot_inx >= 0)
+    if (dot_inx > 0 && dot_inx < sid.length - 1)
       op_name = sid.substring(dot_inx + 1);
 
     return vtext(span(hid(op_name, s.id), hover), op_name.length);
