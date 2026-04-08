@@ -531,7 +531,7 @@ class TermFormatter {
             text("|"),
             text(v.i.toString())])),
           line,
-          rec(v.t)]);
+          recwp(IXO.default_(), v.t)]);
       case "Is_a": {
         return g([rec(v.t), line, kw("is_a"), indent([line, this.sym2doc(v.c, undefined, hover_enabled)])]);
       }
