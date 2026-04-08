@@ -14,10 +14,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: "Setup node"
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
 
       - name: "Install vsce"
         run: npm install -g @vscode/vsce
@@ -28,7 +28,7 @@ jobs:
       - name: "Build extension"
         run: npm install; vsce package
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: artifacts.zip
           path: imandrax-*.vsix
@@ -38,10 +38,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: "Install node"
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
 
       - name: "Install dependencies"
         run: npm i --with-dev
@@ -72,7 +72,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: "Extract version number"
         run: |
           grep version package.json | cut -d ':' -f 2 | sed 's/[", ]//g' > version.txt
