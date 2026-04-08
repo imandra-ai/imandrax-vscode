@@ -265,12 +265,12 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
     await this.add_to_by(anchor, `auto`);
   }
 
-  async resize(width: number, font_size: number): Promise<void> {
+  resize(width: number, font_size: number): void {
     this._num_columns = Math.max(Math.trunc(2.0 * (width * 0.80) / font_size), 10);
 
     this._abort_controller?.abort();
     this._abort_controller = new AbortController();
-    await this.update_data(this._goalStateData, this._abort_controller.signal);
+    void this.update_data(this._goalStateData, this._abort_controller.signal);
   }
 
   async jump_to_declaration(symbol: string): Promise<void> {

@@ -11,6 +11,7 @@
       this.focusLockAnchor = undefined;
       this._initElements(parent);
       this.hover_timeout = undefined;
+      this.po_width = undefined;
     }
 
     _initElements(/** @type {HTMLElement} */ parent) {
@@ -21,7 +22,7 @@
       this.wrapper.style.position = 'relative';
       parent.append(this.wrapper);
 
-      this.pos = document.createElement('div');
+      this.pos = document.createElement('div')
       this.wrapper.append(this.pos)
 
       // Create hover box element
@@ -263,6 +264,7 @@
       this._setupEventHandlers();
       this.focusLockAnchor = vscode.getState()?.lockFocusAnchor;
       this._lockFocus(this.focusLockAnchor, undefined);
+      this._setInitialCodelikeWidth();
       this.ready = true;
     }
 
@@ -270,17 +272,34 @@
       this._lockFocus(this.focusLockAnchor, undefined);
     }
 
+    _setInitialCodelikeWidth() {
+      if (this.pos) {
+        const new_width = this.pos.getBoundingClientRect().width;
+        if (new_width != this.po_width) {
+          const font_size = parseFloat(getComputedStyle(this.pos).getPropertyValue('font-size'));
+          vscode.postMessage({
+            command: 'resize',
+            arguments: { width: new_width, font_size: font_size }
+          });
+          this.po_width = new_width;
+        }
+      }
+    }
+
     onResize() {
-      const code_like_element = document.querySelector('.code-like');
-      if (code_like_element) {
-        const width = this.pos?.getBoundingClientRect().width;
-        const font_size = parseFloat(getComputedStyle(code_like_element).getPropertyValue('font-size'));
-        vscode.postMessage({
-          command: 'resize',
-          arguments: { width: width, font_size: font_size }
+      const code_likes = document.querySelectorAll('.code-like');
+      if (code_likes.length > 0) {
+        code_likes.forEach(e => {
+          const width = e.getBoundingClientRect().width;
+          const font_size = parseFloat(getComputedStyle(e).getPropertyValue('font-size'));
+          vscode.postMessage({
+            command: 'resize',
+            arguments: { width: width, font_size: font_size }
+          });
         });
       }
-      else console.log("no code_like");
+      else
+        this._setInitialCodelikeWidth();
     }
   }
 

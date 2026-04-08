@@ -32,208 +32,185 @@ class VisString {
 }
 
 // ---------------------------------------------------------------------------
-// Doc — the main algebraic data type
+// 1. Document AST
 // ---------------------------------------------------------------------------
 
-export type Doc =
-  | { readonly tag: "NIL" }
-  | { readonly tag: "LINE" }
-  | { readonly tag: "LINEBREAK" }
-  | { readonly tag: "TEXT"; readonly s: VisString }
-  | { readonly tag: "CONCAT"; readonly x: Doc; readonly y: Doc }
-  | { readonly tag: "NEST"; readonly i: number; readonly x: Doc }
-  | { readonly tag: "UNION"; readonly x: Doc; readonly y: Doc };  // x flat, y broken
+interface Nil { tag: "nil" }
+interface Text { tag: "text"; s: VisString }
+interface Line { tag: "line" }
+interface LineBreak { tag: "linebreak" }
+interface Concat { tag: "concat"; left: Doc; right: Doc }
+interface Nest { tag: "nest"; indent: number; doc: Doc }
+interface Group { tag: "group"; doc: Doc }
+
+type Doc = Nil | Text | Line | LineBreak | Concat | Nest | Group;
 
 // ---------------------------------------------------------------------------
-// SimpleDoc — intermediate representation after layout selection
+// 2. Smart constructors
 // ---------------------------------------------------------------------------
 
-type SimpleDoc =
-  | { readonly tag: "SNIL" }
-  | { readonly tag: "STEXT"; readonly s: VisString; readonly rest: SimpleDoc }
-  | { readonly tag: "SLINE"; readonly i: number; readonly rest: SimpleDoc };
+export const nil: Doc = { tag: "nil" };
+export const line: Doc = { tag: "line" };
+export const linebreak: Doc = { tag: "linebreak" };
+export const nest = (i: number, doc: Doc): Doc => ({ tag: "nest", indent: i, doc });
+export const concat = (left: Doc, right: Doc): Doc => ({ tag: "concat", left, right });
+export const group = (doc: Doc): Doc => ({ tag: "group", doc });
 
-// ---------------------------------------------------------------------------
-// Internal constructors (kept private to the module)
-// ---------------------------------------------------------------------------
-
-const NIL: Doc = { tag: "NIL" };
-const LINE: Doc = { tag: "LINE" };
-const LINEBREAK: Doc = { tag: "LINEBREAK" };
-
-const TEXT = (s: VisString): Doc => ({ tag: "TEXT", s });
-const CONCAT = (x: Doc, y: Doc): Doc => ({ tag: "CONCAT", x, y });
-const NEST_ = (i: number, x: Doc): Doc => ({ tag: "NEST", i, x });
-const UNION = (x: Doc, y: Doc): Doc => ({ tag: "UNION", x, y });
-
-const SNIL: SimpleDoc = { tag: "SNIL" };
-const STEXT = (s: VisString, rest: SimpleDoc): SimpleDoc => ({ tag: "STEXT", s, rest });
-const SLINE = (i: number, rest: SimpleDoc): SimpleDoc => ({ tag: "SLINE", i, rest });
-
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
-
-/** Flatten a document: LINE → space, LINEBREAK → empty, everything else unchanged. */
-function flatten(doc: Doc): Doc {
-  switch (doc.tag) {
-    case "NIL": return NIL;
-    case "TEXT": return doc;
-    case "LINE": return TEXT(new VisString(" ", 1));
-    case "LINEBREAK": return NIL;
-    case "CONCAT": return CONCAT(flatten(doc.x), flatten(doc.y));
-    case "NEST": return NEST_(doc.i, flatten(doc.x));
-    case "UNION": return flatten(doc.x);  // x is already the flat branch
-  }
-}
-
-/** Does `sdoc` fit within `remaining` columns before the next newline? */
-function fits(remaining: number, sdoc: SimpleDoc): boolean {
-  let r = remaining;
-  let s = sdoc;
-  while (true) {
-    if (r < 0) return false;
-    if (s.tag === "SNIL") return true;
-    if (s.tag === "SLINE") return true;   // newline resets the budget
-    // s.tag === "STEXT"
-    r -= s.s.visual_length;
-    s = s.rest;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Core layout algorithm
-// ---------------------------------------------------------------------------
-
-type WorkItem = [indent: number, doc: Doc];
-
-/**
- * Select the best layout for a document given a page width `w` and the number
- * of characters `k` already placed on the current line.
- *
- * Uses an iterative trampoline to avoid call-stack overflows on large documents.
- */
-function best(w: number, k: number, docs: WorkItem[]): SimpleDoc {
-  // Iterative state machine: either "still processing" or a final SimpleDoc.
-  interface Step { type: "step"; w: number; k: number; docs: WorkItem[] }
-  type State = Step | SimpleDoc;
-
-  let state: State = { type: "step", w, k, docs };
-
-  while ("type" in state && state.type === "step") {
-    const curW: number = state.w;
-    const curK: number = state.k;
-    const curDocs: WorkItem[] = state.docs;
-
-    if (curDocs.length === 0) {
-      state = SNIL;
-      break;
-    }
-
-    const [[i, doc], ...rest]: WorkItem[] = curDocs as [WorkItem, ...WorkItem[]];
-    const w = curW;
-    const k = curK;
-
-    switch (doc.tag) {
-      case "NIL":
-        state = { type: "step", w, k, docs: rest };
-        break;
-
-      case "CONCAT":
-        state = { type: "step", w, k, docs: [[i, doc.x], [i, doc.y], ...rest] };
-        break;
-
-      case "NEST":
-        state = { type: "step", w, k, docs: [[i + doc.i, doc.x], ...rest] };
-        break;
-
-      case "TEXT":
-        state = STEXT(doc.s, best(w, k + doc.s.visual_length, rest));
-        break;
-
-      case "LINE":
-      case "LINEBREAK":
-        state = SLINE(i, best(w, i, rest));
-        break;
-
-      case "UNION": {
-        const flat = best(w, k, [[i, doc.x], ...rest]);
-        const broken = best(w, k, [[i, doc.y], ...rest]);
-        state = fits(w - k, flat) ? flat : broken;
-        break;
-      }
-    }
-  }
-
-  return state as SimpleDoc;
-}
-
-/** Render a SimpleDoc to a string. */
-function layout(sdoc: SimpleDoc): string {
-  const parts: string[] = [];
-  let s = sdoc;
-  while (s.tag !== "SNIL") {
-    if (s.tag === "STEXT") {
-      parts.push(s.s.content);
-      s = s.rest;
-    } else {
-      // SLINE
-      parts.push("\n" + "\t".repeat(s.i));
-      s = s.rest;
-    }
-  }
-  return parts.join("");
-}
-
-// ---------------------------------------------------------------------------
-// Public API — primitives
-// ---------------------------------------------------------------------------
-
-/** The empty document. */
-export const nil: Doc = NIL;
-
-/** A breakable newline. Inside `group`, becomes a space if the line fits. */
-export const line: Doc = LINE;
-
-/** A breakable newline that becomes empty (not a space) when flattened. */
-export const linebreak: Doc = LINEBREAK;
-
-/** A literal text string (must not contain newlines). */
 export const text = (s: string): Doc =>
-  s.length === 0 ? NIL : TEXT(new VisString(s));
+  s.length === 0 ? nil : { tag: "text", s: new VisString(s) };
 
 export const vtext = (s: string, l: number): Doc =>
-  s.length === 0 ? NIL : TEXT(new VisString(s, l));
+  s.length === 0 ? nil : { tag: "text", s: new VisString(s, l) };
+
+export function wordsToDoc(ws: string[]): Doc {
+  let result = text(ws[0]);
+  for (const w of ws.slice(1)) {
+    result = concat(result, concat(group(line), text(w)));
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// 3. Iterative `best`
+//
+// Wadler's recursive `best` is replaced by an explicit work-stack of
+// [indent, mode, doc] triples.  Column position is tracked as a mutable
+// counter updated whenever a token is emitted.
+//
+// Modes:
+//   FLAT  — newlines become spaces (inside a fitting group)
+//   BREAK — newlines are real newlines
+// ---------------------------------------------------------------------------
+
+const FLAT = 0 as const;
+const BREAK = 1 as const;
+type Mode = typeof FLAT | typeof BREAK;
+
+type SimpleToken = ["text", VisString] | ["line", number];
+
+type Frame = [indent: number, mode: Mode, doc: Doc];
+
+function best(width: number, doc: Doc): SimpleToken[] {
+  const result: SimpleToken[] = [];
+  let col = 0;
+
+  const stack: Frame[] = [[0, BREAK, doc]];
+
+  while (stack.length > 0) {
+    const [indent, mode, d] = stack.pop()!;
+
+    switch (d.tag) {
+      case "nil":
+        break;
+
+      case "text":
+        result.push(["text", d.s]);
+        col += d.s.visual_length;
+        break;
+
+      case "line":
+        if (mode === FLAT) {
+          result.push(["text", new VisString(" ")]);
+          col += 1;
+        } else {
+          result.push(["line", indent]);
+          col = indent;
+        }
+        break;
+
+      case "linebreak":
+        if (mode !== FLAT) {
+          result.push(["line", indent]);
+          col = indent;
+        } // else nothing.
+        break;
+
+      case "concat":
+        stack.push([indent, mode, d.right]);
+        stack.push([indent, mode, d.left]);
+        break;
+
+      case "nest":
+        stack.push([indent + d.indent, mode, d.doc]);
+        break;
+
+      case "group":
+        if (mode === FLAT) {
+          stack.push([indent, FLAT, d.doc]);
+        } else {
+          const m: Mode = fits(width - col, d.doc) ? FLAT : BREAK;
+          stack.push([indent, m, d.doc]);
+        }
+        break;
+    }
+  }
+
+  return result;
+}
+
+function fits(remaining: number, doc: Doc): boolean {
+  const stack: Doc[] = [doc];
+  let rem = remaining;
+
+  while (stack.length > 0) {
+    if (rem < 0)
+      return false;
+
+    const d = stack.pop()!;
+
+    switch (d.tag) {
+      case "nil":
+      case "linebreak":
+        break;
+      case "line":
+        rem -= 1;
+        break;
+      case "text":
+        rem -= d.s.visual_length;
+        break;
+      case "concat":
+        stack.push(d.right);
+        stack.push(d.left);
+        break;
+      case "nest":
+      case "group":
+        stack.push(d.doc);
+        break;
+    }
+  }
+
+  return rem >= 0;
+}
+
+// ---------------------------------------------------------------------------
+// 4. Render tokens to a string
+// ---------------------------------------------------------------------------
+
+function layout(tokens: SimpleToken[]): string {
+  return tokens
+    .map(([kind, val]) =>
+      kind === "text" ? val.content : "\n" + "\t".repeat(val)
+    )
+    .join("");
+}
+
+export function pretty(width: number, doc: Doc): string {
+  return layout(best(width, doc));
+}
 
 // ---------------------------------------------------------------------------
 // Public API — combinators
 // ---------------------------------------------------------------------------
 
-/** Concatenate two documents. */
-export const concat = (x: Doc, y: Doc): Doc => {
-  if (x.tag === "NIL") return y;
-  if (y.tag === "NIL") return x;
-  return CONCAT(x, y);
-};
-
 /** Concatenate an array of documents left-to-right. */
 export const hcat = (docs: Doc[]): Doc =>
-  docs.reduce(concat, NIL);
+  docs.reduce(concat, nil);
 
 /** Concatenate documents with `sep` between each pair. */
 export const punctuate = (sep: Doc, docs: Doc[]): Doc => {
-  if (docs.length === 0) return NIL;
+  if (docs.length === 0) return nil;
   return docs.reduce((acc, d) => concat(acc, concat(sep, d)));
 };
-
-/** Indent nested content by `i` additional spaces. */
-export const nest = (i: number, x: Doc): Doc => NEST_(i, x);
-
-/**
- * Try to lay out the document on a single line; if it doesn't fit within the
- * page width, fall back to the normal (multi-line) layout.
- */
-export const group = (x: Doc): Doc => UNION(flatten(x), x);
 
 // ---------------------------------------------------------------------------
 // Public API — derived separators
@@ -291,21 +268,6 @@ export const list = (docs: Doc[]): Doc =>
 /** Format a comma-separated tuple in parentheses: (a, b, c) */
 export const tupled = (docs: Doc[]): Doc =>
   encloseSep(text("("), text(")"), text(", "), docs);
-
-// ---------------------------------------------------------------------------
-// Public API — main entry point
-// ---------------------------------------------------------------------------
-
-/**
- * Pretty-print `doc` to a string, fitting within `width` columns where
- * possible.
- *
- * @param width  Maximum line width (e.g. 80)
- * @param doc    A Doc built with the combinators above
- */
-export function pretty(width: number, doc: Doc): string {
-  return layout(best(width, 0, [[0, doc]]));
-}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -390,7 +352,7 @@ class TermFormatter {
   private _abort_signal: AbortSignal | undefined;
   private _width: number;
   private _po: IXT.ProofObligation | undefined;
-  private _with_turnstile  = false;
+  private _with_turnstile = false;
 
   constructor(width: number, po?: IXT.ProofObligation, abort_signal?: AbortSignal, with_turnstile?: boolean) {
     this._width = width;
@@ -406,7 +368,7 @@ class TermFormatter {
     const sid = IXT.short_id(s.id);
 
     let hover: string | undefined = undefined;
-    if (hover_enabled){
+    if (hover_enabled) {
       const hash = (s.id.length > sid.length) ? s.id.substring(sid.length) : "";
       hover = hvaluedef(sid) + `<span class='hash'>${hash}</span> : ` + htype(sanitize(s.type));
     }
@@ -441,7 +403,7 @@ class TermFormatter {
         c_vstr = new VisString(JSON.stringify(c));
     }
     const r_str = span(c_vstr.content, hover_enabled ? c_vstr.content + " : " + htype(type) : undefined);
-    return TEXT(new VisString(r_str, c_vstr.visual_length));
+    return vtext(r_str, c_vstr.visual_length);
   }
 
   term2doc(t: IXT.Term, hover_enabled = true): Doc {
@@ -478,7 +440,7 @@ class TermFormatter {
         {
           let fn = rec(v.f);
           if (v.f.view.constructor == "Sym") {
-            if (this._po && fn.tag == "TEXT") {
+            if (this._po && fn.tag == "text") {
               fn = vtext(hcmdspan(fn.s.content, "expandable", { id: v.f.view.sym.id, anchor: this._po?.anchor }), fn.s.visual_length);
             }
             const sid = IXT.short_id(v.f.view.sym.id);
@@ -603,10 +565,14 @@ class TermFormatter {
   prettify(t: IXT.Term): string {
     this._abort_signal?.throwIfAborted();
 
-    let doc : Doc = this.term2doc(t);
+    let doc: Doc = this.term2doc(t);
     if (this._with_turnstile)
-      doc = g([kw("&#x22A2;"), indent([line, doc])]);
-    return pretty(this._width, doc);
+      doc = fill([kw("&#x22A2;"), indent([line, doc])]);
+    const start = performance.now();
+    const r = pretty(this._width, doc);
+    const end = performance.now();
+    console.log(`Prettifier time: ${(end - start) / 1000.0} sec, ${r.length} characters, width ${this._width}`);
+    return r;
   }
 }
 
