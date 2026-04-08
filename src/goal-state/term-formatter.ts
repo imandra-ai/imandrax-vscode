@@ -376,7 +376,13 @@ class TermFormatter {
 
     // Map operator names to their visual form if different, e.g. `iff` vs `<==>`
     const op_info = IXO.operator_info(sid);
-    const op_name = op_info.name == "" ? sid : op_info.name;
+    let op_name = op_info.name == "" ? sid : op_info.name;
+
+    // Strip all module names preceding the op_name; it's still in the hover if
+    // the user needs to see it.
+    const dot_inx = sid.lastIndexOf(".");
+    if (dot_inx >= 0)
+      op_name = sid.substring(dot_inx + 1);
 
     return vtext(span(hid(op_name, s.id), hover), op_name.length);
   }
