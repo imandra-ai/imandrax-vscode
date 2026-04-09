@@ -573,8 +573,7 @@ class TermFormatter {
 
     let doc: Doc = this.term2doc(t);
     if (this._with_turnstile)
-      doc = fill([kw("&#x22A2;"), indent([line, doc])]);
-    // const start = performance.now();
+      doc = fill([kw("&#x22A2;"), text(" "), doc]);
     const r = pretty(this._width, doc);
     // const end = performance.now();
     // console.log(`Prettifier time: ${(end - start) / 1000.0} sec, ${r.length} characters, width ${this._width}`);
