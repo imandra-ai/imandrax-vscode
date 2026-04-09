@@ -243,7 +243,7 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
       }
     }
     else {
-      window.showErrorMessage(`Cannot modify tactic because the target is unknown. Set a focus lock on the proof obligation you're currently focussing on.`, "Ok");
+      window.showErrorMessage(`Cannot modify tactic because the target is unknown. Set a focus lock on the goal you're currently focussing on.`, "Ok");
     }
   }
 

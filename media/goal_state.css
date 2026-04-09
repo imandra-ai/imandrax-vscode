@@ -26,6 +26,13 @@ h2 {
   width: 10%;
 }
 
+.title {
+  font-size: 2em;
+  font-weight: 600;
+  color: var(--vscode-settings-headerForeground);
+  margin: 24px 0 8px 0;
+}
+
 .goal-state-content {
   width: 100%;
   height: 100%;
@@ -42,13 +49,6 @@ h2 {
   font-family: var(--vscode-editor-font-family);
   font-weight: var(--vscode-editor-font-weight);
   font-size: var(--vscode-editor-font-size);
-  color: var(--vscode-editor-foreground);
-}
-
-.code-like-title {
-  font-family: var(--vscode-editor-font-family);
-  font-weight: var(--vscode-editor-font-weight);
-  font-size: calc(var(--vscode-editor-font-size) * 1.25);
   color: var(--vscode-editor-foreground);
 }
 
@@ -144,7 +144,6 @@ h2 {
   height: 1em;
   stroke: #859900;
   stroke-width: 1px;
-  margin-left: -0.25em;
 }
 
 .loading {
@@ -152,13 +151,53 @@ h2 {
 }
 
 .sequent {
-  padding-top: 0.5em;
-  padding-bottom: 0.5em;
-  padding-left: 0.5em;
+  margin-bottom: 0.5em;
 }
 
 .ttl-warning {
   display: inline;
   vertical-align: bottom;
   padding-left: 0.5em;
+}
+
+.goal {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--vscode-settings-rowHoverBackground);
+  gap: 0.5em;
+  flex-direction: column;
+}
+
+.goal:hover {
+  background-color: var(--vscode-settings-rowHoverBackground);
+}
+
+.goal-info {
+  flex: 1;
+  width: 100%;
+}
+
+.goal-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+/* .code-like-title {
+  font-family: var(--vscode-editor-font-family);
+  font-weight: var(--vscode-editor-font-weight);
+  font-size: calc(var(--vscode-editor-font-size) * 1.25);
+  color: var(--vscode-editor-foreground);
+} */
+
+.goal-description {
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.9em;
+}
+
+.goal-content {
+  display: flex;
+  flex-direction: column;
+  margin-left: 1em;
 }

@@ -6,13 +6,16 @@ import sanitize = require('sanitize-html');
 import * as IX from "./imandrax_types"
 import * as IXRE from "./imandrax_report_event"
 import * as TermFormatter from "./term-formatter";
-import { config } from 'process';
 
 function capitalize(x: string): string {
   if (x.length == 0)
     return x;
   else
     return x.charAt(0).toUpperCase() + x.slice(1);
+}
+
+function div(class_: string, content: string): string {
+  return `<div class='${class_}'>` + content + "</div>";
 }
 
 export class Options {
@@ -72,7 +75,7 @@ export class Converter {
   async sequent2html(sg: IX.Sequent, ctx: Context): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
-    let r : string;
+    let r: string;
     if (sg.hypotheses.length == 0 && sg.conclusions.length == 1)
       r = await this.namedTerm2html(sg.conclusions[0], ctx, true);
     else {
@@ -220,7 +223,7 @@ export class Converter {
     this._abort_signal?.throwIfAborted();
 
     const qed = "&#x25A0";
-    let title = "<span class='code-like-title'>";
+    let title;
     const ctx: Context = { goal: goal };
     if (goal.location) {
       let name = goal.name
@@ -246,15 +249,16 @@ export class Converter {
       };
       title = `<a href='#/' class='jump-to' arguments='${JSON.stringify(cmd_args)}'>${name}</a>`;
       const vars = goal.vars.join(" ");
-      title = `<div class='hoverable' data-hover='${goal.name} ${vars}'>${title}</div>`;
+      title = `<span class='hoverable' data-hover='${goal.name} ${vars}'>${title}</span>`;
     } else
       title = `${goal.name}`;
-    title += "</span>";
     if (goal.outdated) {
       title += "<i class='codicon codicon-warning ttl-warning hoverable' data-hover='Outdated. Either the goal itself or it&apos;s state are out of date. This usually means that the goal has been changed, removed, or that there are syntax errors in the source file.'></i>"
     }
-    title = `<span>${title}<span class='focus-lock-icon' anchor="${sanitize(goal.anchor)}"><i class="codicon codicon-unlock"></i></span></span><br/>`;
-    let r = title;
+    title = `${title}<div class='focus-lock-icon' anchor="${sanitize(goal.anchor)}"><i class="codicon codicon-unlock"></i></div>`;
+    title = `<div class='goal-info'><div class='goal-title'>${title}</div></div>`;
+
+    let r = "";
     if ((goal.subgoals?.length > 0) || (goal.subresults?.length > 0) || (goal.errors?.length > 0)) {
       if (goal.subgoals?.length > 1)
         r += "<h3>Subgoals:</h3>"
@@ -270,10 +274,11 @@ export class Converter {
       if (goal.report && goal.report.events?.length > 0) {
         r += `<details><summary>Report</summary><ul>${await this.report2html(goal.report, ctx)}</ul></details>`;
       }
-      return Promise.resolve(r);
     }
     else
-      return Promise.resolve(r + `<div class='code-like'>${qed}</div>`);
+      r += `<div class='goal-content'>${qed}</div>`;
+
+    return Promise.resolve(`${title}<div class='goal-content'>${r}</div>`);
   }
 
   isProven(goal: IX.Goal): boolean {
@@ -303,13 +308,14 @@ export class Converter {
   async to_html(data: IX.GoalState, options: Options): Promise<[string, MetaData]> {
     const metadata: MetaData = new MetaData();
     let r = "";
+
     let goals = data.goals;
     if (options.showProvenGoals == false)
       goals = goals.filter(po => !this.isProven(po));
-    metadata.only_anchor = goals.length == 1 ? goals[0].anchor : undefined;
-    if (goals.length > 0) {
-      r += "<h2>Proof obligations</h2>\n";
 
+    metadata.only_anchor = goals.length == 1 ? goals[0].anchor : undefined;
+
+    if (goals.length > 0) {
       goals = goals.sort((x, y) => {
         if (!x.location) return +1
         else if (!y.location) return -1;
@@ -325,25 +331,25 @@ export class Converter {
       const counts = this.goal_counts(goals);
       const done = new Map<string, number>();
 
-      const gs = goals.map(async po => {
-        const at_uri = counts.get(po.location?.uri);
-        const num_in_same_module = at_uri?.get(po.name) ?? 0; // Number of times the PO name appears in the current module
+      const gs = goals.map(async goal => {
+        const at_uri = counts.get(goal.location?.uri);
+        const num_in_same_module = at_uri?.get(goal.name) ?? 0; // Number of times the PO name appears in the current module
         let num_modules_with_name = 0; // Number of modules in which this PO name appears
         for (const [_, value] of counts)
-          if (value.get(po.name))
+          if (value.get(goal.name))
             num_modules_with_name++;
 
-        const longname = po.location?.uri + "." + po.name;
+        const longname = goal.location?.uri + "." + goal.name;
         const inx_in_same_module = done.get(longname) ?? (num_in_same_module == 1 ? 0 : 1); // Index of the PO name in the current module
         done.set(longname, inx_in_same_module + 1);
-        return await this.goal2html(po, num_modules_with_name > 1, inx_in_same_module);
+        return await this.goal2html(goal, num_modules_with_name > 1, inx_in_same_module);
       });
-      r += "<p><ul>\n" +
-        (await Promise.all(gs.map(async x => { return `<li>${await x}</li>`; }))).join("\n")
-        + "</ul></p>\n";
+      r += "<p>\n" +
+        (await Promise.all(gs.map(async x => { return div("goal", await x); }))).join("\n")
+        + "</p>\n";
     }
     else
-      r += "<ul><li><h2>Nothing as of yet.</h2></li><ul>";
+      r += div("goal", div("goal-info", div("goal-title", "Nothing as of yet.")));
 
     return [r, metadata];
   }

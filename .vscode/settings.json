@@ -7,18 +7,19 @@
   "editor.tabSize": 2,
   "editor.insertSpaces": true,
   "editor.detectIndentation": false,
+  "jest.jestCommandLine": "./node_modules/.bin/jest",
   "jest.runMode": "on-demand",
   "jest.nodeEnv": { "NODE_OPTIONS": "--experimental-vm-modules"},
   "jest.virtualFolders": [
     {
       "name": "IML Formatting Tests",
       "runMode": "on-demand",
-      "jestCommandLine": "npx jest --config imlformat/jest.config.ts",
+      "jestCommandLine": "./node_modules/.bin/jest --config imlformat/jest.config.ts",
     },
     {
       "name": "Goal State Tests",
       "runMode": "on-demand",
-      "jestCommandLine": "npx jest --config src/goal-state/jest.config.ts",
+      "jestCommandLine": "./node_modules/.bin/jest --config src/goal-state/jest.config.ts",
     },
   ],
 }

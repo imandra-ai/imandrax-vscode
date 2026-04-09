@@ -162,8 +162,10 @@ export class GoalStateEditorProvider implements CustomReadonlyEditorProvider<Goa
 				<title>Goal State</title>
 			</head>
 			<body>
-        <h1>Goal State</h1>
-        <img class="logo" src="${logoUri}" alt="Logo">
+        <div class='title'>
+          Goal State
+          <img class="logo" src="${logoUri}" alt="Logo">
+        </div>
 
         <p>&nbsp;</p>
 
@@ -220,7 +222,7 @@ export class GoalStateEditorProvider implements CustomReadonlyEditorProvider<Goa
         break;
       }
       case "resize": {
-        await document.resize(msg.arguments.width, msg.arguments.font_size);
+        document.resize(msg.arguments.width, msg.arguments.font_size);
         break;
       }
       case "jump-to-declaration": {
