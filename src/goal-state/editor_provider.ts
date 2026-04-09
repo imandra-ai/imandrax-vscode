@@ -123,7 +123,7 @@ export class GoalStateEditorProvider implements CustomReadonlyEditorProvider<Goa
       exturi, "media", "vscode.css")).toString();
 
     const codiconsUri = webview.asWebviewUri(Uri.joinPath(
-      exturi, 'node_modules', '@vscode/codicons', 'dist', 'codicon.css')).toString();
+      exturi, 'out', 'codicon.css')).toString();
 
     const styleMainUri = webview.asWebviewUri(Uri.joinPath(
       exturi, "media", "goal_state.css")).toString();
