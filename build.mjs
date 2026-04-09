@@ -1,6 +1,10 @@
 import * as esbuild from "esbuild";
 
-await esbuild.build({
+const sourcemap = process.argv.includes("--sourcemap");
+const minify = process.argv.includes("--minify");
+const watch = process.argv.includes("--watch");
+
+const config = {
   entryPoints: [
     "src/extension.ts",
     {
@@ -10,11 +14,19 @@ await esbuild.build({
   ],
   bundle: true,
   outdir: "out",
-  // outfile: "out/main.js",
   outbase: "src",
   external: ["vscode", "prettier"],
   format: "cjs",
   platform: "node",
   loader: { ".ttf": "copy" },
   metafile: true,
-});
+  sourcemap: sourcemap ? "linked" : false,
+  minify: minify,
+};
+
+if (watch) {
+  const ctx = await esbuild.context(config);
+  await ctx.watch();
+} else {
+  await esbuild.build(config);
+}
