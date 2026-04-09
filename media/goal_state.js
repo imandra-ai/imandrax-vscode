@@ -11,7 +11,7 @@
       this.focusLockAnchor = undefined;
       this._initElements(parent);
       this.hover_timeout = undefined;
-      this.po_width = undefined;
+      /** @type number | undefined */ this.po_width = undefined;
     }
 
     _initElements(/** @type {HTMLElement} */ parent) {
@@ -287,7 +287,7 @@
     }
 
     onResize() {
-      const code_likes = document.querySelectorAll('.code-like');
+      const code_likes = document.querySelectorAll('.goal');
       if (code_likes.length > 0) {
         code_likes.forEach(e => {
           const width = e.getBoundingClientRect().width;
@@ -324,7 +324,7 @@
       case 'init':
         {
           if (body.untitled || !body.value)
-            await editor.reset("<div style='code-like'>&#x25A0</div>");
+            await editor.reset("<div style='goal'>&#x25A0</div>");
           else
             await editor.reset(body.value);
           return;
