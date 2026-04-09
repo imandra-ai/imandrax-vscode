@@ -53,6 +53,11 @@
     _setupHoverHandlers() {
       const hoverable = this.pos?.querySelectorAll('[data-hover], .hoverable');
 
+      window.addEventListener('scroll', () => {
+        if (this.hoverBox)
+          this.hoverBox.style.display = 'none';
+      });
+
       hoverable?.forEach(element => {
         element.addEventListener('mouseenter', (e) => {
           const hoverText = element.getAttribute('data-hover');
