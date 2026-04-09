@@ -11,8 +11,8 @@ test("Some state", () => {
   const p: IX.GoalState | undefined = JSON.parse(data) as IX.GoalState | undefined;
   assert.ok(p !== undefined);
   assert.equal(p.format_version, 1);
-  assert.equal(p.proof_obligations.length, 28);
-  assert.equal(p.proof_obligations[4].name, "thm1");
+  assert.equal(p.goals.length, 28);
+  assert.equal(p.goals[4].name, "thm1");
 });
 
 test("iMinimum_x_or_y state", async () => {
@@ -21,10 +21,10 @@ test("iMinimum_x_or_y state", async () => {
   const p: IX.GoalState | undefined = JSON.parse(data) as IX.GoalState | undefined;
   assert.ok(p !== undefined);
   assert.equal(p.format_version, 1);
-  assert.equal(p.proof_obligations.length, 1);
-  assert.equal(p.proof_obligations[0].name, "iMinimum_x_or_y");
+  assert.equal(p.goals.length, 1);
+  assert.equal(p.goals[0].name, "iMinimum_x_or_y");
 
   const gsc = new GSC.Converter(80);
-  const html = await gsc.to_html(p, { showProvenGoals: false, showUnattemptedGoals: false });
+  const html = await gsc.to_html(p, { showProvenGoals: false });
   assert.ok(html[0].length > 0);
 });

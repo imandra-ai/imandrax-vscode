@@ -156,7 +156,8 @@ export class ImandraXLanguageClient {
           "settings":
           {
             "show-full-ids": commands.showFullIds,
-            "goal-state-show-proven": config.showProvenGoals
+            "goal-state-show-proven": config.showProvenGoals,
+            "goal-state-max-age": config.maximumGoalAge,
           }
         });
       }

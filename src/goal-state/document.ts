@@ -105,21 +105,21 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
       if (!gsd) {
         this._documentData = "<div class='code-like'>&#x25A0</div>";
       } else {
-        // TODO: Remember unfolded <detail> elements somehow
+        // TODO: Remember unfolded <detail> elements somehow?
 
         if (!gsd.format_version)
           console.warn(`Missing goal state data format version`);
         else if (gsd.format_version != 1)
           console.warn(`Unexpected goal state data format version: ${gsd.format_version}`);
 
-        const gsc = new GSC.Converter(this._num_columns, signal);
         const config = getConfig();
-        const opts = new GSC.Options(is_bool_true(config.showProvenGoals), is_bool_true(config.showUnattemptedGoals));
+        const gsc = new GSC.Converter(this._num_columns, signal);
+        const opts = new GSC.Options(is_bool_true(config.showProvenGoals));
         const [d, md] = await gsc.to_html(gsd, opts);
         this._documentData = d;
         this._documentMetaData = md;
 
-        if (this._focusLockAnchor && !this._goalStateData?.proof_obligations.find(x => x.anchor == this._focusLockAnchor))
+        if (this._focusLockAnchor && !this._goalStateData?.goals.find(x => x.anchor == this._focusLockAnchor))
           this._focusLockAnchor = undefined;
 
         signal.throwIfAborted();
@@ -191,7 +191,7 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
   }
 
   private async add_to_by(anchor: string | undefined, new_tactic: string) {
-    const po = this._goalStateData?.proof_obligations.find(x => x.anchor == anchor);
+    const po = this._goalStateData?.goals.find(x => x.anchor == anchor);
     if (po) {
       const loc: IX.SourceLocation | undefined = po.byLocation ?? po.location;
       if (loc) {

@@ -116,11 +116,11 @@
           "default": false,
           "description": "Show proven goals in goal state."
         },
-        "imandrax.showUnattemptedGoals": {
+        "imandrax.maximumGoalAge": {
           "scope": "window",
-          "type": "boolean",
-          "default": false,
-          "description": "Show goals in goal state even if they have never been attempted to be checked."
+          "type": "integer",
+          "default": 10,
+          "description": "Maximum age of goals shown in the goal state (in number of document updates). Outdated results are shown for some time after they became invalid or outdated. If you are annoyed by goals disappearing from your goal state prematurely, you want to increase this number."
         },
         "imandrax.largeDecompConfirmation": {
           "scope": "window",

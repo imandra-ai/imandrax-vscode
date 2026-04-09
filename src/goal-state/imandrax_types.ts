@@ -195,7 +195,7 @@ export interface Error {
   message: string;
 }
 
-export interface ProofObligation {
+export interface Goal {
   name: string;
   anchor: string;
   vars: string[];
@@ -204,13 +204,14 @@ export interface ProofObligation {
   errors: Error[];
   report: Report | undefined;
   definitions: Definition[];
+  outdated: boolean;
   location: SourceLocation | undefined;
   byLocation: SourceLocation | undefined;
 }
 
 export interface GoalState {
   format_version: number | undefined;
-  proof_obligations: ProofObligation[];
+  goals: Goal[];
 }
 
 export function short_id(id: string): string {

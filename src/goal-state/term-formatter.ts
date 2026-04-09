@@ -351,12 +351,12 @@ function kw(w: string): Doc {
 class TermFormatter {
   private _abort_signal: AbortSignal | undefined;
   private _width: number;
-  private _po: IXT.ProofObligation | undefined;
+  private _goal: IXT.Goal | undefined;
   private _with_turnstile = false;
 
-  constructor(width: number, po?: IXT.ProofObligation, abort_signal?: AbortSignal, with_turnstile?: boolean) {
+  constructor(width: number, goal?: IXT.Goal, abort_signal?: AbortSignal, with_turnstile?: boolean) {
     this._width = width;
-    this._po = po;
+    this._goal = goal;
     this._abort_signal = abort_signal;
     if (with_turnstile !== undefined)
       this._with_turnstile = with_turnstile;
@@ -446,8 +446,8 @@ class TermFormatter {
         {
           let fn = rec(v.f);
           if (v.f.view.constructor == "Sym") {
-            if (this._po && fn.tag == "text") {
-              fn = vtext(hcmdspan(fn.s.content, "expandable", { id: v.f.view.sym.id, anchor: this._po?.anchor }), fn.s.visual_length);
+            if (this._goal && fn.tag == "text") {
+              fn = vtext(hcmdspan(fn.s.content, "expandable", { id: v.f.view.sym.id, anchor: this._goal?.anchor }), fn.s.visual_length);
             }
             const sid = IXT.short_id(v.f.view.sym.id);
             const pi = IXO.operator_info(sid, v.l.length > 1);
@@ -488,7 +488,7 @@ class TermFormatter {
       case "Sym":
         {
           const s: IXT.AppliedSymbol = v.sym;
-          const def = this._po?.definitions.find((x: IXT.Definition) => x.name == s.id);
+          const def = this._goal?.definitions.find((x: IXT.Definition) => x.name == s.id);
           if (hover_enabled && def) {
             const pretty_body = pretty(Math.max(this._width * 0.5, 16), indent([rec_nohover(def.body)]));
             const extra = " =<br/>" + hkw("fun") + " " + def.vars.join(" ") + " -> " + pretty_body;
@@ -586,9 +586,9 @@ class TermFormatter {
  * Pretty-print term `t` with `width` line size, with an optional `po` for context
  * (e.g. to look up definitions of lambdas).
  */
-export function prettify(width: number, t: IXT.Term, po?: IXT.ProofObligation, abort_signal?: AbortSignal, with_turnstile?: boolean): string {
+export function prettify(width: number, t: IXT.Term, goal?: IXT.Goal, abort_signal?: AbortSignal, with_turnstile?: boolean): string {
   try {
-    return new TermFormatter(width, po, abort_signal, with_turnstile).prettify(t);
+    return new TermFormatter(width, goal, abort_signal, with_turnstile).prettify(t);
   }
   catch (e) {
     console.log(e);

@@ -17,7 +17,7 @@ export interface Config {
   largeDecompConfirmation: number;
   largeDecompConfirmationBytes: number;
   showProvenGoals: boolean;
-  showUnattemptedGoals: boolean;
+  maximumGoalAge: number;
 
   update<K extends keyof Config>(
     key: K,
@@ -45,7 +45,7 @@ export function getConfig(): Config {
     largeDecompConfirmation: cfg.get<number>("largeDecompConfirmation")!,
     largeDecompConfirmationBytes: cfg.get<number>("largeDecompConfirmationBytes")!,
     showProvenGoals: cfg.get<boolean>("showProvenGoals")!,
-    showUnattemptedGoals: cfg.get<boolean>("showUnattemptedGoals")!,
+    maximumGoalAge: cfg.get<number>("maximumGoalAge")!,
 
     update(key, value, target = ConfigurationTarget.Global) {
       return cfg.update(key, value, target);

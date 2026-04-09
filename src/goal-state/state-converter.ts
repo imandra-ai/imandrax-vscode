@@ -6,6 +6,7 @@ import sanitize = require('sanitize-html');
 import * as IX from "./imandrax_types"
 import * as IXRE from "./imandrax_report_event"
 import * as TermFormatter from "./term-formatter";
+import { config } from 'process';
 
 function capitalize(x: string): string {
   if (x.length == 0)
@@ -16,11 +17,9 @@ function capitalize(x: string): string {
 
 export class Options {
   showProvenGoals = false;
-  showUnattemptedGoals = false;
 
-  constructor(showProvenGoals: boolean, showUnattemptedGoals: boolean) {
+  constructor(showProvenGoals: boolean) {
     this.showProvenGoals = showProvenGoals;
-    this.showUnattemptedGoals = showUnattemptedGoals;
   }
 }
 
@@ -29,7 +28,7 @@ export class MetaData {
 }
 
 class Context {
-  po: IX.ProofObligation | undefined;
+  goal: IX.Goal | undefined;
 }
 
 export class Converter {
@@ -49,7 +48,7 @@ export class Converter {
   async term2html(t: IX.Term, ctx: Context, with_turnstile?: boolean): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
-    const fmttd: string = TermFormatter.prettify(this._num_columns, t, ctx.po, this._abort_signal, with_turnstile);
+    const fmttd: string = TermFormatter.prettify(this._num_columns, t, ctx.goal, this._abort_signal, with_turnstile);
     const r = fmttd
       .replaceAll("\t", "<span class='indent'></span>")
       .replaceAll("\n", "<br/>") +
@@ -63,24 +62,25 @@ export class Converter {
     const trm = await this.term2html(h.term, ctx, with_turnstile);
     let r;
     if (h.name)
-      r = `${h.name}: ${trm}</div>`;
+      r = `${h.name}: ${trm}`;
     else
-      r = `${trm}</div>`;
-    r = "<div class='code-like'>" + r;
+      r = trm;
+    r = "<div class='code-like'>" + r + "</div>";
     return Promise.resolve(r);
   }
 
   async sequent2html(sg: IX.Sequent, ctx: Context): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
+    let r : string;
     if (sg.hypotheses.length == 0 && sg.conclusions.length == 1)
-      return Promise.resolve(await this.namedTerm2html(sg.conclusions[0], ctx, true));
+      r = await this.namedTerm2html(sg.conclusions[0], ctx, true);
     else {
       const hyps = await Promise.all(sg.hypotheses.map(async x => await this.namedTerm2html(x, ctx)));
       const concls = await Promise.all(sg.conclusions.map(async x => await this.namedTerm2html(x, ctx, false)));
-      return Promise.resolve(hyps.join("") + this.turnstile() + concls.join(""));
+      r = hyps.join("") + this.turnstile() + concls.join("");
     }
-
+    return Promise.resolve(`<div class='sequent'>${r}</div>`);
   }
 
   async subgoal2html(sg: IX.Sequent | string, ctx: Context): Promise<string> {
@@ -216,18 +216,18 @@ export class Converter {
     })).join("\n"));
   }
 
-  async proof_obligation2html(po: IX.ProofObligation, multiple_in_modules: boolean, index_in_file: number): Promise<string> {
+  async goal2html(goal: IX.Goal, multiple_in_modules: boolean, index_in_file: number): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
     const qed = "&#x25A0";
     let title = "<span class='code-like-title'>";
-    const ctx: Context = { po };
-    if (po.location) {
-      let name = po.name
+    const ctx: Context = { goal: goal };
+    if (goal.location) {
+      let name = goal.name
       if (multiple_in_modules) {
-        const slash_inx = po.location.uri.lastIndexOf('/');
-        if (slash_inx >= 0 && slash_inx < po.location.uri.length) {
-          const filename = po.location.uri.substring(slash_inx + 1);
+        const slash_inx = goal.location.uri.lastIndexOf('/');
+        if (slash_inx >= 0 && slash_inx < goal.location.uri.length) {
+          const filename = goal.location.uri.substring(slash_inx + 1);
           const dot_inx = filename.lastIndexOf(".");
           const module = capitalize(dot_inx > 0 ? filename.substring(0, dot_inx) : filename);
           name = `${module}.${name}`
@@ -235,37 +235,40 @@ export class Converter {
       }
       if (index_in_file > 0)
         name = name + ` (#${index_in_file})`;
-      const loc_uri = Uri.parse(po.location.uri);
+      const loc_uri = Uri.parse(goal.location.uri);
       const opts = { viewColumn: ViewColumn.One, preserveFocus: false } as TextDocumentShowOptions;
       const cmd_args = {
         uri: loc_uri, options: opts,
         location: {
-          from: { line: Number(po.location.from.line), column: Number(po.location.from.column) },
-          to: { line: Number(po.location.to.line), column: Number(po.location.to.column) }
+          from: { line: Number(goal.location.from.line), column: Number(goal.location.from.column) },
+          to: { line: Number(goal.location.to.line), column: Number(goal.location.to.column) }
         }
       };
       title = `<a href='#/' class='jump-to' arguments='${JSON.stringify(cmd_args)}'>${name}</a>`;
-      const vars = po.vars.join(" ");
-      title = `<div class='hoverable' data-hover='${po.name} ${vars}'>${title}</div>`;
+      const vars = goal.vars.join(" ");
+      title = `<div class='hoverable' data-hover='${goal.name} ${vars}'>${title}</div>`;
     } else
-      title = `${po.name}`;
+      title = `${goal.name}`;
     title += "</span>";
-    title = `<span>${title}<span class='focus-lock-icon' anchor="${sanitize(po.anchor)}"><i class="codicon codicon-unlock"></i></span></span><br/>`;
+    if (goal.outdated) {
+      title += "<i class='codicon codicon-warning ttl-warning hoverable' data-hover='Outdated. Either the goal itself or it&apos;s state are out of date. This usually means that the goal has been change, removed, or there are currently syntax errors in the source file.'></i>"
+    }
+    title = `<span>${title}<span class='focus-lock-icon' anchor="${sanitize(goal.anchor)}"><i class="codicon codicon-unlock"></i></span></span><br/>`;
     let r = title;
-    if ((po.subgoals?.length > 0) || (po.subresults?.length > 0) || (po.errors?.length > 0)) {
-      if (po.subgoals?.length > 1)
+    if ((goal.subgoals?.length > 0) || (goal.subresults?.length > 0) || (goal.errors?.length > 0)) {
+      if (goal.subgoals?.length > 1)
         r += "<h3>Subgoals:</h3>"
-      const sgs_html = await this.subgoals2html(po.subgoals, ctx);
+      const sgs_html = await this.subgoals2html(goal.subgoals, ctx);
       r += `${sgs_html}`;
-      if (po.errors?.length > 0) {
-        r += `<details><summary>Problems (${po.errors.length})</summary><ul>${await this.errors2html(po.errors)}</ul></details>`;
+      if (goal.errors?.length > 0) {
+        r += `<details><summary>Problems (${goal.errors.length})</summary><ul>${await this.errors2html(goal.errors)}</ul></details>`;
       }
-      if (po.subresults?.length > 0) {
-        const srs_html = await this.subresultss2html(po.subresults, ctx);
+      if (goal.subresults?.length > 0) {
+        const srs_html = await this.subresultss2html(goal.subresults, ctx);
         r += `<details><summary>Subresults</summary><ul>${srs_html}</ul></details>`;
       }
-      if (po.report && po.report.events?.length > 0) {
-        r += `<details><summary>Report</summary><ul>${await this.report2html(po.report, ctx)}</ul></details>`;
+      if (goal.report && goal.report.events?.length > 0) {
+        r += `<details><summary>Report</summary><ul>${await this.report2html(goal.report, ctx)}</ul></details>`;
       }
       return Promise.resolve(r);
     }
@@ -273,27 +276,24 @@ export class Converter {
       return Promise.resolve(r + `<div class='code-like'>${qed}</div>`);
   }
 
-  isProven(po: IX.ProofObligation): boolean {
-    return po.subgoals?.length == 0 && po.errors?.length == 0;
+  isProven(goal: IX.Goal): boolean {
+    return goal.subgoals?.length == 0 && goal.errors?.length == 0;
   }
 
-  isUnattempted(po: IX.ProofObligation): boolean {
-    return po.report === undefined;
-  }
 
-  po_counts(pos: IX.ProofObligation[]): Map<string | undefined, Map<string, number>> {
+  goal_counts(goals: IX.Goal[]): Map<string | undefined, Map<string, number>> {
     const r = new Map<string | undefined, Map<string, number>>();
-    pos.forEach(po => {
-      const at_uri = r.get(po.location?.uri);
+    goals.forEach(goal => {
+      const at_uri = r.get(goal.location?.uri);
       if (!at_uri) {
-        r.set(po.location?.uri, new Map([[po.name, 1]]));
+        r.set(goal.location?.uri, new Map([[goal.name, 1]]));
       }
       else {
-        const at_name = at_uri.get(po.name);
+        const at_name = at_uri.get(goal.name);
         if (!at_name)
-          r.set(po.location?.uri, at_uri.set(po.name, 1));
+          r.set(goal.location?.uri, at_uri.set(goal.name, 1));
         else
-          r.set(po.location?.uri, at_uri.set(po.name, at_name + 1));
+          r.set(goal.location?.uri, at_uri.set(goal.name, at_name + 1));
       }
     }
     );
@@ -303,16 +303,14 @@ export class Converter {
   async to_html(data: IX.GoalState, options: Options): Promise<[string, MetaData]> {
     const metadata: MetaData = new MetaData();
     let r = "";
-    let pos = data.proof_obligations
+    let goals = data.goals;
     if (options.showProvenGoals == false)
-      pos = pos.filter(po => !this.isProven(po));
-    if (options.showUnattemptedGoals == false)
-      pos = pos.filter(po => !this.isUnattempted(po));
-    metadata.only_anchor = pos.length == 1 ? pos[0].anchor : undefined;
-    if (pos.length > 0) {
+      goals = goals.filter(po => !this.isProven(po));
+    metadata.only_anchor = goals.length == 1 ? goals[0].anchor : undefined;
+    if (goals.length > 0) {
       r += "<h2>Proof obligations</h2>\n";
 
-      pos = pos.sort((x, y) => {
+      goals = goals.sort((x, y) => {
         if (!x.location) return +1
         else if (!y.location) return -1;
         else if (x.location.uri < y.location.uri) return -1;
@@ -324,10 +322,10 @@ export class Converter {
         else return 0;
       });
 
-      const counts = this.po_counts(pos);
+      const counts = this.goal_counts(goals);
       const done = new Map<string, number>();
 
-      const gs = pos.map(async po => {
+      const gs = goals.map(async po => {
         const at_uri = counts.get(po.location?.uri);
         const num_in_same_module = at_uri?.get(po.name) ?? 0; // Number of times the PO name appears in the current module
         let num_modules_with_name = 0; // Number of modules in which this PO name appears
@@ -338,7 +336,7 @@ export class Converter {
         const longname = po.location?.uri + "." + po.name;
         const inx_in_same_module = done.get(longname) ?? (num_in_same_module == 1 ? 0 : 1); // Index of the PO name in the current module
         done.set(longname, inx_in_same_module + 1);
-        return await this.proof_obligation2html(po, num_modules_with_name > 1, inx_in_same_module);
+        return await this.goal2html(po, num_modules_with_name > 1, inx_in_same_module);
       });
       r += "<p><ul>\n" +
         (await Promise.all(gs.map(async x => { return `<li>${await x}</li>`; }))).join("\n")
