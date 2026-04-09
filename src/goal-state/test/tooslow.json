@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "proof_obligations": [
+  "goals": [
     {
       "name": "iMinimum_x_or_y",
       "anchor": "(Named iMinimum_x_or_y/5d7_M4OPfcuFRZ8BPd5wOGG8gmmgOAz-nFRQwOdHJLM)",
