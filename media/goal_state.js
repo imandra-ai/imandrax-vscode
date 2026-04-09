@@ -54,6 +54,7 @@
       const hoverable = this.pos?.querySelectorAll('[data-hover], .hoverable');
 
       window.addEventListener('scroll', () => {
+        clearTimeout(this.hover_timeout);
         if (this.hoverBox)
           this.hoverBox.style.display = 'none';
       });
