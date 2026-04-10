@@ -24,7 +24,7 @@ test("iMinimum_x_or_y state", async () => {
   assert.equal(p.goals.length, 1);
   assert.equal(p.goals[0].name, "iMinimum_x_or_y");
 
-  const gsc = new GSC.Converter(80);
-  const html = await gsc.to_html(p, { showProvenGoals: false });
+  const gsc = new GSC.Converter(new GSC.Options(80, false, false));
+  const html = await gsc.to_html(p);
   assert.ok(html[0].length > 0);
 });
