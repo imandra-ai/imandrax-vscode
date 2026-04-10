@@ -4,7 +4,7 @@ import {
   ExtensionMode,
 } from "vscode";
 
-import { getConfig } from "../config";
+import { getExtensionConfig } from "../config";
 
 import {
   env
@@ -73,7 +73,7 @@ function getPlatformConfiguration(): PlatformConfiguration {
 }
 
 export function get(context : ExtensionContext): ImandraXLanguageClientConfiguration | FoundPathConfig {
-  const config = getConfig();
+  const config = getExtensionConfig();
   const binary = config.lsp.binary;
   const serverArgs = config.lsp.arguments;
   const serverEnv = config.lsp.environment;

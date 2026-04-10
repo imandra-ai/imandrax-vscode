@@ -2,14 +2,14 @@ import * as Path from 'path';
 
 import { commands, env, Range, TerminalOptions, Uri, ViewColumn, window, workspace } from 'vscode';
 import { LanguageClient } from 'vscode-languageclient/node';
-import { getConfig } from '../config';
+import { getExtensionConfig } from '../config';
 
 let next_terminal_id = 0;
 let model_count = 0;
 export let showFullIds = false;
 
 export function create_terminal(cwd: string | undefined) {
-  const config = getConfig();
+  const config = getExtensionConfig();
 
   let name = "ImandraX";
   if (next_terminal_id++ > 0) {
@@ -32,7 +32,7 @@ interface Models {
 }
 
 export function interact_model(params: Models) {
-  const config = getConfig();
+  const config = getExtensionConfig();
 
   const uri = Uri.parse(params.uri);
   const models = params.models;
@@ -99,7 +99,7 @@ function num_bytes_to_string(num: number): string {
 }
 
 export async function visualize_decomp(extensionUri: Uri, params: { decomps: Decomp[] }) {
-  const config = getConfig();
+  const config = getExtensionConfig();
 
   const decomps = params.decomps;
 
@@ -203,7 +203,7 @@ export async function checkAll(getClient: () => LanguageClient) {
 }
 
 export function browse(uri: string): Thenable<boolean> | undefined {
-  const config = getConfig();
+  const config = getExtensionConfig();
   if (config.useSimpleBrowser) {
     return commands.executeCommand("simpleBrowser.api.open", uri);
   } else {

@@ -8,8 +8,7 @@ import { ConfigurationChangeEvent, ExtensionContext, ExtensionMode, Uri, window,
 import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-languageclient/node';
 
 export * as configuration from './configuration';
-import { getConfig } from '../config';
-import { GoalStateEditorProvider } from '../goal-state/editor_provider';
+import { getExtensionConfig } from '../config';
 
 const MAX_RESTARTS = 10;
 
@@ -152,7 +151,7 @@ export class ImandraXLanguageClient {
       }
 
       if (client?.isRunning()) {
-        const config = getConfig();
+        const config = getExtensionConfig();
         await client.sendNotification("workspace/didChangeConfiguration", {
           "settings":
           {
@@ -161,8 +160,6 @@ export class ImandraXLanguageClient {
             "goal-state-max-age": config.maximumGoalAge,
           }
         });
-
-        void GoalStateEditorProvider.activeDocument?.refresh();
       }
     }
   }

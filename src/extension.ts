@@ -4,6 +4,8 @@ import * as formatter from './formatter';
 import * as imandraxLanguageClient from './imandrax_language_client/imandrax_language_client';
 import * as installer from './installer';
 import * as listeners from './listeners';
+import { GoalStateEditorProvider } from './goal-state/editor_provider';
+import * as config from './config';
 
 import {
   env,
@@ -43,7 +45,9 @@ export async function activate(context: ExtensionContext) {
     }
 
     workspace.onDidChangeConfiguration(async event => {
+      config.update();
       await languageClientWrapper_.update_configuration(context.extensionUri, event);
+      void GoalStateEditorProvider.activeDocument?.refresh();
     });
 
     if (context.extensionMode != ExtensionMode.Production) {

@@ -27,9 +27,11 @@ export interface Config {
   ): Thenable<void>;
 }
 
-export function getConfig(): Config {
+let cached: Config | undefined = undefined;
+
+export function update(): Config {
   const cfg = workspace.getConfiguration("imandrax");
-  return {
+  cached = {
     debugMode: cfg.get<boolean>("debugMode")!,
     lsp: {
       binary: cfg.get<string>("lsp.binary")!,
@@ -53,4 +55,12 @@ export function getConfig(): Config {
       return cfg.update(key, value, target);
     },
   };
+  return cached;
+}
+
+export function getExtensionConfig(): Config {
+  if (cached)
+    return cached;
+  else
+    return update();
 }

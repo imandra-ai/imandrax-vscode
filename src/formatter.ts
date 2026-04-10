@@ -2,12 +2,12 @@ import { languages, Range, TextDocument, TextEdit } from 'vscode';
 
 import * as prettier from 'prettier';
 import * as iml_prettier from '../imlformat/iml-prettier';
-import { getConfig } from "./config";
+import { getExtensionConfig } from "./config";
 
 export function register() {
   languages.registerDocumentFormattingEditProvider('imandrax', {
     async provideDocumentFormattingEdits(document: TextDocument): Promise<TextEdit[]> {
-      const config = getConfig();
+      const config = getExtensionConfig();
       if (config.IMLFormatter) {
         try {
           let formatted = "";

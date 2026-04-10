@@ -20,7 +20,7 @@ import {
 
 import { LanguageClient } from 'vscode-languageclient/node';
 
-import { getConfig } from "../config";
+import { getExtensionConfig } from "../config";
 import { getClient } from '../commands/registration';
 import { Disposable } from './dispose';
 import * as IX from "./imandrax_types"
@@ -107,7 +107,7 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
         else if (gsd.format_version != 1)
           console.warn(`Unexpected goal state data format version: ${gsd.format_version}`);
 
-        const opts = GSC.Options.from_config(this._num_columns, getConfig());
+        const opts = GSC.Options.from_config(this._num_columns, getExtensionConfig());
         const gsc = new GSC.Converter(opts, signal);
         const [d, md] = await gsc.to_html(gsd);
         this._documentData = d;
