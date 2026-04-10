@@ -9,6 +9,7 @@ import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-langua
 
 export * as configuration from './configuration';
 import { getConfig } from '../config';
+import { GoalStateEditorProvider } from '../goal-state/editor_provider';
 
 const MAX_RESTARTS = 10;
 
@@ -152,7 +153,7 @@ export class ImandraXLanguageClient {
 
       if (client?.isRunning()) {
         const config = getConfig();
-        return client.sendNotification("workspace/didChangeConfiguration", {
+        await client.sendNotification("workspace/didChangeConfiguration", {
           "settings":
           {
             "show-full-ids": commands.showFullIds,
@@ -160,6 +161,8 @@ export class ImandraXLanguageClient {
             "goal-state-max-age": config.maximumGoalAge,
           }
         });
+
+        void GoalStateEditorProvider.activeDocument?.refresh();
       }
     }
   }

@@ -3,6 +3,8 @@ import { TextDocumentShowOptions, Uri, ViewColumn } from 'vscode';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import sanitize = require('sanitize-html');
 
+import { Config } from "../config"
+
 import * as IX from "./imandrax_types"
 import * as IXRE from "./imandrax_report_event"
 import * as TermFormatter from "./term-formatter";
@@ -18,11 +20,25 @@ function div(class_: string, content: string): string {
   return `<div class='${class_}'>` + content + "</div>";
 }
 
-export class Options {
-  showProvenGoals = false;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function is_bool_true(x: any): boolean {
+  return (typeof x === 'boolean') && x;
+}
 
-  constructor(showProvenGoals: boolean) {
+export class Options {
+  num_columns: number;
+  showProvenGoals = false;
+  hideDefaultNames = false;
+
+  constructor(num_columns: number, showProvenGoals: boolean, hideDefaultNames: boolean) {
+    this.num_columns = num_columns;
     this.showProvenGoals = showProvenGoals;
+    this.hideDefaultNames = hideDefaultNames;
+  }
+
+  static from_config(num_columns: number, config: Config): Options {
+    const r = new Options(num_columns, is_bool_true(config.showProvenGoals), is_bool_true(config.hideDefaultNames));
+    return r;
   }
 }
 
@@ -35,11 +51,11 @@ class Context {
 }
 
 export class Converter {
+  private _options: Options;
   private _abort_signal: AbortSignal | undefined;
-  private _num_columns: number;
 
-  constructor(num_columns: number, abort_signal?: AbortSignal) {
-    this._num_columns = num_columns;
+  constructor(options: Options, abort_signal?: AbortSignal) {
+    this._options = options;
     this._abort_signal = abort_signal;
   }
 
@@ -51,7 +67,7 @@ export class Converter {
   async term2html(t: IX.Term, ctx: Context, with_turnstile?: boolean): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
-    const fmttd: string = TermFormatter.prettify(this._num_columns, t, ctx.goal, this._abort_signal, with_turnstile);
+    const fmttd: string = TermFormatter.prettify(this._options.num_columns, t, ctx.goal, this._abort_signal, with_turnstile);
     const r = fmttd
       .replaceAll("\t", "<span class='indent'></span>")
       .replaceAll("\n", "<br/>") +
@@ -59,13 +75,15 @@ export class Converter {
     return Promise.resolve(r);
   }
 
-  async namedTerm2html(h: IX.NamedTerm, ctx: Context, with_turnstile?: boolean): Promise<string> {
+  async namedTerm2html(h: IX.NamedTerm, default_name: string | undefined, ctx: Context, with_turnstile?: boolean): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
     const trm = await this.term2html(h.term, ctx, with_turnstile);
     let r;
     if (h.name)
       r = `${h.name}: ${trm}`;
+    else if (!this._options.hideDefaultNames && default_name)
+      r = `${default_name}: ${trm}`;
     else
       r = trm;
     r = "<div class='code-like'>" + r + "</div>";
@@ -77,10 +95,10 @@ export class Converter {
 
     let r: string;
     if (sg.hypotheses.length == 0 && sg.conclusions.length == 1)
-      r = await this.namedTerm2html(sg.conclusions[0], ctx, true);
+      r = await this.namedTerm2html(sg.conclusions[0], undefined, ctx, true);
     else {
-      const hyps = await Promise.all(sg.hypotheses.map(async x => await this.namedTerm2html(x, ctx)));
-      const concls = await Promise.all(sg.conclusions.map(async x => await this.namedTerm2html(x, ctx, false)));
+      const hyps = await Promise.all(sg.hypotheses.map(async (x, i) => await this.namedTerm2html(x, `H${i}`, ctx)));
+      const concls = await Promise.all(sg.conclusions.map(async (x, i) => await this.namedTerm2html(x, `C${i}`, ctx, false)));
       r = hyps.join("") + this.turnstile() + concls.join("");
     }
     return Promise.resolve(`<div class='sequent'>${r}</div>`);
@@ -305,12 +323,12 @@ export class Converter {
     return r;
   }
 
-  async to_html(data: IX.GoalState, options: Options): Promise<[string, MetaData]> {
+  async to_html(data: IX.GoalState): Promise<[string, MetaData]> {
     const metadata: MetaData = new MetaData();
     let r = "";
 
     let goals = data.goals;
-    if (options.showProvenGoals == false)
+    if (!this._options.showProvenGoals)
       goals = goals.filter(po => !this.isProven(po));
 
     metadata.only_anchor = goals.length == 1 ? goals[0].anchor : undefined;

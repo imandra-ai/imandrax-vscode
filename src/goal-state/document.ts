@@ -43,11 +43,6 @@ interface GoalStateDocumentDelegate {
   getFileData(): Promise<Uint8Array>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function is_bool_true(x: any): boolean {
-  return (typeof x === 'boolean') && x;
-}
-
 export class GoalStateDocument extends Disposable implements CustomDocument {
   private readonly _uri: Uri;
   private _documentData = "";
@@ -112,10 +107,9 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
         else if (gsd.format_version != 1)
           console.warn(`Unexpected goal state data format version: ${gsd.format_version}`);
 
-        const config = getConfig();
-        const gsc = new GSC.Converter(this._num_columns, signal);
-        const opts = new GSC.Options(is_bool_true(config.showProvenGoals));
-        const [d, md] = await gsc.to_html(gsd, opts);
+        const opts = GSC.Options.from_config(this._num_columns, getConfig());
+        const gsc = new GSC.Converter(opts, signal);
+        const [d, md] = await gsc.to_html(gsd);
         this._documentData = d;
         this._documentMetaData = md;
 
@@ -172,6 +166,12 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
   dispose(): void {
     this._onDidDispose.fire();
     super.dispose();
+  }
+
+  async refresh() {
+    this._abort_controller?.abort();
+    this._abort_controller = new AbortController();
+    await this.update_data(this._goalStateData, this._abort_controller.signal);
   }
 
   async jump_to(uri: Uri, options: TextDocumentShowOptions,

@@ -29,15 +29,22 @@ function getNonce() {
 }
 
 export class GoalStateEditorProvider implements CustomReadonlyEditorProvider<GoalStateDocument> {
+  private static _instance: GoalStateEditorProvider | undefined = undefined;
+  private static _disposable: Disposable | undefined = undefined;
 
   public static register(context: ExtensionContext): Disposable {
-    const provider = new GoalStateEditorProvider(context);
-    return window.registerCustomEditorProvider(GoalStateEditorProvider.viewType, provider,
-      {
-        supportsMultipleEditorsPerDocument: false,
-        webviewOptions: { enableFindWidget: true }
-      });
+    if (!this._instance || !this._disposable) {
+      this._instance = new GoalStateEditorProvider(context);
+      this._disposable = window.registerCustomEditorProvider(GoalStateEditorProvider.viewType, this._instance,
+        {
+          supportsMultipleEditorsPerDocument: false,
+          webviewOptions: { enableFindWidget: true }
+        });
+    }
+    return this._disposable;
   }
+
+  public static get(): GoalStateEditorProvider | undefined { return this._instance; }
 
   public static readonly viewType = "imandrax.GoalState";
 
@@ -45,6 +52,7 @@ export class GoalStateEditorProvider implements CustomReadonlyEditorProvider<Goa
     private readonly _context: ExtensionContext
   ) { }
 
+  // There is only ever one document and panel.
   static activePanel: WebviewPanel | undefined = undefined;
   static activeDocument: GoalStateDocument | undefined = undefined;
 

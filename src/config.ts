@@ -18,6 +18,7 @@ export interface Config {
   largeDecompConfirmationBytes: number;
   showProvenGoals: boolean;
   maximumGoalAge: number;
+  hideDefaultNames: boolean;
 
   update<K extends keyof Config>(
     key: K,
@@ -46,6 +47,7 @@ export function getConfig(): Config {
     largeDecompConfirmationBytes: cfg.get<number>("largeDecompConfirmationBytes")!,
     showProvenGoals: cfg.get<boolean>("showProvenGoals")!,
     maximumGoalAge: cfg.get<number>("maximumGoalAge")!,
+    hideDefaultNames: cfg.get<boolean>("hideDefaultNames")!,
 
     update(key, value, target = ConfigurationTarget.Global) {
       return cfg.update(key, value, target);
