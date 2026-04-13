@@ -412,6 +412,57 @@ class TermFormatter {
     return vtext(r_str, c_vstr.visual_length);
   }
 
+  get_string_const(t: IXT.Term): string | undefined {
+    const v = t.view;
+    if (v.constructor == "Const" && v.c.view.constructor == "Const_string")
+      return v.c.view.v;
+    return undefined;
+  }
+
+  subterm_selection2doc(t: IXT.Term[]): Doc {
+    const t2d = (x: IXT.Term) => this.term2doc(x, true);
+
+    const rs = t.map(t => {
+      const v = t.view;
+      switch (v.constructor) {
+        case "Apply": {
+          if (v.f.view.constructor == "Sym") {
+            switch (v.f.view.sym.id) {
+              case "subterm_selection_index":
+                return g([kw("index"), parens(indent([linebreak, t2d(v.l[0])]))]);
+              case "subterm_selection_nth":
+                return g([kw("nth"), parens(indent([linebreak, t2d(v.l[0])]))]);
+              case "subterm_selection_lhs":
+                return kw("lhs");
+              case "subterm_selection_rhs":
+                return kw("rhs");
+              default:
+                return t2d(t);
+            }
+          }
+          else
+            return t2d(t);
+        }
+        case "Tuple": {
+          if (v.l.length == 2) {
+            switch (this.get_string_const(v.l[0])) {
+              case "at": return g([kw("at"), indent([line, parens(t2d(v.l[1]))])]);
+              case "in": return g([kw("in"), indent([line, parens(t2d(v.l[1]))])]);
+              default: return t2d(t);
+            }
+          }
+          else
+            return t2d(t);
+        }
+        default:
+          return t2d(t);
+      }
+    }
+    );
+
+    return join(line, rs);
+  }
+
   term2doc(t: IXT.Term, hover_enabled = true): Doc {
     this._abort_signal?.throwIfAborted();
 
@@ -452,7 +503,9 @@ class TermFormatter {
             const sid = IXT.short_id(v.f.view.sym.id);
             const pi = IXO.operator_info(sid, v.l.length > 1);
 
-            if (v.l.length == 0)
+            if (sid == "subterm_selection_select")
+              return this.subterm_selection2doc(v.l);
+            else if (v.l.length == 0)
               return fn;
             else {
               switch (pi.notation) {

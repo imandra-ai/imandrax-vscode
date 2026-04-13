@@ -91,6 +91,9 @@ export function operator_info(op: string, more_than_one_arg = false): OperatorIn
   if (op == "List.append")
     return operator_info("@", more_than_one_arg);
 
+  if (op == "subterm_selection_wildcard")
+    return new OperatorInfo("_", Notation.Prefix, Associativity.Left, 17);
+
   // function application, constructor application, tag application
   return new OperatorInfo(op, Notation.Prefix, Associativity.Left, 17);
 }
