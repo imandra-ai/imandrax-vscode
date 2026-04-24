@@ -122,12 +122,12 @@ test("If with destruct", () => {
   let p = FMT.prettify(77, t);
 
   // Fits into 77 characters.
-  assert.strictEqual(stripHtml(p), `(if x is_a A then destruct[A|0] x.1 else if x is_a B then 2.0 else 4.0) = 3.0`);
+  assert.strictEqual(stripHtml(p), `(if x is-a A then destruct[A|0] x.1 else if x is-a B then 2.0 else 4.0) = 3.0`);
 
   // Doesn't fit into 76 characters.
   p = FMT.prettify(76, t);
   assert.strictEqual(stripHtml(p), `\
-(if x is_a A then destruct[A|0] x.1 else if x is_a B then 2.0 else 4.0)
+(if x is-a A then destruct[A|0] x.1 else if x is-a B then 2.0 else 4.0)
 =
 3.0`);
 })
