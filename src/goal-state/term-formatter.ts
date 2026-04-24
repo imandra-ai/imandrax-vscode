@@ -230,15 +230,18 @@ export const fill = (docs: Doc[]): Doc => punctuate(group(line), docs);
 // ---------------------------------------------------------------------------
 
 /** Wrap a document between two delimiter documents. */
-export const enclose = (l: Doc, r: Doc, x: Doc): Doc =>
-  concat(l, concat(x, r));
+export const enclose = (left: string, right: string, x: Doc, hover?: string): Doc => {
+  const leh = hover ? `<span class='hoverable' data-hover='${hover.replaceAll("'", "&#39;")}'>${left}</span>` : left;
+  const reh = hover ? `<span class='hoverable' data-hover='${hover.replaceAll("'", "&#39;")}'>${right}</span>` : right;
+  return hcat([vtext(`<span class='enclosed'><span>${leh}</span>`, left.length), x, vtext(`<span>${reh}</span></span>`, right.length)]);
+}
 
-export const parens = (x: Doc): Doc => enclose(text("("), text(")"), x);
-export const brackets = (x: Doc): Doc => enclose(text("["), text("]"), x);
-export const braces = (x: Doc): Doc => enclose(text("{"), text("}"), x);
-export const angles = (x: Doc): Doc => enclose(text("<"), text(">"), x);
-export const squotes = (x: Doc): Doc => enclose(text("'"), text("'"), x);
-export const dquotes = (x: Doc): Doc => enclose(text('"'), text('"'), x);
+export const parens = (x: Doc, hover?: string): Doc => enclose("(", ")", x, hover);
+export const brackets = (x: Doc, hover?: string): Doc => enclose("[", "]", x, hover);
+export const braces = (x: Doc, hover?: string): Doc => enclose("{", "}", x, hover);
+export const angles = (x: Doc, hover?: string): Doc => enclose("<", ">", x, hover);
+export const squotes = (x: Doc, hover?: string): Doc => enclose("'", "'", x, hover);
+export const dquotes = (x: Doc, hover?: string): Doc => enclose('"', '"', x, hover);
 
 // ---------------------------------------------------------------------------
 // Public API — list layouts
@@ -294,9 +297,9 @@ function g(ds: Doc[]): Doc {
   return group(hcat(ds));
 }
 
-function par_if(c: boolean, ds: Doc[]): Doc {
+function par_if(c: boolean, ds: Doc[], hover: string): Doc {
   if (c)
-    return parens(hcat(ds));
+    return parens(hcat(ds), hover);
   else
     return hcat(ds);
 }
@@ -332,6 +335,10 @@ function hid(w: string, id: string): string {
   return `<span class='identifier' name='${id}'>${w}</span>`;
 }
 
+function hconstructorid(w: string, id: string): string {
+  return `<span class='identifier constructor-name' name='${id}'>${w}</span>`;
+}
+
 function vconstant(w: string): VisString {
   return new VisString(`<span class='constant'>${sanitize(w)}</span>`, w.length);
 }
@@ -362,7 +369,7 @@ class TermFormatter {
       this._with_turnstile = with_turnstile;
   }
 
-  sym2doc(s: IXT.AppliedSymbol, definition?: string, hover_enabled = true): Doc {
+  sym2doc(s: IXT.AppliedSymbol, definition?: string, hover_enabled = true, id_fun = hid): Doc {
     this._abort_signal?.throwIfAborted();
 
     const sid = IXT.short_id(s.id);
@@ -384,7 +391,7 @@ class TermFormatter {
     if (dot_inx > 0 && dot_inx < sid.length - 1)
       op_name = sid.substring(dot_inx + 1);
 
-    return vtext(span(hid(op_name, s.id), hover), op_name.length);
+    return vtext(span(id_fun(op_name, s.id), hover), op_name.length);
   }
 
   const2doc(c: IXT.Constant, type: string, hover_enabled: boolean): Doc {
@@ -479,7 +486,7 @@ class TermFormatter {
           x.view.c.view.constructor == "Const_q" &&
           x.view.c.view.den != BigInt(1) &&
           parent_oi.precedence > IXO.operator_info("/.").precedence);
-      return par_if(needs_par, [rec(x)]);
+      return par_if(needs_par, [rec(x)], x.type);
     }
 
     const v = t.view;
@@ -521,8 +528,12 @@ class TermFormatter {
                   }
                 }
                 default: {
-                  const hargs = indent([line, join(line, v.l.map(x => recwp(pi, x)))]);
-                  return v.l.length == 0 ? fn : g([fn, hargs]);
+                  if (v.l.length == 0)
+                    return fn;
+                  else {
+                    const hargs = indent([line, join(line, v.l.map(x => recwp(pi, x)))]);
+                    return g([fn, hargs]);
+                  }
                 }
               }
             }
@@ -530,7 +541,7 @@ class TermFormatter {
           else {
             // fn is a function term
             const hargs = indent([line, join(line, v.l.map(x => recwp(IXO.default_(), x)))]);
-            return par_if(v.l.length > 0, [fn, hargs]);
+            return par_if(v.l.length > 0, [fn, hargs], t.type);
           }
           break;
         }
@@ -552,9 +563,9 @@ class TermFormatter {
         }
       case "Construct": {
         if (v.args.length == 0)
-          return this.sym2doc(v.c, undefined, hover_enabled);
+          return this.sym2doc(v.c, undefined, hover_enabled, hconstructorid);
         else {
-          const op_doc = this.sym2doc(v.c, undefined, hover_enabled);
+          const op_doc = this.sym2doc(v.c, undefined, hover_enabled, hconstructorid);
           const sid = IXT.short_id(v.c.id);
           const pi = IXO.operator_info(sid, v.args.length > 1);
           switch (pi.notation) {
@@ -571,7 +582,7 @@ class TermFormatter {
             }
             default: {
               const args = v.args.map(rec);
-              return g([par_if(true, [op_doc, indent([line, join(line, args)])])]);
+              return g([op_doc, indent([line, join(line, args)])]);
             }
           }
         }
@@ -583,10 +594,13 @@ class TermFormatter {
             this.sym2doc(v.c, undefined, hover_enabled),
             text("|"),
             text(v.i.toString())])),
-          line,
-          recwp(IXO.default_(), v.t)]);
+          indent([line,
+            recwp(IXO.default_(), v.t)])]);
       case "Is_a": {
-        return g([rec(v.t), line, kw("is_a"), indent([line, this.sym2doc(v.c, undefined, hover_enabled)])]);
+        const pi = IXO.operator_info_of_term(t);
+        const lhs = recwp(pi, v.t, true);
+        const rhs = this.sym2doc(v.c, undefined, hover_enabled, hconstructorid);
+        return g([lhs, line, kw(pi.name), line, rhs]);
       }
       case "Tuple": return g([indent([join(hcat([text(","), line]), v.l.map(rec))])]);
       case "Field": return g([rec(v.t), text("."), linebreak, this.sym2doc(v.f, undefined, hover_enabled)])

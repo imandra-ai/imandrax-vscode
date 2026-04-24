@@ -9,6 +9,7 @@
     constructor( /** @type {HTMLElement} */ parent) {
       this.ready = false;
       this.focusLockAnchor = undefined;
+      this.identifierUnderMouse = undefined;
       this._initElements(parent);
       this.hover_timeout = undefined;
       /** @type number | undefined */ this.po_width = undefined;
@@ -81,36 +82,65 @@
       document.querySelectorAll('.focus-lock-icon').forEach(a => {
         a.addEventListener('mouseenter', (e) => {
           let img = a.childNodes[0];
-          img.style.opacity = 1.0;
+          if (img instanceof HTMLElement)
+            img.style.opacity = "1.0";
         });
         a.addEventListener('mouseleave', (e) => {
           if (!this.focusLockAnchor) {
             let img = a.childNodes[0];
-            img.style.opacity = 0.25;
+            if (img instanceof HTMLElement)
+              img.style.opacity = "0.25";
           }
           else
             if (a.getAttribute('anchor') != this.focusLockAnchor) {
               let img = a.childNodes[0];
-              img.style.opacity = 0.25;
+              if (img instanceof HTMLElement)
+                img.style.opacity = "0.25";
             }
         });
       });
     }
 
-    _lockFocus(/** @type {string | undefined} */ anchor, /** @type {Element | undefined} */ elem) {
-      let setFocus = (/** @type {Element} */ e) => {
+    _setupEnclosedHandlers() {
+      document.querySelectorAll('.enclosed').forEach(e => {
+        const first = e.firstChild;
+        const last = e.lastChild;
+
+        if (first instanceof Element && last instanceof Element) {
+
+          [first, last].forEach(e => {
+            e?.addEventListener('mouseenter', () => {
+              first?.classList.add('enclosed-active');
+              last?.classList.add('enclosed-active');
+            })
+
+            e?.addEventListener('mouseleave', () => {
+              first?.classList.remove('enclosed-active');
+              last?.classList.remove('enclosed-active');
+            });
+          });
+        }
+      });
+    }
+
+    _lockFocus(/** @type {string | undefined} */ anchor, /** @type {HTMLElement | undefined} */ elem) {
+      let setFocus = (/** @type {HTMLElement} */ e) => {
         let img = e.childNodes[0];
-        img.classList.remove('codicon-unlock');
-        img.classList.add('codicon-lock');
-        img.style.opacity = 1.0;
-        window.scrollTo({ top: e.offsetTop, left: 0, behavior: 'smooth' });
+        if (img instanceof HTMLElement) {
+          img.classList.remove('codicon-unlock');
+          img.classList.add('codicon-lock');
+          img.style.opacity = "1.0";
+          window.scrollTo({ top: e.offsetTop, left: 0, behavior: 'smooth' });
+        }
       };
       if (anchor) {
         document.querySelectorAll('.focus-lock-icon').forEach((/** @type {Element} */ a) => {
           let img = a.childNodes[0];
-          img.classList.remove('codicon-lock');
-          img.classList.add('codicon-unlock');
-          img.style.opacity = 0.25;
+          if (img instanceof HTMLElement) {
+            img.classList.remove('codicon-lock');
+            img.classList.add('codicon-unlock');
+            img.style.opacity = "0.25";
+          }
         });
         this.focusLockAnchor = anchor;
 
@@ -124,9 +154,11 @@
           setFocus(elem);
         else {
           document.querySelectorAll('.focus-lock-icon').forEach((/** @type {Element} */ a) => {
-            let anchor = a.getAttribute('anchor');
-            if (anchor == this.focusLockAnchor)
-              setFocus(a);
+            if (a instanceof HTMLElement) {
+              let anchor = a.getAttribute('anchor');
+              if (anchor == this.focusLockAnchor)
+                setFocus(a);
+            }
           })
         }
       }
@@ -138,9 +170,11 @@
         vscode.setState({ lockFocusAnchor: this.focusLockAnchor });
         document.querySelectorAll('.focus-lock-icon').forEach((/** @type {Element} */ a) => {
           let img = a.childNodes[0];
-          img.classList.remove('codicon-lock');
-          img.classList.add('codicon-unlock');
-          img.style.opacity = 0.25;
+          if (img instanceof HTMLElement) {
+            img.classList.remove('codicon-lock');
+            img.classList.add('codicon-unlock');
+            img.style.opacity = "0.25";
+          }
         });
 
         vscode.postMessage({
@@ -173,46 +207,56 @@
             });
         });
       });
-      document.querySelectorAll('.focus-lock-icon').forEach(a => {
-        a.addEventListener('click', (e) => {
-          e.preventDefault();
-          let anchor = a.getAttribute('anchor')
-          if (anchor) {
-            if (this.focusLockAnchor == anchor)
-              this._unlockFocus();
-            else
-              this._lockFocus(anchor, a)
-            window.scrollTo({ top: a.offsetTop, left: 0, behavior: 'smooth' });
-          }
-        });
-      });
-      document.querySelectorAll('.identifier').forEach(a => {
-        a.addEventListener('mouseenter', (e) => {
-          if (e.ctrlKey)
-            a.style.textDecoration = 'underline';
-        });
-        a.addEventListener('keydown', (e) => {
-          if (e.ctrlKey)
-            a.style.textDecoration = 'underline';
-        });
-        a.addEventListener('mouseleave', (e) => {
-          a.style.textDecoration = 'none';
-        });
-        a.addEventListener('click', (e) => {
-          if (e.ctrlKey) {
+      document.querySelectorAll('.focus-lock-icon').forEach((/** @type Element */ a) => {
+        if (a instanceof HTMLElement) {
+          a.addEventListener('click', (/** @type Event */ e) => {
             e.preventDefault();
-            const name = a.getAttribute('name');
-            if (name)
-              vscode.postMessage({
-                command: 'jump-to-declaration',
-                arguments: { name: name }
-              });
-          }
-        });
+            let anchor = a.getAttribute('anchor')
+            if (anchor) {
+              if (this.focusLockAnchor == anchor)
+                this._unlockFocus();
+              else
+                this._lockFocus(anchor, a)
+              window.scrollTo({ top: a.offsetTop, left: 0, behavior: 'smooth' });
+            }
+          });
+        }
+      });
+      document.querySelectorAll('.identifier').forEach((/** @type Element */ a) => {
+        if (a instanceof HTMLElement) {
+          a.addEventListener('mouseenter', (e) => {
+            this.identifierUnderMouse = a;
+            if (e.ctrlKey || e.metaKey)
+              a.style.textDecoration = 'underline';
+          });
+          a.addEventListener('mouseleave', (e) => {
+            a.style.textDecoration = 'none';
+            this.identifierUnderMouse = undefined;
+          });
+          a.addEventListener('click', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+              e.preventDefault();
+              const name = a.getAttribute('name');
+              if (name)
+                vscode.postMessage({
+                  command: 'jump-to-declaration',
+                  arguments: { name: name }
+                });
+            }
+          });
+        }
+      });
+      document.addEventListener('keydown', (e) => {
+        if (this.identifierUnderMouse && (e.ctrlKey || e.metaKey))
+          this.identifierUnderMouse.style.textDecoration = 'underline';
+      });
+      document.addEventListener('keyup', (e) => {
+        if (this.identifierUnderMouse && (e.key === "Control" || e.key === "Meta"))
+          this.identifierUnderMouse.style.textDecoration = 'none';
       });
 
       document.querySelectorAll('details').forEach(a => {
-        a.addEventListener('click', (e) => {
+        a.addEventListener('click', (_) => {
           if (!a.open) {
             a.classList.add('loading');
             a.addEventListener('toggle', () => {
@@ -224,36 +268,38 @@
     }
 
     _updateHoverBox(/** @type string */ hoverText, /** @type Event */ event) {
-      const event_rect = event.target?.getBoundingClientRect();
-      if (event_rect) {
-        const offset = 4;
-        let left = event_rect.left;
-        let top = event_rect.top;
+      if (event.target instanceof Element) {
+        const event_rect = event.target.getBoundingClientRect();
+        if (event_rect) {
+          const offset = 4;
+          let left = event_rect.left;
+          let top = event_rect.top;
 
-        clearTimeout(this.hover_timeout);
-        this.hover_timeout = setTimeout(() => {
-          if (this.hoverBox) {
-            this.hoverBox.style.display = 'none';
-            this.hoverBox.innerHTML = hoverText;
+          clearTimeout(this.hover_timeout);
+          this.hover_timeout = setTimeout(() => {
+            if (this.hoverBox) {
+              this.hoverBox.style.display = 'none';
+              this.hoverBox.innerHTML = hoverText;
 
-            this.hoverBox.style.display = 'block'
-            const boxRect = this.hoverBox.getBoundingClientRect();
+              this.hoverBox.style.display = 'block'
+              const boxRect = this.hoverBox.getBoundingClientRect();
 
-            if (left + boxRect.width > window.innerWidth) {
-              left = window.innerWidth - boxRect.width - 10;
+              if (left + boxRect.width > window.innerWidth) {
+                left = window.innerWidth - boxRect.width - 10;
+              }
+
+              this.hoverBox.style.left = left + 'px';
+
+              top = top - boxRect.height - offset;
+
+              if (top < 0)
+                top = 0;
+
+              this.hoverBox.style.top = top + 'px';
             }
-
-            this.hoverBox.style.left = left + 'px';
-
-            top = top - boxRect.height - offset;
-
-            if (top < 0)
-              top = 0;
-
-            this.hoverBox.style.top = top + 'px';
-          }
-        },
-          200);
+          },
+            200);
+        }
       }
     }
 
@@ -268,6 +314,7 @@
         this.hoverBox.style.display = 'none';
       this._setupHoverHandlers();
       this._setupEventHandlers();
+      this._setupEnclosedHandlers();
       this.focusLockAnchor = vscode.getState()?.lockFocusAnchor;
       this._lockFocus(this.focusLockAnchor, undefined);
       this._setInitialCodelikeWidth();
@@ -309,7 +356,8 @@
     }
   }
 
-  const editor = new GoalStateEditor(document.querySelector('.goal-state-content'));
+  const /** @type HTMLElement | null */ _gscontent = document.querySelector('.goal-state-content');
+  const editor = _gscontent ? new GoalStateEditor(_gscontent) : null;
 
   function debounce(/** @type () => void */ fn, /** @type number */ delay) {
     /** @type NodeJS.Timeout | undefined */
@@ -320,31 +368,34 @@
     };
   }
 
-  window.addEventListener('resize', debounce(editor.onResize, 150));
+  if (editor)
+    window.addEventListener('resize', debounce(editor.onResize, 150));
 
   // Handle messages from the extension
   window.addEventListener('message', async e => {
-    const { type, body, requestId } = e.data;
-    // console.log(`JS Message: type=${type} body=${JSON.stringify(body)}`);
-    switch (type) {
-      case 'init':
-        {
-          if (body.untitled || !body.value)
-            await editor.reset("<div style='goal'>&#x25A0</div>");
-          else
-            await editor.reset(body.value);
-          return;
-        }
-      case 'update':
-        {
-          editor.reset(body.content);
-          return;
-        }
-      case 'refocus':
-        {
-          editor.refocus();
-          return;
-        }
+    if (editor) {
+      const { type, body, requestId } = e.data;
+      // console.log(`JS Message: type=${type} body=${JSON.stringify(body)}`);
+      switch (type) {
+        case 'init':
+          {
+            if (body.untitled || !body.value)
+              await editor.reset("<div style='goal'>&#x25A0</div>");
+            else
+              await editor.reset(body.value);
+            return;
+          }
+        case 'update':
+          {
+            editor.reset(body.content);
+            return;
+          }
+        case 'refocus':
+          {
+            editor.refocus();
+            return;
+          }
+      }
     }
   });
 

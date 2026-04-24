@@ -271,7 +271,7 @@ export class Converter {
     } else
       title = `${goal.name}`;
     if (goal.outdated) {
-      title += "<i class='codicon codicon-warning ttl-warning hoverable' data-hover='Outdated. Either the goal itself or it&apos;s state are out of date. This usually means that the goal has been changed, removed, or that there are syntax errors in the source file.'></i>"
+      title += "<i class='codicon codicon-warning ttl-warning hoverable' data-hover='Outdated. Either the goal itself or its state are out of date. This usually means that the goal has been changed, removed, or that there are syntax errors in the source file.'></i>"
     }
     title = `${title}<div class='focus-lock-icon' anchor="${sanitize(goal.anchor)}"><i class="codicon codicon-unlock"></i></div>`;
     title = `<div class='goal-info'><div class='goal-title'>${title}</div></div>`;

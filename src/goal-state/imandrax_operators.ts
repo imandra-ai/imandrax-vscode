@@ -125,10 +125,12 @@ export function operator_info_of_term(t: IX.Term): OperatorInfo {
       else
         return default_();
     }
+    case "Is_a": {
+      return new OperatorInfo("is-a", Notation.Infix, Associativity.Left, 17);
+    }
     case "Sym":
     case "Var":
     case "Destruct":
-    case "Is_a":
     case "Field":
     case "Tuple_field":
     case "Record":

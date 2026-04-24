@@ -276,11 +276,13 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
   async jump_to_declaration(symbol: string): Promise<void> {
     if (getClient) {
       const client: LanguageClient = getClient();
-      const symbols: SymbolInformation[] = await client.sendRequest("workspace/symbol", { "query": symbol });
+      const symbols: SymbolInformation[] | null = await client.sendRequest("workspace/symbol", { "query": symbol });
 
       let sym_to_show;
-      if (symbols.length > 0) {
-        if (symbols.length > 1) {
+      if (symbols && symbols.length > 0) {
+        if (symbols?.length == 1)
+          sym_to_show = symbols[0]
+        else {
           const picks = symbols.map(s => ({
             label: `$(symbol-${SymbolKind[s.kind].toLowerCase()}) ${s.name}`,
             description: s.containerName,
@@ -290,8 +292,6 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
           const picked = await window.showQuickPick(picks);
           sym_to_show = picked?.symbol;
         }
-        else
-          sym_to_show = symbols[0]
 
         if (sym_to_show) {
           const { uri, range } = sym_to_show.location;
