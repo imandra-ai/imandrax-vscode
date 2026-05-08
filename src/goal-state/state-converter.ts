@@ -138,8 +138,10 @@ export class Converter {
       r += `<tr><td valign=top>Goal:</td><td>${await this.subgoal2html(sr.goal, ctx)}</td></tr>`;
     if (sr.subgoals)
       r += `<tr><td valign=top>Subgoals:</td><td>${await this.subgoals2html(sr.subgoals, ctx)}</td></tr>`;
-    if (sr.error)
-      r += `<tr><td valign=top>Error:</td><td>${sr.error}</td></tr>`;
+    if (sr.error) {
+      const error = sr.error.replaceAll('\n', '<br/>');
+      r += `<tr><td valign=top>Error:</td><td>${error}</td></tr>`;
+    }
     r += "</table></span>"
 
     return Promise.resolve(r);
@@ -209,7 +211,7 @@ export class Converter {
       default:
         r = JSON.stringify(d);
     }
-    return Promise.resolve(r);
+    return Promise.resolve(r.replaceAll('\n', '<br/>'));
   }
 
   async report2html(rep: IX.Report, ctx: Context): Promise<string> {
@@ -279,7 +281,7 @@ export class Converter {
     let r = "";
     if ((goal.subgoals?.length > 0) || (goal.subresults?.length > 0) || (goal.errors?.length > 0)) {
       if (goal.subgoals?.length > 1)
-        r += "<h3>Subgoals:</h3>"
+        r += `<h3>Subgoals (${goal.subgoals.length}):</h3>`
       const sgs_html = await this.subgoals2html(goal.subgoals, ctx);
       r += `${sgs_html}`;
       if (goal.errors?.length > 0) {

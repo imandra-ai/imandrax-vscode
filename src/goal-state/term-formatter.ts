@@ -591,7 +591,7 @@ class TermFormatter {
         return g([
           kw("destruct"),
           brackets(hcat([
-            this.sym2doc(v.c, undefined, hover_enabled),
+            this.sym2doc(v.c, undefined, hover_enabled, hconstructorid),
             text("|"),
             text(v.i.toString())])),
           indent([line,
