@@ -126,8 +126,8 @@ export function register(context: ExtensionContext, imandraxLanguageClient: Iman
 
   goal_state_register(context);
 
-  const check_closest_cmd = "imandrax.check-closest";
-  context.subscriptions.push(commands.registerCommand(check_closest_cmd,
+  const execute_closest_cmd = "imandrax.execute-closest";
+  context.subscriptions.push(commands.registerCommand(execute_closest_cmd,
     async () => {
       const editor = window.activeTextEditor;
       let position = editor?.selection.active;
@@ -139,7 +139,8 @@ export function register(context: ExtensionContext, imandraxLanguageClient: Iman
 
         const lens = lenses.reduce((closest, x) => {
           if (x.isResolved && x.command &&
-            (x.command.command == "check" || x.command?.command == "recheck") &&
+            // (x.command.command == "check" || x.command?.command == "recheck") &&
+            // Always execute the first command
             position
           ) {
             if (x.range.start.line <= position.line &&
