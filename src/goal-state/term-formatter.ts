@@ -672,7 +672,7 @@ class SequentFormatter extends TermFormatter {
 
     let doc;
     if (hs.length == 0 && cs.length == 1)
-      doc = g([kw("&#x22A2;"), linebreak, join(linebreak, cs)]);
+      doc = g([kw("&#x22A2;"), line, join(line, cs)]);
     else {
       const ts = (long_turnstile) ? vtext(long_turnstile, 1) : kw("&#x22A2;");
       doc = g([join(linebreak, hs), linebreak, ts, linebreak, join(linebreak, cs)]);
