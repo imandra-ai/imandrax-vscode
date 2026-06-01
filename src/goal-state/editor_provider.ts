@@ -178,7 +178,7 @@ export class GoalStateEditorProvider implements CustomReadonlyEditorProvider<Goa
         <p>&nbsp;</p>
 
         <p>
-          <div class="goal-state-content"/>
+          <div class="goal-state-content" data-vscode-context='{"webviewSection": "editor", "preventDefaultContextMenuItems": true}'/>
         </p>
 
         <script nonce="${nonce}" src="${scriptUri}"/>

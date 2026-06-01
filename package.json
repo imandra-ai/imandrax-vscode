@@ -225,8 +225,13 @@
         "title": "Imandrax: Open Prelude"
       },
       {
-        "command": "imandrax.check-closest",
-        "title": "Imandrax: Check closest proof obligation"
+        "command": "imandrax.execute-closest",
+        "title": "Imandrax: Execute the closest CodeLens command (usually Check, Re-check, Cancel, or Decompose)",
+        "shortTitle": "Execute Closest"
+      },
+      {
+        "command": "editor.action.clipboardCopyAction",
+        "title": "Copy"
       }
     ],
     "keybindings": [
@@ -243,10 +248,10 @@
         "when": "activeCustomEditorId == 'imandrax.GoalState'"
       },
       {
-        "command": "imandrax.check-closest",
+        "command": "imandrax.execute-closest",
         "key": "ctrl-d ctrl-c",
         "mac": "cmd-d cmd-c",
-        "when": "editorLangId == imandrax"
+        "when": "editorLangId == 'imandrax'"
       }
     ],
     "customEditors": [
@@ -259,7 +264,15 @@
           }
         ]
       }
-    ]
+    ],
+    "menus": {
+      "webview/context": [
+        {
+          "command": "editor.action.clipboardCopyAction",
+          "when": "webviewId == 'imandrax.GoalState' && webviewSection == 'editor'"
+        }
+      ]
+    }
   },
   "activationEvents": [
     "onFileSystem:imandrax-vfs"
