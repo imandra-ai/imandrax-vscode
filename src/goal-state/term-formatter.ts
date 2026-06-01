@@ -356,10 +356,10 @@ function kw(w: string): Doc {
 }
 
 class TermFormatter {
-  private _abort_signal: AbortSignal | undefined;
-  private _width: number;
-  private _goal: IXT.Goal | undefined;
-  private _with_turnstile = false;
+  protected _abort_signal: AbortSignal | undefined;
+  protected _width: number;
+  protected _goal: IXT.Goal | undefined;
+  protected _with_turnstile = false;
 
   constructor(width: number, goal?: IXT.Goal, abort_signal?: AbortSignal, with_turnstile?: boolean) {
     this._width = width;
@@ -648,6 +648,40 @@ class TermFormatter {
   }
 }
 
+
+class SequentFormatter extends TermFormatter {
+  constructor(width: number, goal?: IXT.Goal, abort_signal?: AbortSignal) {
+    super(width, goal, abort_signal, false);
+  }
+
+  namedterm2doc(nt: IXT.NamedTerm, default_name?: string): Doc {
+    this._abort_signal?.throwIfAborted();
+    if (nt.name)
+      return g([text(nt.name), text(":"), indent([line, this.term2doc(nt.term)])]);
+    else if (default_name)
+      return g([text(default_name), text(":"), indent([line, this.term2doc(nt.term)])]);
+    else
+      return this.term2doc(nt.term);
+  }
+
+  prettify_sequent(s: IXT.Sequent, long_turnstile?: string, with_default_names?: boolean): string {
+    this._abort_signal?.throwIfAborted();
+
+    const hs = s.hypotheses.map((h, i) => this.namedterm2doc(h, with_default_names ? `H${i}` : undefined));
+    const cs = s.conclusions.map((c, i) => this.namedterm2doc(c, with_default_names ? `C${i}` : undefined));
+
+    let doc;
+    if (hs.length == 0 && cs.length == 1)
+      doc = g([kw("&#x22A2;"), linebreak, join(linebreak, cs)]);
+    else {
+      const ts = (long_turnstile) ? vtext(long_turnstile, 1) : kw("&#x22A2;");
+      doc = g([join(linebreak, hs), linebreak, ts, linebreak, join(linebreak, cs)]);
+    }
+
+    return pretty(this._width, doc);
+  }
+}
+
 /**
  * Pretty-print term `t` with `width` line size, with an optional `po` for context
  * (e.g. to look up definitions of lambdas).
@@ -655,6 +689,26 @@ class TermFormatter {
 export function prettify(width: number, t: IXT.Term, goal?: IXT.Goal, abort_signal?: AbortSignal, with_turnstile?: boolean): string {
   try {
     return new TermFormatter(width, goal, abort_signal, with_turnstile).prettify(t);
+  }
+  catch (e) {
+    console.log(e);
+    if (e !== null && typeof e === 'object' && "name" in e && e.name == "AbortError")
+      throw e;
+    else if (e instanceof Error) {
+      return e.toString();
+    }
+    else
+      return "Caught unknown formatting error";
+  }
+}
+
+/**
+ * Pretty-print sequent `s` with `width` line size, with an optional `po` for context
+ * (e.g. to look up definitions of lambdas).
+ */
+export function prettify_sequent(width: number, s: IXT.Sequent, goal?: IXT.Goal, abort_signal?: AbortSignal, long_turnstile?: string, with_default_names?: boolean): string {
+  try {
+    return new SequentFormatter(width, goal, abort_signal).prettify_sequent(s, long_turnstile, with_default_names);
   }
   catch (e) {
     console.log(e);

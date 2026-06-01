@@ -8,6 +8,7 @@ import { Config } from "../config"
 import * as IX from "./imandrax_types"
 import * as IXRE from "./imandrax_report_event"
 import * as TermFormatter from "./term-formatter";
+import * as SequentFormatter from "./term-formatter";
 
 function capitalize(x: string): string {
   if (x.length == 0)
@@ -93,15 +94,13 @@ export class Converter {
   async sequent2html(sg: IX.Sequent, ctx: Context): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
-    let r: string;
-    if (sg.hypotheses.length == 0 && sg.conclusions.length == 1)
-      r = await this.namedTerm2html(sg.conclusions[0], undefined, ctx, true);
-    else {
-      const hyps = await Promise.all(sg.hypotheses.map(async (x, i) => await this.namedTerm2html(x, `H${i}`, ctx)));
-      const concls = await Promise.all(sg.conclusions.map(async (x, i) => await this.namedTerm2html(x, `C${i}`, ctx, false)));
-      r = hyps.join("") + this.turnstile() + concls.join("");
-    }
-    return Promise.resolve(`<div class='sequent'>${r}</div>`);
+    let r = SequentFormatter.prettify_sequent(this._options.num_columns, sg, ctx.goal, this._abort_signal, this.turnstile(), true);
+    r = r
+      .replaceAll("\t", "<span class='indent'></span>")
+      .replaceAll("\n", "<br/>") +
+      "<br/>";
+    r = "<div class='code-like sequent'>" + r + "</div>";
+    return Promise.resolve(r);
   }
 
   async subgoal2html(sg: IX.Sequent | string, ctx: Context): Promise<string> {
@@ -285,7 +284,10 @@ export class Converter {
       const sgs_html = await this.subgoals2html(goal.subgoals, ctx);
       r += `${sgs_html}`;
       if (goal.errors?.length > 0) {
-        r += `<details><summary>Problems (${goal.errors.length})</summary><ul>${await this.errors2html(goal.errors)}</ul></details>`;
+        let opened = "";
+        if (goal.errors?.length == 1)
+           opened = "open";
+        r += `<details${opened}><summary>Problems (${goal.errors.length})</summary><ul>${await this.errors2html(goal.errors)}</ul></details>`;
       }
       if (goal.subresults?.length > 0) {
         const srs_html = await this.subresultss2html(goal.subresults, ctx);

@@ -159,15 +159,15 @@ export class GoalStateEditorProvider implements CustomReadonlyEditorProvider<Goa
 				<link href="${styleMainUri}" rel="stylesheet" />
 
         <svg xmlns="http://www.w3.org/2000/svg" class='invisible'>
-        <defs>
-          <g id="turnstile-svg">
-            <line x1=0 y1=0 x2=0 y2=20 stroke-width=2 />
-            <line x1=0 y1=10 x2=60 y2=10 stroke-width=1 />
-          </g>
-        </defs>
-      </svg>
+          <defs>
+            <g id="turnstile-svg">
+              <line x1=0 y1=0 x2=0 y2=20 stroke-width=2 />
+              <line x1=0 y1=10 x2=60 y2=10 stroke-width=1 />
+            </g>
+          </defs>
+        </svg>
 
-				<title>Goal State</title>
+        <title>Goal State</title>
 			</head>
 			<body>
         <div class='title'>

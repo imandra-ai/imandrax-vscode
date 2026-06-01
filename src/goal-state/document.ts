@@ -266,7 +266,7 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
   }
 
   resize(width: number, font_size: number): void {
-    this._num_columns = Math.max(Math.trunc(2.0 * (width * 0.80) / font_size), 10);
+    this._num_columns = Math.max(Math.trunc(2.0 * (width * 0.75) / font_size), 10);
 
     this._abort_controller?.abort();
     this._abort_controller = new AbortController();
