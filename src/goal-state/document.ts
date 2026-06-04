@@ -248,6 +248,8 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
   }
 
   async expand(id: string, anchor: string): Promise<void> {
+    // Disabled - this doesn't work reliably enough yet.
+    return;
     await this.add_to_by(anchor, `expand "${IX.short_id(id)}"`);
   }
 
@@ -256,11 +258,15 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
   }
 
   async simplify(): Promise<void> {
+    // Disabled - this doesn't work reliably enough yet.
+    return;
     const anchor = this._focusLockAnchor ?? this._documentMetaData?.only_anchor;
     await this.add_to_by(anchor, `simplify ()`);
   }
 
   async auto(): Promise<void> {
+    // Disabled - this doesn't work reliably enough yet.
+    return;
     const anchor = this._focusLockAnchor ?? this._documentMetaData?.only_anchor;
     await this.add_to_by(anchor, `auto`);
   }

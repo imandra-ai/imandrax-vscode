@@ -42,8 +42,10 @@ interface LineBreak { tag: "linebreak" }
 interface Concat { tag: "concat"; left: Doc; right: Doc }
 interface Nest { tag: "nest"; indent: number; doc: Doc }
 interface Group { tag: "group"; doc: Doc }
+interface IfBreak { tag: "ifbreak"; break_doc: Doc; flat_doc: Doc }
+interface HardLine { tag: "hardline" }
 
-type Doc = Nil | Text | Line | LineBreak | Concat | Nest | Group;
+type Doc = Nil | Text | Line | LineBreak | Concat | Nest | Group | IfBreak | HardLine;
 
 // ---------------------------------------------------------------------------
 // 2. Smart constructors
@@ -58,6 +60,13 @@ export const group = (doc: Doc): Doc => ({ tag: "group", doc });
 
 export const text = (s: string): Doc =>
   s.length === 0 ? nil : { tag: "text", s: new VisString(s) };
+
+/** Render `break_doc` when the enclosing group breaks, `flat_doc` when flat. */
+export const ifBreak = (break_doc: Doc, flat_doc: Doc = nil): Doc =>
+  ({ tag: "ifbreak", break_doc, flat_doc });
+
+/** Unconditional newline — breaks even inside a flat group. */
+export const hardline: Doc = { tag: "hardline" };
 
 export const vtext = (s: string, l: number): Doc =>
   s.length === 0 ? nil : { tag: "text", s: new VisString(s, l) };
@@ -142,6 +151,15 @@ function best(width: number, doc: Doc): SimpleToken[] {
           stack.push([indent, m, d.doc]);
         }
         break;
+
+      case "ifbreak":
+        stack.push([indent, mode, mode === FLAT ? d.flat_doc : d.break_doc]);
+        break;
+
+      case "hardline":
+        result.push(["line", indent]);
+        col = indent;
+        break;
     }
   }
 
@@ -176,6 +194,11 @@ function fits(remaining: number, doc: Doc): boolean {
       case "group":
         stack.push(d.doc);
         break;
+      case "ifbreak":
+        stack.push(d.flat_doc);
+        break;
+      case "hardline":
+        return false;
     }
   }
 
@@ -667,16 +690,12 @@ class SequentFormatter extends TermFormatter {
   prettify_sequent(s: IXT.Sequent, long_turnstile?: string, with_default_names?: boolean): string {
     this._abort_signal?.throwIfAborted();
 
-    const hs = s.hypotheses.map((h, i) => this.namedterm2doc(h, with_default_names ? `H${i}` : undefined));
-    const cs = s.conclusions.map((c, i) => this.namedterm2doc(c, with_default_names ? `C${i}` : undefined));
+    const hs = s.hypotheses.map((h, i) => this.namedterm2doc(h, (with_default_names && s.hypotheses.length > 1) ? `H${i}` : undefined));
+    const cs = s.conclusions.map((c, i) => this.namedterm2doc(c, (with_default_names && s.conclusions.length > 1) ? `C${i}` : undefined));
 
-    let doc;
-    if (hs.length == 0 && cs.length == 1)
-      doc = g([kw("&#x22A2;"), line, join(line, cs)]);
-    else {
-      const ts = (long_turnstile) ? vtext(long_turnstile, 1) : kw("&#x22A2;");
-      doc = g([join(linebreak, hs), linebreak, ts, linebreak, join(linebreak, cs)]);
-    }
+    const sts = kw("&#x22A2;");
+    const lts = (long_turnstile) ? vtext(long_turnstile, 1) : sts;
+    const doc = g([join(hardline, hs), line, ifBreak(lts, sts), line, join(hardline, cs)]);
 
     return pretty(this._width, doc);
   }

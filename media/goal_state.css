@@ -148,6 +148,7 @@ h2 {
   height: 1em;
   stroke: #859900;
   stroke-width: 1px;
+  vertical-align: middle;
 }
 
 .loading {
@@ -156,6 +157,7 @@ h2 {
 
 .sequent {
   margin-bottom: 0.5em;
+  margin-top: 0.5em;
 }
 
 .ttl-warning {
@@ -185,7 +187,6 @@ h2 {
 
 .goal-title {
   font-weight: 600;
-  margin-bottom: 4px;
 }
 
 /* .code-like-title {
