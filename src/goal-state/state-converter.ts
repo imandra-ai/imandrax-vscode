@@ -286,7 +286,7 @@ export class Converter {
       if (goal.errors?.length > 0) {
         let opened = "";
         if (goal.errors?.length == 1)
-           opened = "open";
+           opened = " open";
         r += `<details${opened}><summary>Problems (${goal.errors.length})</summary><ul>${await this.errors2html(goal.errors)}</ul></details>`;
       }
       if (goal.subresults?.length > 0) {
