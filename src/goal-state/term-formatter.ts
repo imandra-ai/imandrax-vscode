@@ -404,15 +404,11 @@ class TermFormatter {
     }
     if (hover_enabled && definition) hover += sanitize(definition);
 
-    // Map operator names to their visual form if different, e.g. `iff` vs `<==>`
+    // Map operator names to their visual form if different, e.g. `iff` vs
+    // `<==>`, or `List.append` vs `@`. Names that don't have a special visual
+    // form are kept fully qualified (e.g. `List.length`).
     const op_info = IXO.operator_info(sid);
-    let op_name = op_info.name == "" ? sid : op_info.name;
-
-    // Strip all module names preceding the op_name; it's still in the hover if
-    // the user needs to see it.
-    const dot_inx = sid.lastIndexOf(".");
-    if (dot_inx > 0 && dot_inx < sid.length - 1)
-      op_name = sid.substring(dot_inx + 1);
+    const op_name = op_info.name == "" ? sid : op_info.name;
 
     return vtext(span(id_fun(op_name, s.id), hover), op_name.length);
   }
