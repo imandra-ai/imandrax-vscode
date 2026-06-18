@@ -19,6 +19,7 @@ export interface Config {
   showProvenGoals: boolean;
   maximumGoalAge: number;
   hideDefaultNames: boolean;
+  stripModuleScope: boolean;
 
   update<K extends keyof Config>(
     key: K,
@@ -50,6 +51,7 @@ export function update(): Config {
     showProvenGoals: cfg.get<boolean>("showProvenGoals")!,
     maximumGoalAge: cfg.get<number>("maximumGoalAge")!,
     hideDefaultNames: cfg.get<boolean>("hideDefaultNames")!,
+    stripModuleScope: cfg.get<boolean>("stripModuleScope")!,
 
     update(key, value, target = ConfigurationTarget.Global) {
       return cfg.update(key, value, target);

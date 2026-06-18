@@ -383,13 +383,15 @@ class TermFormatter {
   protected _width: number;
   protected _goal: IXT.Goal | undefined;
   protected _with_turnstile = false;
+  protected _strip_module_scope = false;
 
-  constructor(width: number, goal?: IXT.Goal, abort_signal?: AbortSignal, with_turnstile?: boolean) {
+  constructor(width: number, goal?: IXT.Goal, abort_signal?: AbortSignal, with_turnstile?: boolean, strip_module_scope?: boolean) {
     this._width = width;
     this._goal = goal;
     this._abort_signal = abort_signal;
     if (with_turnstile !== undefined)
       this._with_turnstile = with_turnstile;
+    this._strip_module_scope = strip_module_scope ?? false;
   }
 
   sym2doc(s: IXT.AppliedSymbol, definition?: string, hover_enabled = true, id_fun = hid): Doc {
@@ -404,15 +406,16 @@ class TermFormatter {
     }
     if (hover_enabled && definition) hover += sanitize(definition);
 
-    // Map operator names to their visual form if different, e.g. `iff` vs `<==>`
     const op_info = IXO.operator_info(sid);
-    let op_name = op_info.name == "" ? sid : op_info.name;
-
-    // Strip all module names preceding the op_name; it's still in the hover if
-    // the user needs to see it.
-    const dot_inx = sid.lastIndexOf(".");
-    if (dot_inx > 0 && dot_inx < sid.length - 1)
-      op_name = sid.substring(dot_inx + 1);
+    let op_name;
+    if (op_info.name == "")
+      op_name = op_info.scoped_name ?? sid;
+    else {
+      if (this._strip_module_scope)
+        op_name = op_info.name;
+      else
+        op_name = op_info.scoped_name ?? op_info.name;
+    }
 
     return vtext(span(id_fun(op_name, s.id), hover), op_name.length);
   }
@@ -673,8 +676,8 @@ class TermFormatter {
 
 
 class SequentFormatter extends TermFormatter {
-  constructor(width: number, goal?: IXT.Goal, abort_signal?: AbortSignal) {
-    super(width, goal, abort_signal, false);
+  constructor(width: number, goal?: IXT.Goal, abort_signal?: AbortSignal, strip_module_scope?: boolean) {
+    super(width, goal, abort_signal, false, strip_module_scope);
   }
 
   namedterm2doc(nt: IXT.NamedTerm, default_name?: string): Doc {
@@ -705,9 +708,9 @@ class SequentFormatter extends TermFormatter {
  * Pretty-print term `t` with `width` line size, with an optional `po` for context
  * (e.g. to look up definitions of lambdas).
  */
-export function prettify(width: number, t: IXT.Term, goal?: IXT.Goal, abort_signal?: AbortSignal, with_turnstile?: boolean): string {
+export function prettify(width: number, t: IXT.Term, goal?: IXT.Goal, abort_signal?: AbortSignal, with_turnstile?: boolean, strip_module_scope?: boolean): string {
   try {
-    return new TermFormatter(width, goal, abort_signal, with_turnstile).prettify(t);
+    return new TermFormatter(width, goal, abort_signal, with_turnstile, strip_module_scope).prettify(t);
   }
   catch (e) {
     console.log(e);
@@ -725,9 +728,9 @@ export function prettify(width: number, t: IXT.Term, goal?: IXT.Goal, abort_sign
  * Pretty-print sequent `s` with `width` line size, with an optional `po` for context
  * (e.g. to look up definitions of lambdas).
  */
-export function prettify_sequent(width: number, s: IXT.Sequent, goal?: IXT.Goal, abort_signal?: AbortSignal, long_turnstile?: string, with_default_names?: boolean): string {
+export function prettify_sequent(width: number, s: IXT.Sequent, goal?: IXT.Goal, abort_signal?: AbortSignal, long_turnstile?: string, with_default_names?: boolean, strip_module_scope?: boolean): string {
   try {
-    return new SequentFormatter(width, goal, abort_signal).prettify_sequent(s, long_turnstile, with_default_names);
+    return new SequentFormatter(width, goal, abort_signal, strip_module_scope).prettify_sequent(s, long_turnstile, with_default_names);
   }
   catch (e) {
     console.log(e);

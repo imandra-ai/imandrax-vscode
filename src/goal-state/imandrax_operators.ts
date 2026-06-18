@@ -5,6 +5,7 @@ export enum Associativity { None, Left, Right }
 
 export class OperatorInfo {
   name: string;
+  scoped_name: string | undefined;
   notation: Notation;
   associativity: Associativity;
   precedence: number;
@@ -12,16 +13,28 @@ export class OperatorInfo {
   constructor(name: string,
     notation: Notation,
     associativity: Associativity,
-    precedence: number) {
+    precedence: number,
+    scoped_name?: string) {
     this.name = name;
+    this.scoped_name = scoped_name;
     this.notation = notation;
     this.associativity = associativity;
     this.precedence = precedence;
   }
 }
 
-export function operator_info(op: string, more_than_one_arg = false): OperatorInfo {
+export function strip_scope(sid : string): string {
+  let r = sid;
+  const dot_inx = sid.lastIndexOf(".");
+  if (dot_inx > 0 && dot_inx < sid.length - 1)
+    r = sid.substring(dot_inx + 1);
+  return r;
+}
+
+export function operator_info(scoped_name: string, more_than_one_arg = false): OperatorInfo {
   // See also https://ocaml.org/manual/5.3/expr.html#ss:precedence-and-associativity
+
+  const op = strip_scope(scoped_name);
 
   // Not sure ~- is handled correctly here.
 
@@ -88,14 +101,11 @@ export function operator_info(op: string, more_than_one_arg = false): OperatorIn
   if (op == "iff" || op == "<==>")
     return new OperatorInfo("<==>", Notation.Infix, Associativity.None, 8.1);
 
-  if (op == "List.append")
-    return operator_info("@", more_than_one_arg);
-
   if (op == "subterm_selection_wildcard")
     return new OperatorInfo("_", Notation.Prefix, Associativity.Left, 17);
 
   // function application, constructor application, tag application
-  return new OperatorInfo(op, Notation.Prefix, Associativity.Left, 17);
+  return new OperatorInfo(op, Notation.Prefix, Associativity.Left, 17, scoped_name);
 }
 
 export function default_(): OperatorInfo {

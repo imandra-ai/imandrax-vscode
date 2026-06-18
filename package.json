@@ -126,6 +126,12 @@
             "type": "boolean",
             "default": false,
             "description": "Hide default names of unnamed hypotheses and conclusions of sequents in the goal state."
+          },
+          "imandrax.stripModuleScope": {
+            "scope": "window",
+            "type": "boolean",
+            "default": false,
+            "description": "Strip the module scope off of any identifiers shown in the goal state."
           }
         }
       },

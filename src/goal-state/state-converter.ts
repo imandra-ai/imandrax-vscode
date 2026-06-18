@@ -30,15 +30,17 @@ export class Options {
   num_columns: number;
   showProvenGoals = false;
   hideDefaultNames = false;
+  stripModuleScope = false;
 
-  constructor(num_columns: number, showProvenGoals: boolean, hideDefaultNames: boolean) {
+  constructor(num_columns: number, showProvenGoals: boolean, hideDefaultNames: boolean, stripModuleScope: boolean) {
     this.num_columns = num_columns;
     this.showProvenGoals = showProvenGoals;
     this.hideDefaultNames = hideDefaultNames;
+    this.stripModuleScope = stripModuleScope;
   }
 
   static from_config(num_columns: number, config: Config): Options {
-    const r = new Options(num_columns, is_bool_true(config.showProvenGoals), is_bool_true(config.hideDefaultNames));
+    const r = new Options(num_columns, is_bool_true(config.showProvenGoals), is_bool_true(config.hideDefaultNames), config.stripModuleScope);
     return r;
   }
 }
@@ -94,7 +96,7 @@ export class Converter {
   async sequent2html(sg: IX.Sequent, ctx: Context): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
-    let r = SequentFormatter.prettify_sequent(this._options.num_columns, sg, ctx.goal, this._abort_signal, this.turnstile(), true);
+    let r = SequentFormatter.prettify_sequent(this._options.num_columns, sg, ctx.goal, this._abort_signal, this.turnstile(), true, this._options.stripModuleScope);
     r = r
       .replaceAll("\t", "<span class='indent'></span>")
       .replaceAll("\n", "<br/>") +
