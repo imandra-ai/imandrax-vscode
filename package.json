@@ -34,113 +34,136 @@
   "engines": {
     "vscode": "^1.96.2"
   },
-  "main": "./out/main",
+  "main": "out/extension.js",
   "contributes": {
-    "configuration": {
-      "type": "object",
-      "title": "ImandraX configuration",
-      "properties": {
-        "imandrax.trace.server": {
-          "scope": "window",
-          "type": "string",
-          "enum": [
-            "off",
-            "messages",
-            "verbose"
-          ],
-          "default": "off",
-          "description": "Traces the communication between VS Code and the language server"
-        },
-        "imandrax.debugMode": {
-          "scope": "window",
-          "type": "boolean",
-          "default": false,
-          "description": "Enables running some commands directly from the Command Palette"
-        },
-        "imandrax.lsp.binary": {
-          "scope": "machine-overridable",
-          "type": "string",
-          "default": "imandrax-cli",
-          "description": "Path to the ImandraX LSP CLI binary."
-        },
-        "imandrax.lsp.arguments": {
-          "scope": "machine-overridable",
-          "type": "array",
-          "items": {
-            "type": "string"
+    "configuration": [
+      {
+        "title": "General",
+        "properties": {
+          "imandrax.lsp.binary": {
+            "scope": "machine-overridable",
+            "type": "string",
+            "default": "imandrax-cli",
+            "description": "Path to the ImandraX LSP CLI binary."
           },
-          "default": [
-            "lsp",
-            "--check-on-save=true",
-            "--unicode=true"
-          ],
-          "description": "Additional commandline arguments for the ImandraX language server."
-        },
-        "imandrax.lsp.environment": {
-          "scope": "machine-overridable",
-          "type": "object",
-          "default": {},
-          "description": "Additional environment variables for the ImandraX language server."
-        },
-        "imandrax.terminal.binary": {
-          "scope": "machine-overridable",
-          "type": "string",
-          "default": "imandrax-cli",
-          "description": "Path to the ImandraX interactive terminal binary."
-        },
-        "imandrax.terminal.arguments": {
-          "scope": "machine-overridable",
-          "type": "array",
-          "items": {
-            "type": "string"
+          "imandrax.lsp.arguments": {
+            "scope": "machine-overridable",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [
+              "lsp",
+              "--check-on-save=true",
+              "--unicode=true"
+            ],
+            "description": "Additional commandline arguments for the ImandraX language server."
           },
-          "default": [
-            "repl",
-            "--db=false"
-          ],
-          "description": "Additional commandline arguments for the ImandraX interactive terminal binary."
-        },
-        "imandrax.terminal.freshModelModules": {
-          "scope": "window",
-          "type": "boolean",
-          "default": false,
-          "description": "Use fresh model module names (e.g. M42) for interactive models (otherwise overwrite module M)."
-        },
-        "imandrax.useSimpleBrowser": {
-          "scope": "window",
-          "type": "boolean",
-          "default": true,
-          "description": "Use the built-in Simple Browser to open links (otherwise the system default browser)."
-        },
-        "imandrax.IMLFormatter": {
-          "scope": "window",
-          "type": "boolean",
-          "default": false,
-          "description": "Enable the highly experimental IML auto-formatter. Use with caution; there is a non-zero chance that it could remove text from your input.",
-          "tags": [
-            "experimental"
-          ]
-        },
-        "imandrax.lsp.showProvenGoals": {
-          "scope": "window",
-          "type": "boolean",
-          "default": false,
-          "description": "Show proven goals in goal state."
-        },
-        "imandrax.largeDecompConfirmation": {
-          "scope": "window",
-          "type": "integer",
-          "default": 1000,
-          "description": "Controls the minimum number of decomposition regions before asking for confirmation when opening a visualization."
-        },
-        "imandrax.largeDecompConfirmationBytes": {
-          "scope": "window",
-          "type": "integer",
-          "default": 1048576,
-          "description": "Controls the minimum size of a decomposition before asking for confirmation when opening a visualization."
+          "imandrax.lsp.environment": {
+            "scope": "machine-overridable",
+            "type": "object",
+            "default": {},
+            "description": "Additional environment variables for the ImandraX language server."
+          },
+          "imandrax.terminal.binary": {
+            "scope": "machine-overridable",
+            "type": "string",
+            "default": "imandrax-cli",
+            "description": "Path to the ImandraX interactive terminal binary."
+          },
+          "imandrax.terminal.arguments": {
+            "scope": "machine-overridable",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [
+              "repl",
+              "--db=false"
+            ],
+            "description": "Additional commandline arguments for the ImandraX interactive terminal binary."
+          },
+          "imandrax.terminal.freshModelModules": {
+            "scope": "window",
+            "type": "boolean",
+            "default": false,
+            "description": "Use fresh model module names (e.g. M42) for interactive models (otherwise overwrite module M)."
+          },
+          "imandrax.useSimpleBrowser": {
+            "scope": "window",
+            "type": "boolean",
+            "default": true,
+            "description": "Use the built-in Simple Browser to open links (otherwise the system default browser)."
+          },
+          "imandrax.IMLFormatter": {
+            "scope": "window",
+            "type": "boolean",
+            "default": false,
+            "description": "Enable the highly experimental IML auto-formatter. Use with caution; there is a non-zero chance that it could remove text from your input.",
+            "tags": [
+              "experimental"
+            ]
+          }
+        }
+      },
+      {
+        "title": "Goal State",
+        "properties": {
+          "imandrax.showProvenGoals": {
+            "scope": "window",
+            "type": "boolean",
+            "default": false,
+            "description": "Show proven goals in goal state."
+          },
+          "imandrax.maximumGoalAge": {
+            "scope": "window",
+            "type": "integer",
+            "default": 10,
+            "description": "Maximum age of goals shown in the goal state (in number of document updates). Outdated results are shown for some time after they became invalid or outdated. If you are annoyed by goals disappearing from your goal state prematurely, you want to increase this number."
+          },
+          "imandrax.hideDefaultNames": {
+            "scope": "window",
+            "type": "boolean",
+            "default": false,
+            "description": "Hide default names of unnamed hypotheses and conclusions of sequents in the goal state."
+          },
+          "imandrax.stripModuleScope": {
+            "scope": "window",
+            "type": "boolean",
+            "default": false,
+            "description": "Strip the module scope off of any identifiers shown in the goal state."
+          }
+        }
+      },
+      {
+        "title": "Decompositions",
+        "properties": {
+          "imandrax.largeDecompConfirmation": {
+            "scope": "window",
+            "type": "integer",
+            "default": 1000,
+            "description": "Controls the minimum number of decomposition regions before asking for confirmation when opening a visualization."
+          },
+          "imandrax.largeDecompConfirmationBytes": {
+            "scope": "window",
+            "type": "integer",
+            "default": 1048576,
+            "description": "Controls the minimum size of a decomposition before asking for confirmation when opening a visualization."
+          }
+        }
+      },
+      {
+        "title": "Debug",
+        "properties": {
+          "imandrax.debugMode": {
+            "scope": "window",
+            "type": "boolean",
+            "default": false,
+            "description": "Enables running some debugging commands directly from the Command Palette"
+          }
         }
       }
-    },
+    ],
     "grammars": [
       {
         "language": "imandrax",
@@ -204,19 +227,50 @@
         "title": "Imandrax: Reset goal state"
       },
       {
-        "command": "imandrax.show-subgoal",
-        "title": "Imandrax: Show Subgoal"
-      },
-      {
-        "command": "imandrax.show-goal",
-        "title": "Imandrax: Show Goal"
-      },
-      {
         "command": "imandrax.open-prelude",
         "title": "Imandrax: Open Prelude"
+      },
+      {
+        "command": "imandrax.execute-closest",
+        "title": "Imandrax: Execute the closest CodeLens command (usually Check, Re-check, Cancel, or Decompose)",
+        "shortTitle": "Execute Closest"
+      },
+      {
+        "command": "editor.action.clipboardCopyAction",
+        "title": "Copy"
       }
-    ]
+    ],
+    "keybindings": [
+      {
+        "command": "imandrax.execute-closest",
+        "key": "ctrl-d ctrl-c",
+        "mac": "cmd-d cmd-c",
+        "when": "editorLangId == 'imandrax'"
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "imandrax.GoalState",
+        "displayName": "ImandraX Goal State",
+        "selector": [
+          {
+            "filenamePattern": "*.ixgs"
+          }
+        ]
+      }
+    ],
+    "menus": {
+      "webview/context": [
+        {
+          "command": "editor.action.clipboardCopyAction",
+          "when": "webviewId == 'imandrax.GoalState' && webviewSection == 'editor'"
+        }
+      ]
+    }
   },
+  "activationEvents": [
+    "onFileSystem:imandrax-vfs"
+  ],
   "scripts": {
     "check-types": "npx tsc --noEmit",
     "compile": "npm run check-types && npm run lint && esbuild",
@@ -227,41 +281,43 @@
     "lint": "eslint ./src --ext .ts,.tsx",
     "vscode:prepublish": "npm run esbuild-base -- --minify",
     "esbuild": "npm run esbuild-base -- --sourcemap",
-    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node --external:'prettier'",
+    "esbuild-base": "node build.mjs",
     "esbuild-clean": "npm run clean && npm run esbuild",
     "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
     "test": "vscode-test",
     "test-clean": "npm run clean && npm run build && npm run esbuild && vscode-test"
   },
   "dependencies": {
+    "@vscode/codicons": "^0.0.44",
     "@vscode/vsce": "^3.7.1",
-    "async-mutex": "^0.5.0",
-    "jest": "^30.2.0",
     "node-fetch": "^3.3.2",
     "ovsx": "^0.10.8",
     "prettier": "^3.7.4",
+    "sanitize-html": "^2.17.1",
     "vscode-languageclient": "^8.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
+    "@jest/globals": "^29.4.6",
     "@types/assert": "^1.5.11",
     "@types/eslint": "^9.6.1",
-    "@types/mocha": "^10.0.10",
     "@types/node": "^16.18.126",
+    "@types/sanitize-html": "^2.16.1",
     "@types/vscode": "^1.96.2",
     "@types/which": "^3.0.4",
     "@typescript-eslint/eslint-plugin": "^8.34.0",
     "@typescript-eslint/parser": "^8.34.0",
-    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-cli": "^0.0.11",
     "@vscode/test-electron": "^2.5.2",
     "esbuild": "^0.25.12",
-    "eslint": "^9.39.2",
+    "eslint": "^9.39.4",
     "glob": "^11.1.0",
-    "mocha": "^11.7.5",
-    "sqlite": "^5.1.1",
-    "sqlite3": "^5.1.7",
+    "jest": "^29.4.6",
+    "jest-environment-jsdom": "^29.4.6",
+    "jest-mock-vscode": "^4.8.2",
+    "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.52.0"
+    "typescript-eslint": "^8.58.0"
   }
 }

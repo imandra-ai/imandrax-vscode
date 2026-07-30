@@ -1,12 +1,25 @@
 {
-  "typescript.tsc.autoDetect": "off",
-  "typescript.preferences.quoteStyle": "single",
+  "js/ts.tsc.autoDetect": "off",
+  "js/ts.preferences.quoteStyle": "single",
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
   },
   "editor.tabSize": 2,
   "editor.insertSpaces": true,
   "editor.detectIndentation": false,
-  "jest.rootPath": "imlformat",
+  "jest.jestCommandLine": "./node_modules/.bin/jest",
   "jest.runMode": "on-demand",
+  "jest.nodeEnv": { "NODE_OPTIONS": "--experimental-vm-modules"},
+  "jest.virtualFolders": [
+    {
+      "name": "IML Formatting Tests",
+      "runMode": "on-demand",
+      "jestCommandLine": "./node_modules/.bin/jest --config imlformat/jest.config.ts",
+    },
+    {
+      "name": "Goal State Tests",
+      "runMode": "on-demand",
+      "jestCommandLine": "./node_modules/.bin/jest --config src/goal-state/jest.config.ts",
+    },
+  ],
 }

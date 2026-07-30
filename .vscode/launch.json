@@ -11,6 +11,9 @@
         "--extensionDevelopmentPath=${workspaceRoot}",
         "--disable-extensions"
       ],
+      "env": {
+        "VSCODE_DEBUG_MODE": "true"
+      },
       "outFiles": [
         "${workspaceRoot}/src/out/**/*.js",
         "${workspaceRoot}/out/**/*.js"
@@ -30,7 +33,7 @@
       "cwd": "${workspaceFolder}/imlformat",
       "program": "${workspaceFolder}/imlformat/imlformat.ts",
       "args": [
-        "${workspaceFolder}/imlformat/test/demo.iml"
+        "${workspaceFolder}/bug.iml"
       ],
       "outFiles": [
         "${workspaceFolder}/imlformat/out-dbg/**/*.js"

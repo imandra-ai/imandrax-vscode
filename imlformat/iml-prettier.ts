@@ -1,6 +1,6 @@
 // An IML plugin for prettier.
 
-import { Doc, doc, AST, AstPath, Options } from "prettier";
+import { Doc, doc, AST, AstPath, Options, Printer, Parser, ParserOptions } from "prettier";
 
 const { group, indent, dedent, join, ifBreak, breakParent, line, hardline, softline, fill } = doc.builders;
 
@@ -8,95 +8,33 @@ const { group, indent, dedent, join, ifBreak, breakParent, line, hardline, softl
 const iml2json = require('./iml2json.bc').iml2json;
 import { assert } from 'node:console';
 
-
-export const languages = [
-  {
-    extensions: ['.iml'],
-    name: 'IML',
-    parsers: ['iml-parse']
-  }
-];
-
 interface Tree {
   top_defs: string[][];
   comments: string[];
 }
 
-export const parsers = {
-  'iml-parse': {
-    parse: (text: string, options: Options): Tree => {
-      try {
-        const jdefs = iml2json.parse(text);
-        // console.log(jdefs);
-        const x: Tree = {
-          top_defs: JSON.parse(jdefs),
-          comments: []
-        };
-        // console.log(x.top_defs);
-        return x;
-      } catch (e) {
-        // If parsing fails for any reason, we just throw a generic error to abort formatting.
-        console.log(e);
-        throw new Error("Parser error");
-      }
-    },
-    astFormat: 'iml-ast',
-    hasPragma: (_text: string): boolean => { return false; },
-    locStart: (_node: Tree): number => { return 0; },
-    locEnd: (_node: Tree): number => { return 0; },
-    preprocess: (text: string, _options: Options): string => { return text; },
+class IMLParser implements Parser<Tree> {
+  parse(text: string, options: ParserOptions<Tree>): Tree {
+    try {
+      const jdefs = iml2json.parse(text);
+      // console.log(jdefs);
+      const x: Tree = {
+        top_defs: JSON.parse(jdefs),
+        comments: []
+      };
+      // console.log(x.top_defs);
+      return x;
+    } catch (e) {
+      // If parsing fails for any reason, we just throw a generic error to abort formatting.
+      console.log(e);
+      throw new Error("Parser error");
+    }
   }
-};
-
-export const printers = {
-  'iml-ast': {
-    print,
-    // embed,
-    preprocess,
-    // getVisitorKeys,
-    // insertPragma,
-    canAttachComment,
-    isBlockComment,
-    printComment,
-    getCommentChildNodes,
-    handleComments: {
-      ownLine,
-      endOfLine,
-      remaining,
-    },
-  }
-};
-
-function preprocess(node: AST, options: Options): AST {
-  return node;
-}
-
-function canAttachComment(node: AST): boolean {
-  return false;
-}
-
-function isBlockComment(node: AST): boolean {
-  return false;
-}
-
-function printComment(path: AstPath<AST>, options: Options): Doc {
-  return "";
-}
-
-function getCommentChildNodes(node: AST, options: Options): AST[] | undefined {
-  return [];
-}
-
-function ownLine(comment, text, options, ast, isLastComment) {
-  return true;
-}
-
-function endOfLine(comment, text, options, ast, isLastComment) {
-  return true;
-}
-
-function remaining(comment, text, options, ast, isLastComment) {
-  return true;
+  astFormat = 'iml-ast';
+  hasPragma(_text: string): boolean { return false; }
+  locStart(node: Tree): number { return 0; }
+  locEnd(node: Tree): number { return 0; }
+  preprocess(text: string, options: ParserOptions<Tree>): string { return text; }
 }
 
 function check_undef(x) {
@@ -1587,7 +1525,7 @@ function print_expression_desc(node: AST, options: Options): Doc {
       //      - [C (E1, ..., En)] when [exp] is [Some (Pexp_tuple[E1;...;En])]
       //   *)
       const id = print_longident_loc(args[0], options);
-      if (id == "::" && args[1] && args[1].pexp_desc[0] == "Pexp_tuple") {
+      if (id == "::" && args[1]?.pexp_desc[0] == "Pexp_tuple") {
         return print_list(args[1], options);
       } else {
         let r = [id];
@@ -2382,14 +2320,67 @@ function end_loc(n: number) {
   }
 }
 
-function print(path: AstPath<Tree>, options: Options, _print: (path: AstPath<any>) => Doc): Doc {
-  options.last_loc = start_loc;
-  const phrases = path.node.top_defs.map(n => print_toplevel_phrase(n, options));
-  const cmmnts = comments(end_loc((options.originalText as string).length), options);
-  const r = [
-    ...join([hardline, hardline], merge_semisemi(phrases)),
-    ...ifnonempty([hardline, hardline], cmmnts)
-  ];
-  // console.log(doc_to_string(r));
-  return r;
+
+class IMLPrinter implements Printer<Tree> {
+  print(path: AstPath<Tree>, options: Options, _print: (path: AstPath<Tree>) => Doc): Doc {
+    options.last_loc = start_loc;
+    const phrases = path.node.top_defs.map(n => print_toplevel_phrase(n, options));
+    const cmmnts = comments(end_loc((options.originalText as string).length), options);
+    const r = [
+      ...join([hardline, hardline], merge_semisemi(phrases)),
+      ...ifnonempty([hardline, hardline], cmmnts)
+    ];
+    // console.log(doc_to_string(r));
+    return r;
+  }
+
+  preprocess(node: AST, options: Options): AST {
+    return node;
+  }
+
+  canAttachComment(node: AST): boolean {
+    return false;
+  }
+
+  isBlockComment(node: AST): boolean {
+    return false;
+  }
+
+  printComment(path: AstPath<AST>, options: Options): Doc {
+    return "";
+  }
+
+  getCommentChildNodes(node: AST, options: Options): AST[] | undefined {
+    return [];
+  }
+
+  handleComments = {
+    ownLine(comment, text, options, ast, isLastComment) {
+      return true;
+    },
+
+    endOfLine(comment, text, options, ast, isLastComment) {
+      return true;
+    },
+
+    remaining(comment, text, options, ast, isLastComment) {
+      return true;
+    },
+  }
 }
+
+export const languages = [
+  {
+    extensions: ['.iml'],
+    name: 'IML',
+    parsers: ['iml-parse']
+  }
+];
+
+export const parsers = {
+  'iml-parse': new IMLParser()
+};
+
+export const printers = {
+  'iml-ast': new IMLPrinter()
+};

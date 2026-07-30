@@ -1,15 +1,15 @@
 import * as Path from 'path';
-import { listenerCount } from 'process';
 
 import { commands, env, Range, TerminalOptions, Uri, ViewColumn, window, workspace } from 'vscode';
 import { LanguageClient } from 'vscode-languageclient/node';
+import { getExtensionConfig } from '../config';
 
 let next_terminal_id = 0;
 let model_count = 0;
 export let showFullIds = false;
 
 export function create_terminal(cwd: string | undefined) {
-  const config = workspace.getConfiguration("imandrax");
+  const config = getExtensionConfig();
 
   let name = "ImandraX";
   if (next_terminal_id++ > 0) {
@@ -26,8 +26,13 @@ export function create_terminal(cwd: string | undefined) {
   return t;
 }
 
-export function interact_model(params: Record<string, any>) {
-  const config = workspace.getConfiguration("imandrax");
+interface Models {
+  uri: string;
+  models: string[];
+}
+
+export function interact_model(params: Models) {
+  const config = getExtensionConfig();
 
   const uri = Uri.parse(params.uri);
   const models = params.models;
@@ -51,24 +56,25 @@ export function interact_model(params: Record<string, any>) {
 
   const t = create_terminal(cwd);
 
-  models.forEach((model_mod_name: string) => {
+  models.forEach((model_src: string) => {
+    model_src = model_src.replaceAll("\n", " \n"); // Avoids errors with empty models
     if (config.terminal.freshModelModules) {
-      model_mod_name = model_mod_name.replace("module M", "module M" + (model_count++).toString());
+      model_src = model_src.replace("module M =", "module M" + (model_count++).toString() + " =");
     }
     t.sendText(`[@@@import ${file_mod_name}, "${filename}"];;\n`);
     t.sendText(`open ${file_mod_name};;\n`);
-    t.sendText(model_mod_name + ";;\n");
+    t.sendText(model_src + ";;\n");
   });
 
   t.show();
 }
 
-export function copy_model(params: Record<string, any>) {
+export function copy_model(params: Models) {
   const models = params.models;
   let str = "";
   models.join();
   models.forEach((m: string) => {
-    str += m;
+    str += "\n" + m.replaceAll("\n\n", "\n");
   });
   env.clipboard.writeText(str);
 }
@@ -79,21 +85,21 @@ interface Decomp {
   num_regions: number // Number of regions
 }
 
-function num_bytes_to_string (num : number) : string {
-    const units = ["Bytes", "KB", "MB", "GB", "TB" ];
-    let n = num;
-    let i = 0
-    for (; i < units.length; i++) {
-      if (n > 1024)
-        n /= 1024;
-      else
-        break;
-    }
-    return `${n.toFixed(0)} ${units[i]}`;
+function num_bytes_to_string(num: number): string {
+  const units = ["Bytes", "KB", "MB", "GB", "TB"];
+  let n = num;
+  let i = 0
+  for (; i < units.length; i++) {
+    if (n > 1024)
+      n /= 1024;
+    else
+      break;
+  }
+  return `${n.toFixed(0)} ${units[i]}`;
 }
 
 export async function visualize_decomp(extensionUri: Uri, params: { decomps: Decomp[] }) {
-  const config = workspace.getConfiguration("imandrax");
+  const config = getExtensionConfig();
 
   const decomps = params.decomps;
 
@@ -154,7 +160,7 @@ export async function visualize_decomp(extensionUri: Uri, params: { decomps: Dec
     enableScripts: true, localResourceRoots: [
       Uri.joinPath(extensionUri, "assets")
     ],
-    enableCommandUris: true,
+    enableCommandUris: true
   });
 
   const pwv = panel.webview;
@@ -197,11 +203,11 @@ export async function checkAll(getClient: () => LanguageClient) {
 }
 
 export function browse(uri: string): Thenable<boolean> | undefined {
-  const config = workspace.getConfiguration("imandrax");
+  const config = getExtensionConfig();
   if (config.useSimpleBrowser) {
     return commands.executeCommand("simpleBrowser.api.open", uri);
   } else {
-    return env.openExternal(uri as any);
+    return env.openExternal(Uri.parse(uri));
   }
 }
 

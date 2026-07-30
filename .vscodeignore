@@ -22,3 +22,12 @@ vendor
 imlformat
 !node_modules/prettier
 Makefile
+*.log
+*.old
+*.jrpc
+*.mjs
+lala
+*.ml
+*.iml
+.ocamlformat
+.github

@@ -5,9 +5,11 @@
   "publisher": "Imandra",
   "version": "0.0.1",
   "dependencies": {
-    "prettier": "^3.5.0",
     "tsx": "^4.19.4",
     "typescript": "next"
+  },
+  "peerDependencies": {
+    "prettier": "^3.5.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",

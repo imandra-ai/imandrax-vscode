@@ -4,10 +4,11 @@ import * as vfsProvider from '../vfs_provider';
 import * as configuration from './configuration';
 import * as test_output_channel from './test_output_channel';
 
-import { ConfigurationChangeEvent, ExtensionContext, ExtensionMode, Uri, window, workspace, WorkspaceConfiguration } from 'vscode';
+import { ConfigurationChangeEvent, ExtensionContext, ExtensionMode, Uri, window, workspace, FileChangeType, OutputChannel } from 'vscode';
 import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-languageclient/node';
 
 export * as configuration from './configuration';
+import { getExtensionConfig } from '../config';
 
 const MAX_RESTARTS = 10;
 
@@ -17,10 +18,11 @@ export interface RestartParams {
 
 export class ImandraXLanguageClient {
   private client!: LanguageClient;
-  private readonly vfsProvider_: vfsProvider.VFSContentProvider;
+  private readonly vfsProvider_: vfsProvider.VFSProvider;
   private restartCount = 0;
   private isInitial = () => { return this.client === undefined; };
   private readonly getConfig: () => configuration.ImandraXLanguageClientConfiguration;
+  private clientOptions: LanguageClientOptions | undefined;
 
   getRestartCount(context: ExtensionContext) {
     if (context?.extensionMode === ExtensionMode.Test) {
@@ -38,11 +40,11 @@ export class ImandraXLanguageClient {
 
   constructor(getConfig: () => configuration.ImandraXLanguageClientConfiguration) {
     this.getConfig = getConfig;
-    this.vfsProvider_ = new vfsProvider.VFSContentProvider(() => { return this.getClient(); });
+    this.vfsProvider_ = new vfsProvider.VFSProvider(() => { return this.getClient(); })
   }
 
   // Start language server
-  async start(params: { extensionUri: Uri }): Promise<void> {
+  async start(params: { extensionUri: Uri }, traceOutputChannel?: OutputChannel): Promise<void> {
     const config = this.getConfig();
 
     if (!configuration.isFoundPath(config)) {
@@ -52,7 +54,7 @@ export class ImandraXLanguageClient {
 
     const was_initial = this.isInitial();
     if (was_initial) {
-      console.log("Starting ImandraX LSP server");
+      console.log("Starting ImandraX Language Server");
     }
 
     const serverOptions: Executable = {
@@ -62,7 +64,7 @@ export class ImandraXLanguageClient {
     };
 
     // Options to control the language client
-    const clientOptions: LanguageClientOptions = {
+    this.clientOptions = {
       // Register the server for plain text documents
       documentSelector: [{ scheme: "file", language: "imandrax" }],
       stdioEncoding: "utf-8",
@@ -71,19 +73,19 @@ export class ImandraXLanguageClient {
       },
       synchronize: {
         fileEvents: workspace.createFileSystemWatcher("**/*.iml")
-      }
+      },
+      traceOutputChannel
     };
 
-    if (config.outputToConsole) {
-      clientOptions.outputChannel = new test_output_channel.TestOutputChannel();
-    }
+    if (config.outputToConsole)
+      this.clientOptions.outputChannel = new test_output_channel.TestOutputChannel();
 
     // Create the language client and start the client.
     this.client = new LanguageClient(
       "imandrax_lsp",
       "ImandraX LSP",
       serverOptions,
-      clientOptions
+      this.clientOptions
     );
 
     const { extensionUri } = params;
@@ -94,11 +96,11 @@ export class ImandraXLanguageClient {
       this.client.onRequest("$imandrax/copy-model",
         (params) => { commands.copy_model(params); });
       this.client.onRequest("$imandrax/visualize-decomp",
-        (params) => { commands.visualize_decomp(extensionUri, params); });
+        async (params) => { await commands.visualize_decomp(extensionUri, params); });
       this.client.onNotification("$imandrax/vfs-file-changed",
         (params) => {
           const uri = Uri.parse(params.uri);
-          this.vfsProvider_.onDidChangeEmitter.fire(uri);
+          this.vfsProvider_.onDidChangeEmitter.fire([{ type: FileChangeType.Changed, uri }]);
         });
     }
 
@@ -111,7 +113,7 @@ export class ImandraXLanguageClient {
   async restart(params: RestartParams) {
     if (!this.isInitial()) {
       this.restartCount += 1;
-      console.log(`Restarting Imandrax LSP server (attempt ${this.restartCount})`);
+      console.log(`Restarting Imandrax Language Server (attempt ${this.restartCount})`);
 
       // Try to shut down gracefully.
       if (this.client?.isRunning()) {
@@ -125,7 +127,7 @@ export class ImandraXLanguageClient {
       // todo seb or christoph: sleeping is a hack, replace it with something that's not a hack
       await new Promise(resolve => setTimeout(resolve, 500));
     }
-    return this.start({ extensionUri: params.extensionUri });
+    return this.start({ extensionUri: params.extensionUri }, this.clientOptions?.traceOutputChannel);
   }
 
   deactivate(): Thenable<void> | undefined {
@@ -149,13 +151,13 @@ export class ImandraXLanguageClient {
       }
 
       if (client?.isRunning()) {
-        const config: WorkspaceConfiguration = workspace.getConfiguration("imandrax");
-        return client.sendNotification("workspace/didChangeConfiguration", {
+        const config = getExtensionConfig();
+        await client.sendNotification("workspace/didChangeConfiguration", {
           "settings":
           {
             "show-full-ids": commands.showFullIds,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-            "goal-state-show-proven": config.lsp.showProvenGoals
+            "goal-state-show-proven": config.showProvenGoals,
+            "goal-state-max-age": config.maximumGoalAge,
           }
         });
       }

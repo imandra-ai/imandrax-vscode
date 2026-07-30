@@ -14,7 +14,7 @@ import * as vscode from 'vscode';
 import { ImandraXLanguageClient } from '../imandrax_language_client/imandrax_language_client';
 
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 async function _set_workspace_config(workspaceDir: string) {
   // Call this function in a test if you want to manipulate the LSP config during development of that test
 

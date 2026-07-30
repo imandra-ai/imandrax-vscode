@@ -1,7 +1,10 @@
-import tseslint from "typescript-eslint";
-import eslint from "@eslint/js";
+// @ts-check
 
-export default tseslint.config(
+import eslint from "@eslint/js";
+import { defineConfig } from 'eslint/config';
+import tseslint from "typescript-eslint";
+
+export default defineConfig(
   eslint.configs.recommended,
   tseslint.configs.recommendedTypeChecked,
   tseslint.configs.stylisticTypeChecked,
@@ -24,15 +27,21 @@ export default tseslint.config(
       "@typescript-eslint/no-unsafe-member-access": "warn",
       "@typescript-eslint/dot-notation": "warn",
       "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        varsIgnorePattern: "^_",
+        argsIgnorePattern: "^_"
+      }]
     }
   },
   {
     ignores: [
       "node_modules/**",
       "src/node_modules/**",
+      "imlformat/node_modules/**",
       "src/out/**",
       "eslint.config.mjs",
-      ".vscode-test.mjs"
+      ".vscode-test.mjs",
+      "build.mjs"
     ],
   },
 );

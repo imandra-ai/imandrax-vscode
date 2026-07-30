@@ -4,9 +4,10 @@ import {
   ExtensionMode,
 } from "vscode";
 
+import { getExtensionConfig } from "../config";
+
 import {
-  env,
-  workspace
+  env
 } from "vscode";
 
 interface PlatformConfiguration {
@@ -56,7 +57,11 @@ function getBinPathAvailability(platform_configuration: PlatformConfiguration, b
       return { status: "missingPath" };
     }
   } else {
-    return { status: "onWindows" };
+    const path = Which.sync(binary, { nothrow: true });
+    if (path !== "" && path !== null)
+      return { status: "foundPath", path: binary };
+    else
+      return { status: "onWindows" };
   }
 }
 
@@ -68,7 +73,7 @@ function getPlatformConfiguration(): PlatformConfiguration {
 }
 
 export function get(context : ExtensionContext): ImandraXLanguageClientConfiguration | FoundPathConfig {
-  const config = workspace.getConfiguration("imandrax");
+  const config = getExtensionConfig();
   const binary = config.lsp.binary;
   const serverArgs = config.lsp.arguments;
   const serverEnv = config.lsp.environment;
@@ -80,8 +85,7 @@ export function get(context : ExtensionContext): ImandraXLanguageClientConfigura
 
   const binPathAvailability = getBinPathAvailability(platformConfiguration, binary);
 
-  // const outputToConsole = (context.extensionMode === ExtensionMode.Test);
-  const outputToConsole = false;
+  const outputToConsole = (context.extensionMode === ExtensionMode.Test);
 
   if (binPathAvailability.status === 'foundPath')
     return { serverArgs, mergedEnv, binPathAvailability: binPathAvailability, outputToConsole } as FoundPathConfig

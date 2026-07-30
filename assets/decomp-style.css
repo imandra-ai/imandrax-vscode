@@ -220,7 +220,7 @@ td.recordentry  {
   background-color: var(--vscode-editor-background);
 }
 td.recordentry.key {
-  text-align: right
+  text-align: left
 }
 
 /* details { padding-left: 15px; } */
@@ -284,4 +284,10 @@ details.apply > summary {
   font-weight: bold;
   border: 1px black solid;
   padding: 1em;
+}
+
+.flex-fill {
+  display: inline-block;
+  width: auto;
+  margin-bottom: 0;
 }

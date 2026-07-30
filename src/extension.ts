@@ -4,6 +4,8 @@ import * as formatter from './formatter';
 import * as imandraxLanguageClient from './imandrax_language_client/imandrax_language_client';
 import * as installer from './installer';
 import * as listeners from './listeners';
+import { GoalStateEditorProvider } from './goal-state/editor_provider';
+import * as config from './config';
 
 import {
   env,
@@ -11,7 +13,8 @@ import {
   ExtensionMode,
   Uri,
   window,
-  workspace
+  workspace,
+  OutputChannel
 } from "vscode";
 
 import {
@@ -20,13 +23,13 @@ import {
 
 
 export async function activate(context: ExtensionContext) {
-  const getConfig = () => {
+  const getClientConfig = () => {
     return imandraxLanguageClient.configuration.get(context);
   };
-  const languageClientConfig = getConfig();
+  const languageClientConfig = getClientConfig();
 
   if (imandraxLanguageClient.configuration.isFoundPath(languageClientConfig)) {
-    const languageClientWrapper_ = new imandraxLanguageClient.ImandraXLanguageClient(getConfig);
+    const languageClientWrapper_ = new imandraxLanguageClient.ImandraXLanguageClient(getClientConfig);
     const getClient: () => LanguageClient = () => { return languageClientWrapper_.getClient(); };
 
     formatter.register();
@@ -42,10 +45,18 @@ export async function activate(context: ExtensionContext) {
     }
 
     workspace.onDidChangeConfiguration(async event => {
+      config.update();
       await languageClientWrapper_.update_configuration(context.extensionUri, event);
+      void GoalStateEditorProvider.activeDocument?.refresh();
     });
 
-    await languageClientWrapper_.start({ extensionUri: context.extensionUri });
+    if (context.extensionMode != ExtensionMode.Production) {
+      const trace_channel : OutputChannel = window.createOutputChannel("ImandraX Trace")
+      context.subscriptions.push(trace_channel);
+      await languageClientWrapper_.start(context, trace_channel);
+    }
+    else
+      await languageClientWrapper_.start(context);
 
     if (context.extensionMode === ExtensionMode.Test || context.extensionMode === undefined) {
       (global as any).testLanguageClientWrapper = languageClientWrapper_;

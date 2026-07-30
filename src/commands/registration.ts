@@ -1,14 +1,30 @@
 import * as implementations from './implementations';
 
-import { commands, ExtensionContext, languages, Uri, ViewColumn, window, workspace } from 'vscode';
+import { commands, ExtensionContext, languages, TextDocumentShowOptions, Uri, ViewColumn, window, workspace, FileType, FileSystemError, CodeLens } from 'vscode';
+import { LanguageClient } from 'vscode-languageclient/node';
 import { ImandraXLanguageClient } from '../imandrax_language_client/imandrax_language_client';
+import { GoalStateEditorProvider } from '../goal-state/editor_provider';
+import { FileChangeType } from 'vscode-languageclient';
+import { register as goal_state_register } from '../goal-state/commands';
+
+export let getClient: (() => LanguageClient);
 
 export function register(context: ExtensionContext, imandraxLanguageClient: ImandraXLanguageClient) {
-  const getClient = () => { return imandraxLanguageClient.getClient(); };
+  getClient = () => { return imandraxLanguageClient.getClient(); };
 
   const restart_cmd = "imandrax.restart_language_server";
   const restart_handler = async () => {
     await imandraxLanguageClient.restart({ extensionUri: context.extensionUri });
+
+    imandraxLanguageClient.getVfsProvider()?.onDidChangeEmitter.fire([{
+      type: FileChangeType.Created,
+      uri: Uri.parse("imandrax-vfs://internal//goal-state.md")
+    }]);
+
+    imandraxLanguageClient.getVfsProvider()?.onDidChangeEmitter.fire([{
+      type: FileChangeType.Created,
+      uri: Uri.parse("imandrax-vfs://internal//goal-state.ixgs")
+    }]);
   };
   context.subscriptions.push(commands.registerCommand(restart_cmd, restart_handler));
 
@@ -48,14 +64,41 @@ export function register(context: ExtensionContext, imandraxLanguageClient: Iman
 
   context.subscriptions.push(commands.registerCommand(open_vfs_file_cmd, open_vfs_file_handler));
 
-  context.subscriptions.push(workspace.registerTextDocumentContentProvider("imandrax-vfs", imandraxLanguageClient.getVfsProvider()));
+  context.subscriptions.push(workspace.registerFileSystemProvider("imandrax-vfs",
+    imandraxLanguageClient.getVfsProvider(),
+    { isCaseSensitive: true, isReadonly: true }));
+
+  context.subscriptions.push(GoalStateEditorProvider.register(context));
 
   const open_goal_state_cmd = "imandrax.open_goal_state";
   const open_goal_state_handler = async () => {
-    const uri = Uri.parse("imandrax-vfs://internal//goal-state.md");
-    const doc = await workspace.openTextDocument(uri);
-    await window.showTextDocument(doc, { preview: false, viewColumn: ViewColumn.Beside, preserveFocus: true });
-    languages.setTextDocumentLanguage(doc, "markdown");
+    const open_markdown_goal_state = async () => {
+      const uri = Uri.parse("imandrax-vfs://internal//goal-state.md");
+      const doc = await workspace.openTextDocument(uri);
+      await window.showTextDocument(doc, { preview: false, viewColumn: ViewColumn.Beside, preserveFocus: true });
+      languages.setTextDocumentLanguage(doc, "markdown");
+    };
+
+    const uri = Uri.parse("imandrax-vfs://internal//goal-state.ixgs");
+    // Check if there is support for the new goal state by asking the VFS
+    // provider whether the corresponding file exists.
+    try {
+      await imandraxLanguageClient.getVfsProvider()?.stat(uri).then(async fs => {
+        if (fs.type == FileType.File) {
+          const opts: TextDocumentShowOptions = { preview: false, viewColumn: ViewColumn.Beside, preserveFocus: true };
+          await commands.executeCommand("vscode.openWith", uri, GoalStateEditorProvider.viewType, opts);
+        }
+        else {
+          // Exists, but isn't a file; should be unreachable.
+          await open_markdown_goal_state();
+        }
+      });
+    } catch (e) {
+      if (e instanceof FileSystemError && e.code == 'FileNotFound')
+        await open_markdown_goal_state();
+      else
+        console.log(`Error opening goal state: ${JSON.stringify(e)}`);
+    }
   };
   context.subscriptions.push(commands.registerCommand(open_goal_state_cmd, open_goal_state_handler));
 
@@ -66,7 +109,6 @@ export function register(context: ExtensionContext, imandraxLanguageClient: Iman
         await getClient().sendRequest("workspace/executeCommand", { "command": "reset-goal-state", "arguments": [] });
       }
       catch (e) {
-        console.log("caught something!");
         console.log(e);
       }
     }
@@ -82,5 +124,40 @@ export function register(context: ExtensionContext, imandraxLanguageClient: Iman
       await window.showTextDocument(doc);
     }));
 
-  console.log("all commands registered");
+  goal_state_register(context);
+
+  const execute_closest_cmd = "imandrax.execute-closest";
+  context.subscriptions.push(commands.registerCommand(execute_closest_cmd,
+    async () => {
+      const editor = window.activeTextEditor;
+      let position = editor?.selection.active;
+      if (editor && position) {
+        const lenses = await commands.executeCommand<CodeLens[]>(
+          'vscode.executeCodeLensProvider',
+          editor.document.uri
+        );
+
+        const lens = lenses.reduce((closest, x) => {
+          if (x.isResolved && x.command &&
+            // (x.command.command == "check" || x.command?.command == "recheck") &&
+            // Always execute the first command
+            position
+          ) {
+            if (x.range.start.line <= position.line &&
+              (!closest || x.range.start.line > closest?.range.start.line))
+              return x;
+            else
+              return closest;
+          } else
+            return closest;
+        }, undefined as (CodeLens | undefined))
+
+        if (lens?.command) {
+          await commands.executeCommand(lens.command.command, ...(lens.command.arguments ?? []));
+          position = undefined;
+        }
+      }
+    }));
+
+  console.log("All commands registered");
 }
