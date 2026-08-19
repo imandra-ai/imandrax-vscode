@@ -86,10 +86,10 @@ command palette, enter the server's base URL (e.g.
 command writes a small server config file and adds `-c <path>` to
 `imandrax.lsp.arguments` and `imandrax.terminal.arguments` in the chosen
 scope — plain settings you can inspect or edit. Run it again with an
-empty URL to switch back to Imandra's cloud.
+empty URL to switch back to Imandra's cloud service.
 
 Cloud-delegated tasks (e.g. decompositions) then go to that server instead
-of Imandra's cloud. Self-hosted servers are unauthenticated (access control
+of Imandra's cloud service. Self-hosted servers are unauthenticated (access control
 is at the network level), so no API key is needed — choose "Skip" if the
 API key prompt appears.
 
