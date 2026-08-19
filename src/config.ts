@@ -2,7 +2,6 @@ import { workspace, ConfigurationTarget } from "vscode";
 
 export interface Config {
   debugMode: boolean,
-  serverUrl: string,
   lsp: {
     binary: string;
     arguments: string[];
@@ -35,7 +34,6 @@ export function update(): Config {
   const cfg = workspace.getConfiguration("imandrax");
   cached = {
     debugMode: cfg.get<boolean>("debugMode")!,
-    serverUrl: cfg.get<string>("serverUrl") ?? "",
     lsp: {
       binary: cfg.get<string>("lsp.binary")!,
       arguments: cfg.get<string[]>("lsp.arguments")!,

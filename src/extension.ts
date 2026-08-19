@@ -24,7 +24,7 @@ import {
 
 
 export async function activate(context: ExtensionContext) {
-  selfHosted.initialize(context);
+  selfHosted.register(context);
   const getClientConfig = () => {
     return imandraxLanguageClient.configuration.get(context);
   };

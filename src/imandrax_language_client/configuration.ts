@@ -5,7 +5,6 @@ import {
 } from "vscode";
 
 import { getExtensionConfig } from "../config";
-import * as selfHosted from "../self_hosted";
 
 import {
   env
@@ -76,7 +75,7 @@ function getPlatformConfiguration(): PlatformConfiguration {
 export function get(context : ExtensionContext): ImandraXLanguageClientConfiguration | FoundPathConfig {
   const config = getExtensionConfig();
   const binary = config.lsp.binary;
-  const serverArgs = config.lsp.arguments.concat(selfHosted.extraCliArgs());
+  const serverArgs = config.lsp.arguments;
   const serverEnv = config.lsp.environment;
 
   const systemEnv = process.env;

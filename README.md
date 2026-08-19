@@ -79,17 +79,17 @@ If everything goes well, then you should prompted to enter your API key
 ### Self-hosted ImandraX servers
 
 If your organization hosts its own ImandraX server (e.g. the Azure
-appliance), point the extension at it by setting `imandrax.serverUrl` to the
-server's base URL:
-
-```
-"imandrax.serverUrl": "http://my-imandrax-vm:8086"
-```
+appliance), run **"ImandraX: Configure self-hosted server"** from the
+command palette and enter the server's base URL (e.g.
+`http://my-imandrax-vm:8086`). The command writes a small server config
+file and adds `-c <path>` to `imandrax.lsp.arguments` and
+`imandrax.terminal.arguments` — plain settings you can inspect or edit.
+Run it again with an empty URL to switch back to Imandra's cloud.
 
 Cloud-delegated tasks (e.g. decompositions) then go to that server instead
 of Imandra's cloud. Self-hosted servers are unauthenticated (access control
-is at the network level), so no API key is needed and the API key prompt is
-skipped.
+is at the network level), so no API key is needed — choose "Skip" if the
+API key prompt appears.
 
 > Note: the server rejects clients older than itself, which shows up as
 > repeated "Connection to server failed" messages — make sure your

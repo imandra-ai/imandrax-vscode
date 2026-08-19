@@ -1,20 +1,10 @@
 import * as fs from 'fs';
 import * as Path from 'path';
 
-import { ExtensionContext, window } from 'vscode';
+import { commands, ConfigurationTarget, ExtensionContext, window, workspace } from 'vscode';
 
-import { getExtensionConfig } from './config';
-
-let storageDir: string | undefined = undefined;
-let lastWarnedUrl: string | undefined = undefined;
-
-export function initialize(context: ExtensionContext) {
-  storageDir = context.globalStorageUri.fsPath;
-}
-
-export function isConfigured(): boolean {
-  return getExtensionConfig().serverUrl.trim() !== '';
-}
+const CONFIG_FILENAME = 'self-hosted-server.json';
+const ARG_SETTINGS = ['lsp.arguments', 'terminal.arguments'] as const;
 
 /** The task scheduler websocket URL of a self-hosted server: its base URL
     with a ws(s) scheme and the /proto/ws path
@@ -26,42 +16,93 @@ export function schedulerUrl(server: URL): string {
   return ws.toString();
 }
 
-function warnOnce(url: string, message: string) {
-  if (lastWarnedUrl !== url) {
-    lastWarnedUrl = url;
-    void window.showErrorMessage(message);
-  }
-}
-
-function parseServerUrl(serverUrl: string): URL | undefined {
-  let url: URL;
+/** Inverse of `schedulerUrl`, for prefilling the input box. */
+export function baseUrlFromScheduler(wsUrl: string): string | undefined {
   try {
-    url = new URL(serverUrl);
+    const url = new URL(wsUrl);
+    url.protocol = url.protocol === 'wss:' ? 'https:' : 'http:';
+    url.pathname = url.pathname.replace(/\/proto\/ws\/?$/, '');
+    return url.toString().replace(/\/+$/, '');
   } catch {
-    warnOnce(serverUrl, `Invalid imandrax.serverUrl '${serverUrl}'; using Imandra's cloud instead.`);
     return undefined;
   }
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    warnOnce(serverUrl, `imandrax.serverUrl must be an http(s) URL, got '${serverUrl}'; using Imandra's cloud instead.`);
-    return undefined;
-  }
-  return url;
 }
 
-/** Extra imandrax-cli arguments pointing the LSP/terminal at the
-    self-hosted server from imandrax.serverUrl; empty when unset.
-    The scheduler websocket URL has no CLI flag, only the `net` section of
-    a config file, so one is generated in the extension's global storage. */
-export function extraCliArgs(): string[] {
-  const serverUrl = getExtensionConfig().serverUrl.trim();
-  if (serverUrl === '' || storageDir === undefined) {
-    return [];
+function configPath(context: ExtensionContext): string {
+  return Path.join(context.globalStorageUri.fsPath, CONFIG_FILENAME);
+}
+
+function currentBaseUrl(cfgPath: string): string | undefined {
+  try {
+    const cfg: unknown = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+    const ws = (cfg as { net?: { 'remote-scheduler-url'?: string } }).net?.['remote-scheduler-url'];
+    return ws ? baseUrlFromScheduler(ws) : undefined;
+  } catch {
+    return undefined;
   }
-  const url = parseServerUrl(serverUrl);
-  if (url === undefined) {
-    return [];
+}
+
+/** Strip any `-c <cfgPath>` pair this command previously added. Only the
+    managed path is removed; a user's own `-c` args are left alone. */
+function withoutManagedConfig(args: string[], cfgPath: string): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '-c' && args[i + 1] === cfgPath) {
+      i++;
+      continue;
+    }
+    out.push(args[i]);
+  }
+  return out;
+}
+
+async function updateArgSettings(cfgPath: string, connect: boolean): Promise<void> {
+  const cfg = workspace.getConfiguration('imandrax');
+  for (const key of ARG_SETTINGS) {
+    const args = withoutManagedConfig(cfg.get<string[]>(key) ?? [], cfgPath);
+    if (connect) {
+      args.push('-c', cfgPath);
+    }
+    await cfg.update(key, args, ConfigurationTarget.Global);
+  }
+}
+
+async function configure(context: ExtensionContext): Promise<void> {
+  const cfgPath = configPath(context);
+
+  const input = await window.showInputBox({
+    title: 'Self-hosted ImandraX server',
+    prompt: "Base URL of the server, e.g. `http://my-vm:8086`. Leave empty to disconnect and use Imandra's cloud.",
+    value: currentBaseUrl(cfgPath) ?? '',
+    ignoreFocusOut: true,
+    validateInput: value => {
+      const trimmed = value.trim();
+      if (trimmed === '') {
+        return undefined;
+      }
+      try {
+        const url = new URL(trimmed);
+        return url.protocol === 'http:' || url.protocol === 'https:'
+          ? undefined
+          : 'Must be an http(s) URL.';
+      } catch {
+        return 'Not a valid URL.';
+      }
+    },
+  });
+  if (input === undefined) { // cancelled
+    return;
   }
 
+  const trimmed = input.trim();
+  if (trimmed === '') {
+    await updateArgSettings(cfgPath, false);
+    try { fs.rmSync(cfgPath); } catch { /* already gone */ }
+    window.showInformationMessage("ImandraX now uses Imandra's cloud.");
+    return;
+  }
+
+  const url = new URL(trimmed);
   const config = {
     net: {
       'remote-scheduler-url': schedulerUrl(url),
@@ -70,15 +111,21 @@ export function extraCliArgs(): string[] {
       deployment: 'local',
     },
   };
-  const configPath = Path.join(storageDir, 'self-hosted-server.json');
   try {
-    fs.mkdirSync(storageDir, { recursive: true });
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+    fs.mkdirSync(Path.dirname(cfgPath), { recursive: true });
+    fs.writeFileSync(cfgPath, JSON.stringify(config, null, 2));
   } catch (ex) {
     void window.showErrorMessage(`Could not write the self-hosted server config file: ${String(ex)}`);
-    return [];
+    return;
   }
-  // Deliberately NOT --server-endpoint: passing it stops the CLI from
-  // opening the scheduler websocket at all (verified against 0.0.x CLIs).
-  return ['-c', configPath];
+  await updateArgSettings(cfgPath, true);
+  window.showInformationMessage(
+    `ImandraX now uses the self-hosted server at ${trimmed} (via '-c' in imandrax.lsp.arguments and imandrax.terminal.arguments).`
+  );
+}
+
+export function register(context: ExtensionContext) {
+  context.subscriptions.push(
+    commands.registerCommand('imandrax.configure_self_hosted_server', () => configure(context))
+  );
 }
