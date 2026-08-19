@@ -201,9 +201,6 @@ async function configure(context: ExtensionContext): Promise<void> {
   const config = {
     net: {
       'remote-scheduler-url': schedulerUrl(url),
-      // Self-hosted servers are unauthenticated; 'local' makes the CLI
-      // proceed without an auth token instead of fetching a cloud one.
-      deployment: 'local',
     },
   };
   try {
