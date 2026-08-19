@@ -2,9 +2,7 @@ import { commands, ConfigurationTarget, ExtensionContext, window, workspace } fr
 
 const ARG_SETTINGS = ['lsp.arguments', 'terminal.arguments'] as const;
 
-/** The one managed argument. MUST be given a ws(s):// URL: with an http(s)
-    URL the CLI dials the host with its internal raw-TCP transport instead of
-    the scheduler websocket, which self-hosted servers do not speak. */
+/** The one managed argument. Takes a ws(s):// URL */
 const ENDPOINT_FLAG = '--server-endpoint';
 
 /** The task scheduler websocket URL of a self-hosted server: its base URL
