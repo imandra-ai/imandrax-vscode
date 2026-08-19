@@ -2,7 +2,7 @@ import { commands, ConfigurationTarget, ExtensionContext, window, workspace } fr
 
 const ARG_SETTINGS = ['lsp.arguments', 'terminal.arguments'] as const;
 
-/** The one managed argument. Takes a ws(s):// URL */
+/** Takes a ws(s):// URL */
 const ENDPOINT_FLAG = '--server-endpoint';
 
 /** The task scheduler websocket URL of a self-hosted server: its base URL
