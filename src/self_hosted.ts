@@ -1,9 +1,10 @@
 import * as fs from 'fs';
 import * as Path from 'path';
+import { homedir } from 'os';
 
 import { commands, ConfigurationTarget, ExtensionContext, window, workspace } from 'vscode';
 
-const CONFIG_FILENAME = 'self-hosted-server.json';
+const CONFIG_FILENAME = 'vscode-self-hosted-server.json';
 const ARG_SETTINGS = ['lsp.arguments', 'terminal.arguments'] as const;
 
 /** The task scheduler websocket URL of a self-hosted server: its base URL
@@ -28,8 +29,17 @@ export function baseUrlFromScheduler(wsUrl: string): string | undefined {
   }
 }
 
-function configPath(context: ExtensionContext): string {
-  return Path.join(context.globalStorageUri.fsPath, CONFIG_FILENAME);
+/** NOT globalStorage: on macOS that path contains a space ("Application
+    Support") and released imandrax-cli wrapper scripts word-split their
+    arguments (unquoted $@), mangling any spacey path. ~/.config/imandrax
+    (also home of the api_key file) is space-free for typical users. */
+function configPath(): string {
+  return Path.join(homedir(), '.config', 'imandrax', CONFIG_FILENAME);
+}
+
+/** Where earlier builds of this command kept the config; still cleaned up. */
+function legacyConfigPath(context: ExtensionContext): string {
+  return Path.join(context.globalStorageUri.fsPath, 'self-hosted-server.json');
 }
 
 function currentBaseUrl(cfgPath: string): string | undefined {
@@ -42,12 +52,13 @@ function currentBaseUrl(cfgPath: string): string | undefined {
   }
 }
 
-/** Strip any `-c <cfgPath>` pair this command previously added. Only the
-    managed path is removed; a user's own `-c` args are left alone. */
-function withoutManagedConfig(args: string[], cfgPath: string): string[] {
+/** Strip any `-c <path>` pair this command manages (current or legacy
+    location). Only managed paths are removed; a user's own `-c` args are
+    left alone. */
+function withoutManagedConfig(args: string[], managedPaths: string[]): string[] {
   const out: string[] = [];
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '-c' && args[i + 1] === cfgPath) {
+    if (args[i] === '-c' && managedPaths.includes(args[i + 1])) {
       i++;
       continue;
     }
@@ -56,24 +67,26 @@ function withoutManagedConfig(args: string[], cfgPath: string): string[] {
   return out;
 }
 
-async function updateArgSettings(cfgPath: string, connect: boolean): Promise<void> {
+async function updateArgSettings(managedPaths: string[], connectPath: string | undefined): Promise<void> {
   const cfg = workspace.getConfiguration('imandrax');
   for (const key of ARG_SETTINGS) {
-    const args = withoutManagedConfig(cfg.get<string[]>(key) ?? [], cfgPath);
-    if (connect) {
-      args.push('-c', cfgPath);
+    const args = withoutManagedConfig(cfg.get<string[]>(key) ?? [], managedPaths);
+    if (connectPath !== undefined) {
+      args.push('-c', connectPath);
     }
     await cfg.update(key, args, ConfigurationTarget.Global);
   }
 }
 
 async function configure(context: ExtensionContext): Promise<void> {
-  const cfgPath = configPath(context);
+  const cfgPath = configPath();
+  const legacyPath = legacyConfigPath(context);
+  const managedPaths = [cfgPath, legacyPath];
 
   const input = await window.showInputBox({
     title: 'Self-hosted ImandraX server',
     prompt: "Base URL of the server, e.g. `http://my-vm:8086`. Leave empty to disconnect and use Imandra's cloud.",
-    value: currentBaseUrl(cfgPath) ?? '',
+    value: currentBaseUrl(cfgPath) ?? currentBaseUrl(legacyPath) ?? '',
     ignoreFocusOut: true,
     validateInput: value => {
       const trimmed = value.trim();
@@ -96,8 +109,10 @@ async function configure(context: ExtensionContext): Promise<void> {
 
   const trimmed = input.trim();
   if (trimmed === '') {
-    await updateArgSettings(cfgPath, false);
-    try { fs.rmSync(cfgPath); } catch { /* already gone */ }
+    await updateArgSettings(managedPaths, undefined);
+    for (const p of managedPaths) {
+      try { fs.rmSync(p); } catch { /* already gone */ }
+    }
     window.showInformationMessage("ImandraX now uses Imandra's cloud.");
     return;
   }
@@ -118,7 +133,8 @@ async function configure(context: ExtensionContext): Promise<void> {
     void window.showErrorMessage(`Could not write the self-hosted server config file: ${String(ex)}`);
     return;
   }
-  await updateArgSettings(cfgPath, true);
+  try { fs.rmSync(legacyPath); } catch { /* never existed */ }
+  await updateArgSettings(managedPaths, cfgPath);
   window.showInformationMessage(
     `ImandraX now uses the self-hosted server at ${trimmed} (via '-c' in imandrax.lsp.arguments and imandrax.terminal.arguments).`
   );
