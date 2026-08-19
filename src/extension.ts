@@ -6,6 +6,7 @@ import * as installer from './installer';
 import * as listeners from './listeners';
 import { GoalStateEditorProvider } from './goal-state/editor_provider';
 import * as config from './config';
+import * as selfHosted from './self_hosted';
 
 import {
   env,
@@ -23,6 +24,7 @@ import {
 
 
 export async function activate(context: ExtensionContext) {
+  selfHosted.initialize(context);
   const getClientConfig = () => {
     return imandraxLanguageClient.configuration.get(context);
   };

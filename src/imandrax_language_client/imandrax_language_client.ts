@@ -146,7 +146,8 @@ export class ImandraXLanguageClient {
       if (event && (
         event.affectsConfiguration("imandrax.lsp.binary") ||
         event.affectsConfiguration("imandrax.lsp.arguments") ||
-        event.affectsConfiguration("imandrax.lsp.environment"))) {
+        event.affectsConfiguration("imandrax.lsp.environment") ||
+        event.affectsConfiguration("imandrax.serverUrl"))) {
         await this.restart({ extensionUri: extensionUri });
       }
 

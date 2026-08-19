@@ -1,4 +1,5 @@
 import * as ApiKey from './api_key';
+import * as selfHosted from './self_hosted';
 
 import * as Path from 'path';
 import * as Which from "which";
@@ -111,7 +112,10 @@ export async function installedByUs(): Promise<boolean> {
 
 async function handleSuccess(openUri: Uri) {
   await setBinaryPaths(openUri);
-  await promptForApiKey();
+  // Self-hosted servers are unauthenticated, so there is no API key to configure.
+  if (!selfHosted.isConfigured()) {
+    await promptForApiKey();
+  }
   await promptToReloadWindow();
   await markInstalled();
 }

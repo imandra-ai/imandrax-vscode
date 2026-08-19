@@ -76,6 +76,25 @@ If everything goes well, then you should prompted to enter your API key
 
 > Note: API keys are available from https://universe.imandra.ai/user/api-keys.
 
+### Self-hosted ImandraX servers
+
+If your organization hosts its own ImandraX server (e.g. the Azure
+appliance), point the extension at it by setting `imandrax.serverUrl` to the
+server's base URL:
+
+```
+"imandrax.serverUrl": "http://my-imandrax-vm:8086"
+```
+
+Cloud-delegated tasks (e.g. decompositions) then go to that server instead
+of Imandra's cloud. Self-hosted servers are unauthenticated (access control
+is at the network level), so no API key is needed and the API key prompt is
+skipped.
+
+> Note: the server rejects clients older than itself, which shows up as
+> repeated "Connection to server failed" messages — make sure your
+> `imandrax-cli` is at least as recent as your server's release.
+
 ### Wrapping up
 
 Once the installation is complete, you'll be prompted to reload the window:

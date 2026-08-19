@@ -3,6 +3,7 @@ import * as Path from 'path';
 import { commands, env, Range, TerminalOptions, Uri, ViewColumn, window, workspace } from 'vscode';
 import { LanguageClient } from 'vscode-languageclient/node';
 import { getExtensionConfig } from '../config';
+import * as selfHosted from '../self_hosted';
 
 let next_terminal_id = 0;
 let model_count = 0;
@@ -20,7 +21,7 @@ export function create_terminal(cwd: string | undefined) {
     cwd = workspace.workspaceFolders[0].uri.path;
   }
 
-  const options: TerminalOptions = { name: name, shellPath: config.terminal.binary, shellArgs: config.terminal.arguments, cwd: cwd };
+  const options: TerminalOptions = { name: name, shellPath: config.terminal.binary, shellArgs: config.terminal.arguments.concat(selfHosted.extraCliArgs()), cwd: cwd };
   const t = window.createTerminal(options);
   t.show();
   return t;

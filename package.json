@@ -40,6 +40,12 @@
       {
         "title": "General",
         "properties": {
+          "imandrax.serverUrl": {
+            "scope": "machine-overridable",
+            "type": "string",
+            "default": "",
+            "markdownDescription": "Base URL of a self-hosted ImandraX server (e.g. `http://my-vm:8086`). When set, the language server and interactive terminal send cloud-delegated tasks to this server instead of Imandra's cloud, and no API key is required. Leave empty to use Imandra's cloud."
+          },
           "imandrax.lsp.binary": {
             "scope": "machine-overridable",
             "type": "string",
