@@ -80,11 +80,13 @@ If everything goes well, then you should prompted to enter your API key
 
 If your organization hosts its own ImandraX server (e.g. the Azure
 appliance), run **"ImandraX: Configure self-hosted server"** from the
-command palette and enter the server's base URL (e.g.
-`http://my-imandrax-vm:8086`). The command writes a small server config
-file and adds `-c <path>` to `imandrax.lsp.arguments` and
-`imandrax.terminal.arguments` — plain settings you can inspect or edit.
-Run it again with an empty URL to switch back to Imandra's cloud.
+command palette, enter the server's base URL (e.g.
+`http://my-imandrax-vm:8086`), and choose whether it applies to your
+**user** settings (all windows) or just the current **workspace**. The
+command writes a small server config file and adds `-c <path>` to
+`imandrax.lsp.arguments` and `imandrax.terminal.arguments` in the chosen
+scope — plain settings you can inspect or edit. Run it again with an
+empty URL to switch back to Imandra's cloud.
 
 Cloud-delegated tasks (e.g. decompositions) then go to that server instead
 of Imandra's cloud. Self-hosted servers are unauthenticated (access control
