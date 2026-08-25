@@ -10,7 +10,7 @@
     "theme": "dark"
   },
   "license": "MIT",
-  "version": "0.0.54",
+  "version": "0.0.55",
   "repository": {
     "type": "git",
     "url": "https://github.com/imandra-ai/imandrax-vscode"
@@ -299,6 +299,7 @@
   "devDependencies": {
     "@eslint/js": "^9.29.0",
     "@jest/globals": "^29.4.6",
+    "@jest/types": "^30.4.1",
     "@types/assert": "^1.5.11",
     "@types/eslint": "^9.6.1",
     "@types/node": "^16.18.126",
@@ -315,6 +316,7 @@
     "jest": "^29.4.6",
     "jest-environment-jsdom": "^29.4.6",
     "jest-mock-vscode": "^4.8.2",
+    "jest-util": "^30.4.1",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
