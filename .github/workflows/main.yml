@@ -63,6 +63,13 @@ jobs:
       - name: "Run integration tests"
         run: xvfb-run -a npm run test-clean
 
+      - name: "Check package version"
+        run: |
+          if diff <(git show main:package.json | jq -r .version) <(cat package.json | jq -r .version) > /dev/null; then \
+            echo "The package version is unchanged - attempts to publish this package would fail."; \
+            exit 1; \
+          fi
+
   publish:
     name: "Publish"
     runs-on: ubuntu-latest
