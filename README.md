@@ -75,6 +75,30 @@ If everything goes well, then you should prompted to enter your API key
 
 > Note: API keys are available from https://universe.imandra.ai/user/api-keys.
 
+### Self-hosted ImandraX servers
+
+If your organization hosts its own ImandraX server (e.g. the Azure
+appliance), run **"ImandraX: Configure self-hosted server"** from the
+command palette, enter the server's base URL (e.g.
+`http://my-imandrax-vm:8086`), and choose whether it applies to your
+**user** settings (all windows) or just the current **workspace**. The
+command adds `--server-endpoint=ws://<host>/proto/ws` to
+`imandrax.lsp.arguments` and `imandrax.terminal.arguments` in the chosen
+scope — plain settings you can inspect, edit, or (workspace scope) commit
+to your repo's `.vscode/settings.json` to share with your team. Run the
+command again with an empty URL to switch back to Imandra's cloud
+service. Note the URL scheme: `--server-endpoint` must be given the
+`ws(s)://` task-scheduler URL, not the plain `http(s)://` base URL.
+
+Cloud-delegated tasks (e.g. decompositions) then go to that server instead
+of Imandra's cloud service. Self-hosted servers are unauthenticated (access control
+is at the network level), so no API key is needed — choose "Skip" if the
+API key prompt appears.
+
+> Note: the server rejects clients older than itself, which shows up as
+> repeated "Connection to server failed" messages — make sure your
+> `imandrax-cli` is at least as recent as your server's release.
+
 ### Wrapping up
 
 Once the installation is complete, you'll be prompted to reload the window:

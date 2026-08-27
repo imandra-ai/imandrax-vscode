@@ -189,6 +189,10 @@
         "title": "ImandraX: Restart language server"
       },
       {
+        "command": "imandrax.configure_self_hosted_server",
+        "title": "ImandraX: Configure self-hosted server"
+      },
+      {
         "command": "imandrax.check_all",
         "title": "ImandraX: Check all proof obligations in current file"
       },
