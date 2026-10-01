@@ -16,3 +16,13 @@ open Int
 
 type foo = { x : Int.t; y : bool option; }`))
 });
+
+test("variables 1", () => {
+  return format(`type 'a t = ('a * 'a) list`).then(x =>
+    expect(x).toEqual(`type 'a t = ('a * 'a) list`))
+});
+
+test("variables 2", () => {
+  return format(`type ('a, 'b) t = ('a * 'b) list`).then(x =>
+    expect(x).toEqual(`type ('a, 'b) t = ('a * 'b) list`))
+});

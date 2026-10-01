@@ -652,7 +652,7 @@ function print_core_type_desc(node: AST, options: Options): Doc[] {
 
       //          Invariant: [n >= 2].
       //       *)
-      return [join([line, "*", line], args[0].map(x => print_core_type(x, options)))];
+      return par_if(args[0].length > 1, [join([line, "*", line], args[0].map(x => print_core_type(x, options)))]);
     case "Ptyp_constr": {
       // | Ptyp_constr of Longident.t loc * core_type list
       //     (** [Ptyp_constr(lident, l)] represents:
@@ -1190,7 +1190,7 @@ function print_flat_list_elems(e: AST, options: Options): Doc[] {
 
 function print_list(e: AST, options: Options): Doc {
   const es = print_flat_list_elems(e, options);
-  return f([join([softline, "::", softline], es)]);
+  return f(bracketize([line, join([softline, ";", line], es), line]));
 }
 
 function print_flat_list_pattern_elems(p: AST, options: Options): [Doc[], boolean] {
@@ -1864,10 +1864,13 @@ function print_type_declaration(node: AST, options: Options): Doc {
   // 	ptype_loc: Location.t;
   //  }
 
+  const ps = node.ptype_params;
+  const ps_docs = ps?.length > 0 ? [par_if(ps.length > 1, join([",", line], ps.map(x => print_core_type(x[0], options)))), line] : []
   return g([
     ...comments(node.ptype_loc, options),
     f([
-      print_string_loc(node.ptype_name, options), " ",
+      ...ps_docs,
+      print_string_loc(node.ptype_name, options), line,
       ...ifnonempty(["= ", ifBreak(line)], print_type_kind(node.ptype_kind, options)),
       ...ifnonempty(["= ", ifBreak(line)], (node.ptype_manifest ? [print_core_type(node.ptype_manifest, options)] : [])),
       ...ifnonempty(line, print_attributes(node.ptype_attributes, 2, options))])]); // TODO: rest
