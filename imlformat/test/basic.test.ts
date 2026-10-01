@@ -123,3 +123,8 @@ let f e x =
 let f e x = match e with Some _ -> Real.(g x = 0.0) | None -> Real.(g x >= 0.0)`
 ))
 })
+
+test("tuple", () => {
+  return format(`let x=(1,2)`).then(x => expect(x).toEqual(`let x = 1, 2`
+))
+})
