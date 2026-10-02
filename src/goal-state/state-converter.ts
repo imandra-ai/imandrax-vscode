@@ -243,7 +243,7 @@ export class Converter {
   async goal2html(goal: IX.Goal, multiple_in_modules: boolean, index_in_file: number): Promise<string> {
     this._abort_signal?.throwIfAborted();
 
-    const qed = "&#x25A0";
+    const qed = "<span class='hoverable' data-hover='QED'>&#x25A0</span>";
     let title;
     const ctx: Context = { goal: goal };
     if (goal.location) {
@@ -285,6 +285,8 @@ export class Converter {
         r += `<h3>Subgoals (${goal.subgoals.length}):</h3>`
       const sgs_html = await this.subgoals2html(goal.subgoals, ctx);
       r += `${sgs_html}`;
+      if (goal.subgoals?.length == 0)
+        r += `<div class='goal-content'>${qed}</div>`;
       if (goal.errors?.length > 0) {
         let opened = "";
         if (goal.errors?.length == 1)
