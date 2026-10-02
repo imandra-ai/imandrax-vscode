@@ -238,6 +238,10 @@
       {
         "command": "editor.action.clipboardCopyAction",
         "title": "Copy"
+      },
+      {
+        "command": "imandrax.debug_proof",
+        "title": "ImandraX: Debug proof of goal at cursor in debugger"
       }
     ],
     "keybindings": [
@@ -266,10 +270,71 @@
           "when": "webviewId == 'imandrax.GoalState' && webviewSection == 'editor'"
         }
       ]
-    }
+    },
+    "debuggers": [
+      {
+        "type": "imandrax",
+        "label": "ImandraX Proof Debugger",
+        "languages": [
+          "imandrax"
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "properties": {
+              "file": {
+                "type": "string",
+                "description": "The .iml file containing the goal.",
+                "default": "${file}"
+              },
+              "goal": {
+                "type": "string",
+                "description": "Name of the goal to debug. If omitted, the goal at the cursor is used, or you are asked to pick one."
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "Stop at the first tactic step.",
+                "default": true
+              },
+              "stripModuleScope": {
+                "type": "boolean",
+                "description": "Strip module scopes off of identifiers. Defaults to the 'imandrax.stripModuleScope' setting."
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "imandrax",
+            "request": "launch",
+            "name": "Debug proof at cursor",
+            "file": "${file}",
+            "stopOnEntry": true
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "ImandraX: Debug proof",
+            "description": "Step through the tactic steps of an ImandraX goal",
+            "body": {
+              "type": "imandrax",
+              "request": "launch",
+              "name": "Debug proof",
+              "file": "^\"\\${file}\"",
+              "stopOnEntry": true
+            }
+          }
+        ]
+      }
+    ],
+    "breakpoints": [
+      {
+        "language": "imandrax"
+      }
+    ]
   },
   "activationEvents": [
-    "onFileSystem:imandrax-vfs"
+    "onFileSystem:imandrax-vfs",
+    "onDebugResolve:imandrax"
   ],
   "scripts": {
     "check-types": "npx tsc --noEmit",
@@ -289,6 +354,7 @@
   },
   "dependencies": {
     "@vscode/codicons": "^0.0.44",
+    "@vscode/debugadapter": "^1.68.0",
     "@vscode/vsce": "^3.7.1",
     "node-fetch": "^3.3.2",
     "ovsx": "^0.10.8",
@@ -308,6 +374,7 @@
     "@types/which": "^3.0.4",
     "@typescript-eslint/eslint-plugin": "^8.34.0",
     "@typescript-eslint/parser": "^8.34.0",
+    "@vscode/debugprotocol": "^1.68.0",
     "@vscode/test-cli": "^0.0.11",
     "@vscode/test-electron": "^2.5.2",
     "esbuild": "^0.25.12",

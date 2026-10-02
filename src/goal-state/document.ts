@@ -39,6 +39,54 @@ function sourcelocation2range(location: IX.SourceLocation): Range {
     new Position(Number(location.to.line) - 1, Number(location.to.column) - 1));
 }
 
+export async function jumpTo(uri: Uri, options: TextDocumentShowOptions,
+  location: { from: { line: number, column: number }; to: { line: number, column: number } }) {
+  const uri_obj = Uri.from(uri);
+  const alf = location.from;
+  const alt = location.to;
+
+  const options_cpy = options;
+  options_cpy.selection = new Range(alf.line - 1, alf.column - 1, alt.line - 1, alt.column);
+
+  await window.showTextDocument(uri_obj, options_cpy).then(editor => {
+    setTimeout(() => {
+      editor.selection = new Selection(alf.line - 1, alf.column - 1, alf.line - 1, alf.column - 1);
+    }, 300);
+  });
+}
+
+export async function jumpToDeclaration(symbol: string): Promise<void> {
+  if (getClient) {
+    const client: LanguageClient = getClient();
+    const symbols: SymbolInformation[] | null = await client.sendRequest("workspace/symbol", { "query": symbol });
+
+    let sym_to_show;
+    if (symbols && symbols.length > 0) {
+      if (symbols?.length == 1)
+        sym_to_show = symbols[0]
+      else {
+        const picks = symbols.map(s => ({
+          label: `$(symbol-${SymbolKind[s.kind].toLowerCase()}) ${s.name}`,
+          description: s.containerName,
+          detail: workspace.asRelativePath(s.location.uri),
+          symbol: s
+        }));
+        const picked = await window.showQuickPick(picks);
+        sym_to_show = picked?.symbol;
+      }
+
+      if (sym_to_show) {
+        const { uri, range } = sym_to_show.location;
+        const doc = await workspace.openTextDocument(Uri.parse(uri as unknown as string));
+        const editor = await window.showTextDocument(doc, ViewColumn.One);
+
+        editor.selection = new Selection(range.start, range.end);
+        editor.revealRange(range, TextEditorRevealType.InCenter);
+      }
+    }
+  }
+}
+
 interface GoalStateDocumentDelegate {
   getFileData(): Promise<Uint8Array>;
 }
@@ -176,18 +224,7 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
 
   async jump_to(uri: Uri, options: TextDocumentShowOptions,
     location: { from: { line: number, column: number }; to: { line: number, column: number } }) {
-    const uri_obj = Uri.from(uri);
-    const alf = location.from;
-    const alt = location.to;
-
-    const options_cpy = options;
-    options_cpy.selection = new Range(alf.line - 1, alf.column - 1, alt.line - 1, alt.column);
-
-    await window.showTextDocument(uri_obj, options_cpy).then(editor => {
-      setTimeout(() => {
-        editor.selection = new Selection(alf.line - 1, alf.column - 1, alf.line - 1, alf.column - 1);
-      }, 300);
-    });
+    await jumpTo(uri, options, location);
   }
 
   private async add_to_by(anchor: string | undefined, new_tactic: string) {
@@ -280,34 +317,6 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
   }
 
   async jump_to_declaration(symbol: string): Promise<void> {
-    if (getClient) {
-      const client: LanguageClient = getClient();
-      const symbols: SymbolInformation[] | null = await client.sendRequest("workspace/symbol", { "query": symbol });
-
-      let sym_to_show;
-      if (symbols && symbols.length > 0) {
-        if (symbols?.length == 1)
-          sym_to_show = symbols[0]
-        else {
-          const picks = symbols.map(s => ({
-            label: `$(symbol-${SymbolKind[s.kind].toLowerCase()}) ${s.name}`,
-            description: s.containerName,
-            detail: workspace.asRelativePath(s.location.uri),
-            symbol: s
-          }));
-          const picked = await window.showQuickPick(picks);
-          sym_to_show = picked?.symbol;
-        }
-
-        if (sym_to_show) {
-          const { uri, range } = sym_to_show.location;
-          const doc = await workspace.openTextDocument(Uri.parse(uri as unknown as string));
-          const editor = await window.showTextDocument(doc, ViewColumn.One);
-
-          editor.selection = new Selection(range.start, range.end);
-          editor.revealRange(range, TextEditorRevealType.InCenter);
-        }
-      }
-    }
+    await jumpToDeclaration(symbol);
   }
 }

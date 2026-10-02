@@ -6,6 +6,7 @@ import * as installer from './installer';
 import * as listeners from './listeners';
 import { GoalStateEditorProvider } from './goal-state/editor_provider';
 import * as config from './config';
+import * as proofDebugger from './goal-state/debugger/register';
 
 import {
   env,
@@ -35,6 +36,8 @@ export async function activate(context: ExtensionContext) {
     formatter.register();
 
     commands.registration.register(context, languageClientWrapper_);
+
+    proofDebugger.register(context);
 
     decorations.initialize(context);
 
