@@ -295,3 +295,37 @@ let k = "a (* not a comment *) b"
 (* a comment with "a string *) inside" *)
 let l = (* nested (* comment *) *) 1`))
 })
+
+test("comments after char literals, type variables and primed names", () => {
+  return format(`
+let c = '"' (* after dquote char *)
+let q = '\\'' (* after escaped quote *)
+type 'a t = 'a list (* after type variable *)
+let f' x = x (* after primed name *)
+`).then(x =>
+    expect(x).toEqual(`\
+let c = '"' (* after dquote char *)
+
+let q = '\\'' (* after escaped quote *)
+
+type 'a t = 'a list (* after type variable *)
+
+let f' x = x (* after primed name *)`))
+})
+
+test("comment-like text in quoted strings, and literals in comments", () => {
+  return format(`
+let s = {|raw (* not a comment *) "|} (* real *)
+let t = {id|a |} (* not a comment *) b|id} (* real *)
+
+(* a comment with '"' and {|"|} inside *)
+let d = 1
+`).then(x =>
+    expect(x).toEqual(`\
+let s = {|raw (* not a comment *) "|} (* real *)
+
+let t = {id|a |} (* not a comment *) b|id} (* real *)
+
+(* a comment with '"' and {|"|} inside *)
+let d = 1`))
+})
