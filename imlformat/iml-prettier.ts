@@ -7,6 +7,10 @@ const { group, indent, dedent, join, ifBreak, breakParent, line, hardline, softl
 // import { iml2json } from './iml2json.bc';
 const iml2json = require('./iml2json.bc').iml2json;
 import { assert } from 'node:console';
+import {
+  Location, is_real_loc, init_comments, doc_comment_count, comments, trailing_comments,
+  remaining_comments, closing_comments, leftover_comments
+} from './iml-comments';
 
 interface Tree {
   top_defs: string[][];
@@ -95,12 +99,6 @@ function get_source(start, end, options: Options): string {
   return (options.originalText as string).slice(from, to);
 }
 
-function get_source_between(start, end, options: Options): string {
-  const from = start.loc_end.pos_cnum;
-  const to = end.loc_start.pos_cnum;
-  return (options.originalText as string).slice(from, to);
-}
-
 function ifnonempty(x, d: Doc): Doc[] {
   if (!d)
     return [d];
@@ -114,85 +112,6 @@ function trim_parentheses(s: string): string {
   while (s.startsWith("(") && s.endsWith(")"))
     s = s.slice(1, s.length - 1);
   return s;
-}
-
-interface Position {
-  pos_fname: string;
-  pos_cnum: number;
-  pos_lnum: number;
-  pos_bol: number;
-}
-
-interface Location {
-  loc_start: Position;
-  loc_ghost: boolean;
-  loc_end: Position;
-}
-
-function is_real_loc(loc: Location | undefined): boolean {
-  return !!loc && !loc.loc_ghost && loc.loc_start.pos_cnum >= 0;
-}
-
-function comments(cur: Location, options: Options): Doc[] {
-  if (cur && cur.loc_start.pos_cnum >= 0) {
-    const last = options.last_loc;
-    if (last) {
-      let src = get_source_between(last, cur, options);
-      const cstart = src.indexOf("(*");
-      if (cstart != -1) {
-        // Could be a docstring right at the beginning of the file.
-        if (src.length > 4 && src[cstart + 2] != '*') {
-          const had_newline = src.endsWith('\n') || src.endsWith('\r');
-          src = trim(src.substring(cstart), ['\n', '\r', ';', ' ']);
-          let cend = src.lastIndexOf("*)") + 2;
-          if (cend == 1)
-            cend = src.length;
-          src = trim(src.substring(0, cend), ['\n', '\r', ';', ' ']);
-          options.last_loc = cur;
-          return [src, (had_newline ? hardline : line)];
-        }
-      }
-    }
-    options.last_loc = cur;
-  }
-  return [];
-}
-
-function gobble_line_comment(loc: Location, options: Options): Doc[] {
-  let i = loc.loc_end.pos_cnum;
-  const src = options.originalText as string;
-  let comment_from = undefined;
-  while (src[i] != '\n' && i < src.length - 1) {
-    if (src[i] == '(' && src[i + 1] == "*") {
-      comment_from = i;
-      break;
-    }
-    i++;
-  }
-  if (comment_from) {
-    i = comment_from;
-    const r = [];
-    let tmp = "";
-    while (i < src.length - 1 && src[i] != '\n') {
-      if (src[i] == "(" && src[i + 1] == "*") {
-        while (i < src.length - 1 && (src[i] != "*" || src[i + 1] != ")")) {
-          tmp += src[i];
-          i++;
-        }
-        if (i < src.length - 1)
-          tmp += src[i] + src[i + 1];
-        r.push(tmp);
-        tmp = "";
-        options.last_loc = loc;
-        (options.last_loc as Location).loc_end.pos_cnum = i;
-      }
-      else
-        i++;
-    }
-    return [line, ...join(line, r)];
-  }
-  else
-    return [];
 }
 
 enum Notation { None, Infix, Prefix }
@@ -362,7 +281,9 @@ function longident2string(node: AST): string {
 }
 
 function print_longident_loc(node: AST, options: Options): Doc {
-  return print_longident(node.txt, options);
+  const cmmnts = comments(node.loc, options);
+  const id = print_longident(node.txt, options);
+  return cmmnts.length > 0 ? [...cmmnts, id] : id;
 }
 
 function par_if(c: boolean, x: Doc): Doc[] {
@@ -573,7 +494,7 @@ function print_with_constraint(node: AST, options: Options): Doc {
   return "";
 }
 
-function print_module_expr_desc(node: AST, options: Options): Doc {
+function print_module_expr_desc(node: AST, loc: Location, options: Options): Doc {
   const constructor = node[0];
   const args = node.slice(1);
   switch (constructor) {
@@ -583,7 +504,8 @@ function print_module_expr_desc(node: AST, options: Options): Doc {
     case "Pmod_structure":
       // | Pmod_structure of structure  (** [struct ... end] *)
       return f([indent(["struct", hardline,
-        join([hardline, hardline], print_structure(args[0], options))]), hardline,
+        join([hardline, hardline], print_structure(args[0], options)),
+        ...closing_comments(loc, options)]), hardline,
         "end"]);
     case "Pmod_functor":
       // | Pmod_functor of functor_parameter * module_expr
@@ -626,7 +548,7 @@ const attribute_filter = [
 ];
 
 function filter_attributes(attrs: AST[]): AST[] {
-  return attrs.filter(x => !attribute_filter.find(y => y == x.attr_name.txt));
+  return attrs.filter(x => !x.iml_hoisted && !attribute_filter.find(y => y == x.attr_name.txt));
 }
 
 function print_attributes(attrs: AST[], level: number, options: Options): Doc[] {
@@ -783,7 +705,8 @@ function print_core_type(node: AST, options: Options): Doc[] {
   return [
     ...comments(node.ptyp_loc, options),
     ...print_core_type_desc(node.ptyp_desc, options),
-    ...ifnonempty(line, print_attributes(node.ptyp_attributes, 1, options))];
+    ...ifnonempty(line, print_attributes(node.ptyp_attributes, 1, options)),
+    ...trailing_comments(node.ptyp_loc, options)];
 }
 
 // A core type in argument position, e.g. on the left of an arrow, which needs
@@ -949,7 +872,8 @@ function print_pattern(node: AST, options: Options): Doc {
     ...comments(node.ppat_loc, options),
     f([
       print_pattern_desc(node.ppat_desc, options),
-      ...ifnonempty(line, print_attributes(node.ppat_attributes, 1, options))])
+      ...ifnonempty(line, print_attributes(node.ppat_attributes, 1, options))]),
+    ...trailing_comments(node.ppat_loc, options)
   ]);
 }
 
@@ -1042,7 +966,8 @@ function print_expression(node: AST, options: Options): Doc[] {
   return [
     ...comments(node.pexp_loc, options),
     print_expression_desc(node.pexp_desc, options),
-    ...ifnonempty(line, print_attributes(node.pexp_attributes, 1, options))];
+    ...ifnonempty(line, print_attributes(node.pexp_attributes, 1, options)),
+    ...trailing_comments(node.pexp_loc, options)];
 }
 
 // Expressions that can be the argument of a field access without parentheses.
@@ -1925,7 +1850,7 @@ function print_constructor_arguments(node: AST, options: Options): Doc[] {
   }
 }
 
-function print_constructor_declaration(node: AST, options: Options): Doc {
+function print_constructor_declaration(node: AST, options: Options): Doc[] {
   // {
   //  pcd_name: string loc;
   //  pcd_vars: string loc list;
@@ -1934,14 +1859,17 @@ function print_constructor_declaration(node: AST, options: Options): Doc {
   //  pcd_loc: Location.t;
   //  pcd_attributes: attributes;  (** [C of ... [\@id1] [\@id2]] *)
   // }
-  let r: Doc = comments(node.pcd_loc, options);
+  let r: Doc[] = comments(node.pcd_loc, options);
   if (node.pcd_args[1].length == 0)
     r.push(node.pcd_name.txt);
   else
     r = r.concat([
       print_string_loc(node.pcd_name, options), line, "of", line,
       ...print_constructor_arguments(node.pcd_args, options)]);
-  return [...r, ...ifnonempty(line, print_attributes(node.pcd_attributes, 1, options))]
+  return [
+    ...r,
+    ...ifnonempty(line, print_attributes(node.pcd_attributes, 1, options)),
+    ...trailing_comments(node.pcd_loc, options)];
 }
 
 function print_label_declaration(node: AST, options: Options): Doc {
@@ -1970,13 +1898,8 @@ function print_type_kind(node: AST, options: Options): Doc {
       return [];
     case "Ptype_variant":
       // | Ptype_variant of constructor_declaration list
-      return g([ifBreak("| ", ""), join([line, "| "], args[0].map((x, i) =>
-        g([
-          print_constructor_declaration(x, options),
-          ...((i + 1 < args[0].length) ?
-            ifnonempty([line], comments(args[0][i + 1].pcd_loc, options)) :
-            gobble_line_comment(x.pcd_loc, options))])
-      ))]);
+      return g([ifBreak("| ", ""), join([line, "| "], args[0].map(x =>
+        g(print_constructor_declaration(x, options))))]);
     case "Ptype_record":
       // | Ptype_record of label_declaration list  (** Invariant: non-empty list *)
       return g([
@@ -2028,7 +1951,7 @@ function print_module_expr(node: AST, options: Options): Doc {
   //  }
   return [
     ...comments(node.pmod_loc, options),
-    print_module_expr_desc(node.pmod_desc, options),
+    print_module_expr_desc(node.pmod_desc, node.pmod_loc, options),
     ...ifnonempty(line, print_attributes(node.pmod_attributes, 1, options))];
 }
 
@@ -2092,7 +2015,7 @@ function print_attribute(node: AST, level: number, options: Options): Doc[] {
       switch (node.attr_name.txt) {
         case "ocaml.doc": {
           const str = get_attr_payload_string(node);
-          return [...cmmnts, "(", "*".repeat(level), indent(str), "*)"];
+          return [...cmmnts, "(**", indent(str), "*)"];
         }
         case "ocaml.text": {
           const str = get_attr_payload_string(node);
@@ -2309,22 +2232,40 @@ function print_structure_item_desc(node: AST, item_loc: Location, options: Optio
   }
 }
 
-function trim(str: string, ch: string[]) {
-  let start = 0, end = str.length;
+// Attributes that may carry the doc comment of a structure item.
+function item_attributes(node: AST): AST[] {
+  const args = node.slice(1);
+  switch (node[0]) {
+    case "Pstr_value": return args[1][0].pvb_attributes as AST[];
+    case "Pstr_type": return args[1][0].ptype_attributes as AST[];
+    case "Pstr_primitive": return args[0].pval_attributes as AST[];
+    case "Pstr_exception": return args[0].ptyexn_attributes as AST[];
+    case "Pstr_module": return args[0].pmb_attributes as AST[];
+    default: return [];
+  }
+}
 
-  while (start < end && ch.includes(str[start]))
-    ++start;
-
-  while (end > start && ch.includes(str[end - 1]))
-    --end;
-
-  return (start > 0 || end < str.length) ? str.substring(start, end) : str;
+// Doc comments go above the item, where they can't be mistaken for the doc
+// comment of its last constructor or field. A doc comment after the item that is
+// also attached to the next item is left to the next item.
+function print_item_docs(node: AST, item_loc: Location, options: Options): Doc[] {
+  const docs = item_attributes(node).filter(a => a.attr_name.txt == "ocaml.doc");
+  docs.forEach(a => a.iml_hoisted = true);
+  return docs
+    .filter(a => {
+      const pos = a.attr_loc.loc_start.pos_cnum;
+      return !(is_real_loc(a.attr_loc) && is_real_loc(item_loc) &&
+        pos > item_loc.loc_start.pos_cnum && doc_comment_count(pos, options) > 1);
+    })
+    .flatMap(a => ["(**", get_attr_payload_string(a), "*)", hardline]);
 }
 
 function print_structure_item(node: AST, options: Options): Doc {
   return g([
     ...comments(node.pstr_loc, options),
-    print_structure_item_desc(node.pstr_desc, node.pstr_loc, options)]);
+    ...print_item_docs(node.pstr_desc, node.pstr_loc, options),
+    print_structure_item_desc(node.pstr_desc, node.pstr_loc, options),
+    ...remaining_comments(node.pstr_loc, options)]);
 }
 
 function print_structure(node: AST, options: Options): Doc[] {
@@ -2432,29 +2373,15 @@ function merge_semisemi(phrases: Doc[]): Doc[] {
   return phrases.slice(0, j);
 }
 
-const start_loc = {
-  loc_start: { pos_fname: '', pos_lnum: 1, pos_bol: 0, pos_cnum: 0 },
-  loc_end: { pos_fname: '', pos_lnum: 1, pos_bol: 0, pos_cnum: 0 },
-  loc_ghost: false
-};
-
-function end_loc(n: number) {
-  return {
-    loc_start: { pos_fname: '', pos_lnum: 1, pos_bol: 0, pos_cnum: n },
-    loc_end: { pos_fname: '', pos_lnum: 1, pos_bol: 0, pos_cnum: n },
-    loc_ghost: false
-  }
-}
-
-
 class IMLPrinter implements Printer<Tree> {
   print(path: AstPath<Tree>, options: Options, _print: (path: AstPath<Tree>) => Doc): Doc {
-    options.last_loc = start_loc;
+    init_comments(path.node.top_defs, options);
     const phrases = path.node.top_defs.map(n => print_toplevel_phrase(n, options));
-    const cmmnts = comments(end_loc((options.originalText as string).length), options);
+    const rest = leftover_comments(options);
     const r = [
       ...join([hardline, hardline], merge_semisemi(phrases)),
-      ...ifnonempty([hardline, hardline], cmmnts)
+      ...ifnonempty([hardline, hardline], rest),
+      ...(rest.length > 0 ? [hardline] : [])
     ];
     // console.log(doc_to_string(r));
     return r;

@@ -69,7 +69,7 @@ type something_else = int option
 `).then(x =>
     expect(x).toEqual(`\
 (* Comment 1 *)
-type expr = Eq of poly (*  = 0 *)  | Geq of poly (* >= 0 *)  | Gt of poly (*  > 0 *) (* a second line commment *)
+type expr = Eq of poly (*  = 0 *) | Geq of poly (* >= 0 *) | Gt of poly (*  > 0 *) (* a second line commment *)
 
 (* Comment 2 *)
 type something_else = int option`
