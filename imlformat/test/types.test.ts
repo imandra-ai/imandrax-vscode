@@ -26,3 +26,19 @@ test("variables 2", () => {
   return format(`type ('a, 'b) t = ('a * 'b) list`).then(x =>
     expect(x).toEqual(`type ('a, 'b) t = ('a * 'b) list`))
 });
+
+test("function type arguments", () => {
+  return format(`
+type apply_to_zero = (int -> int) -> int
+
+type c = (int -> int) list
+
+type d = D of (int -> int) | E of (int * int) | F of int * int
+`).then(x =>
+    expect(x).toEqual(`\
+type apply_to_zero = (int -> int) -> int
+
+type c = (int -> int) list
+
+type d = D of (int -> int) | E of (int * int) | F of int * int`))
+})
