@@ -166,6 +166,7 @@ export interface Subresult {
   goal: Sequent | undefined;
   subgoals: Sequent[];
   error: string | undefined;
+  location: SourceLocation | undefined;
 }
 
 export interface Report {
