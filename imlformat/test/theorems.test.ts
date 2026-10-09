@@ -34,3 +34,22 @@ theorem thm1 x (y : int) z = f x > x && f y > y && f z > z
 [@@by [%expand "f"] @> auto]
 [@@by some other tactic]`))
 })
+
+test("axiom", () => {
+  return format(`
+axiom zero_right x = x + 0 = x
+`).then(x =>
+    expect(x).toEqual(`\
+axiom zero_right x = x + 0 = x`))
+})
+
+test("lemma at start of file", () => {
+  return format(`lemma l x = x = x
+
+lemma m x = x = x
+`).then(x =>
+    expect(x).toEqual(`\
+lemma l x = x = x
+
+lemma m x = x = x`))
+})

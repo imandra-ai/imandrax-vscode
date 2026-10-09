@@ -37,3 +37,46 @@ let rec eval_system (es:system) (x:Real.t list) : bool =
 let rec eval_system (es : system) (x : Real.t list) : bool =
   match es with [] -> true | e::es -> eval_expr e x && eval_system es x`))
 });
+
+test("applied anonymous function", () => {
+  return format(`
+let three = (fun x -> x + 1) 2
+`).then(x =>
+    expect(x).toEqual(`\
+let three = (fun x -> x + 1) 2`))
+})
+
+test("mutually recursive functions", () => {
+  return format(`
+let rec even n = if n = 0 then true else odd (n - 1)
+and odd n = if n = 0 then false else even (n - 1)
+`).then(x =>
+    expect(x).toEqual(`\
+let rec even n = if n = 0 then true else odd (n - 1)
+and odd n = if n = 0 then false else even (n - 1)`))
+})
+
+test("field access on applications", () => {
+  return format(`
+let get r = (f r).x
+
+let get2 r = (f r).y.z
+
+theorem deposit_increases a x =
+  x >. 0.0 ==> (deposit a x).balance >. a.balance
+`).then(x =>
+    expect(x).toEqual(`\
+let get r = (f r).x
+
+let get2 r = (f r).y.z
+
+theorem deposit_increases a x = x >. 0.0 ==> (deposit a x).balance >. a.balance`))
+})
+
+test("binding with type annotation and function", () => {
+  return format(`
+let e : int -> int = fun x -> x
+`).then(x =>
+    expect(x).toEqual(`\
+let e : int -> int = fun x -> x`))
+})

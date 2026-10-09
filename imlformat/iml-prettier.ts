@@ -7,6 +7,10 @@ const { group, indent, dedent, join, ifBreak, breakParent, line, hardline, softl
 // import { iml2json } from './iml2json.bc';
 const iml2json = require('./iml2json.bc').iml2json;
 import { assert } from 'node:console';
+import {
+  Location, is_real_loc, init_comments, doc_comment_count, comments, trailing_comments,
+  remaining_comments, closing_comments, leftover_comments
+} from './iml-comments';
 
 interface Tree {
   top_defs: string[][];
@@ -95,12 +99,6 @@ function get_source(start, end, options: Options): string {
   return (options.originalText as string).slice(from, to);
 }
 
-function get_source_between(start, end, options: Options): string {
-  const from = start.loc_end.pos_cnum;
-  const to = end.loc_start.pos_cnum;
-  return (options.originalText as string).slice(from, to);
-}
-
 function ifnonempty(x, d: Doc): Doc[] {
   if (!d)
     return [d];
@@ -114,81 +112,6 @@ function trim_parentheses(s: string): string {
   while (s.startsWith("(") && s.endsWith(")"))
     s = s.slice(1, s.length - 1);
   return s;
-}
-
-interface Position {
-  pos_fname: string;
-  pos_cnum: number;
-  pos_lnum: number;
-  pos_bol: number;
-}
-
-interface Location {
-  loc_start: Position;
-  loc_ghost: boolean;
-  loc_end: Position;
-}
-
-function comments(cur: Location, options: Options): Doc[] {
-  if (cur && cur.loc_start.pos_cnum >= 0) {
-    const last = options.last_loc;
-    if (last) {
-      let src = get_source_between(last, cur, options);
-      const cstart = src.indexOf("(*");
-      if (cstart != -1) {
-        // Could be a docstring right at the beginning of the file.
-        if (src.length > 4 && src[cstart + 2] != '*') {
-          const had_newline = src.endsWith('\n') || src.endsWith('\r');
-          src = trim(src.substring(cstart), ['\n', '\r', ';', ' ']);
-          let cend = src.lastIndexOf("*)") + 2;
-          if (cend == 1)
-            cend = src.length;
-          src = trim(src.substring(0, cend), ['\n', '\r', ';', ' ']);
-          options.last_loc = cur;
-          return [src, (had_newline ? hardline : line)];
-        }
-      }
-    }
-    options.last_loc = cur;
-  }
-  return [];
-}
-
-function gobble_line_comment(loc: Location, options: Options): Doc[] {
-  let i = loc.loc_end.pos_cnum;
-  const src = options.originalText as string;
-  let comment_from = undefined;
-  while (src[i] != '\n' && i < src.length - 1) {
-    if (src[i] == '(' && src[i + 1] == "*") {
-      comment_from = i;
-      break;
-    }
-    i++;
-  }
-  if (comment_from) {
-    i = comment_from;
-    const r = [];
-    let tmp = "";
-    while (i < src.length - 1 && src[i] != '\n') {
-      if (src[i] == "(" && src[i + 1] == "*") {
-        while (i < src.length - 1 && (src[i] != "*" || src[i + 1] != ")")) {
-          tmp += src[i];
-          i++;
-        }
-        if (i < src.length - 1)
-          tmp += src[i] + src[i + 1];
-        r.push(tmp);
-        tmp = "";
-        options.last_loc = loc;
-        (options.last_loc as Location).loc_end.pos_cnum = i;
-      }
-      else
-        i++;
-    }
-    return [line, ...join(line, r)];
-  }
-  else
-    return [];
 }
 
 enum Notation { None, Infix, Prefix }
@@ -310,6 +233,7 @@ function op_info_of_expr(expr): PrecedenceInfo {
     case "Pexp_function": return operator_precedence_info("fun");
     case "Pexp_try": return operator_precedence_info("try");
     case "Pexp_tuple": return operator_precedence_info(",");
+    case "Pexp_sequence": return operator_precedence_info(";");
     default: return operator_precedence_info(undefined);
   }
 };
@@ -357,7 +281,9 @@ function longident2string(node: AST): string {
 }
 
 function print_longident_loc(node: AST, options: Options): Doc {
-  return print_longident(node.txt, options);
+  const cmmnts = comments(node.loc, options);
+  const id = print_longident(node.txt, options);
+  return cmmnts.length > 0 ? [...cmmnts, id] : id;
 }
 
 function par_if(c: boolean, x: Doc): Doc[] {
@@ -389,7 +315,7 @@ function print_constant_desc(node: AST, options: Options): Doc {
     }
     case "Pconst_char":
       // | Pconst_char of char  (** Character such as ['c']. *)
-      return ["'", args[0], "'"];
+      return ["'", escape_literal(args[0], "'"), "'"];
     case "Pconst_string": {
       // | Pconst_string of string * Location.t * string option
       // 	(** Constant string such as ["constant"] or
@@ -397,8 +323,9 @@ function print_constant_desc(node: AST, options: Options): Doc {
 
       //  The location span the content of the string, without the delimiters.
       // *)
-      const delim = args[2] ? args[2] : "\"";
-      return [delim, args[0], delim];
+      if (args[2] !== null && args[2] !== undefined)
+        return ["{", args[2] as string, "|", args[0] as string, "|", args[2] as string, "}"];
+      return ["\"", escape_literal(args[0], "\""), "\""];
     }
     case "Pconst_float": {
       // | Pconst_float of string * char option
@@ -415,14 +342,44 @@ function print_constant_desc(node: AST, options: Options): Doc {
   }
 }
 
+function escape_literal(s: string, quote: string): string {
+  let r = "";
+  for (const c of s) {
+    const code = c.charCodeAt(0);
+    if (c == "\\" || c == quote)
+      r += "\\" + c;
+    else if (c == "\n")
+      r += "\\n";
+    else if (c == "\t")
+      r += "\\t";
+    else if (c == "\r")
+      r += "\\r";
+    else if (c == "\b")
+      r += "\\b";
+    else if (code < 0x20 || code == 0x7f)
+      r += "\\" + code.toString().padStart(3, "0");
+    else
+      r += c;
+  }
+  return r;
+}
+
 function print_constant(node: AST, options: Options): Doc {
   // {
   //   pconst_desc : constant_desc;
   //   pconst_loc : Location.t;
   // }
+  const kind = node.pconst_desc[0];
+  let d: Doc = undefined;
+  if ((kind == "Pconst_char" || kind == "Pconst_string") && is_real_loc(node.pconst_loc)) {
+    // Keep string and char literals exactly as written, escapes included.
+    const src = get_source(node.pconst_loc, node.pconst_loc, options);
+    if (/^['"{]/.test(src))
+      d = src;
+  }
   return g([
     ...comments(node.pconst_loc, options),
-    print_constant_desc(node.pconst_desc, options)
+    d ?? print_constant_desc(node.pconst_desc, options)
   ]);
 }
 
@@ -537,7 +494,7 @@ function print_with_constraint(node: AST, options: Options): Doc {
   return "";
 }
 
-function print_module_expr_desc(node: AST, options: Options): Doc {
+function print_module_expr_desc(node: AST, loc: Location, options: Options): Doc {
   const constructor = node[0];
   const args = node.slice(1);
   switch (constructor) {
@@ -547,7 +504,8 @@ function print_module_expr_desc(node: AST, options: Options): Doc {
     case "Pmod_structure":
       // | Pmod_structure of structure  (** [struct ... end] *)
       return f([indent(["struct", hardline,
-        join([hardline, hardline], print_structure(args[0], options))]), hardline,
+        join([hardline, hardline], print_structure(args[0], options)),
+        ...closing_comments(loc, options)]), hardline,
         "end"]);
     case "Pmod_functor":
       // | Pmod_functor of functor_parameter * module_expr
@@ -590,7 +548,7 @@ const attribute_filter = [
 ];
 
 function filter_attributes(attrs: AST[]): AST[] {
-  return attrs.filter(x => !attribute_filter.find(y => y == x.attr_name.txt));
+  return attrs.filter(x => !x.iml_hoisted && !attribute_filter.find(y => y == x.attr_name.txt));
 }
 
 function print_attributes(attrs: AST[], level: number, options: Options): Doc[] {
@@ -642,7 +600,7 @@ function print_core_type_desc(node: AST, options: Options): Doc[] {
       //        *)
       return [
         print_arg_label(args[0], options, false), // Apparently OCaml doesn't put a tilde here.
-        print_core_type(args[1], options),
+        print_core_type_arg(args[1], options),
         line, "->", line,
         print_core_type(args[2], options)];
     case "Ptyp_tuple":
@@ -652,7 +610,7 @@ function print_core_type_desc(node: AST, options: Options): Doc[] {
 
       //          Invariant: [n >= 2].
       //       *)
-      return par_if(args[0].length > 1, [join([line, "*", line], args[0].map(x => print_core_type(x, options)))]);
+      return par_if(args[0].length > 1, [join([line, "*", line], args[0].map(x => print_core_type_arg(x, options)))]);
     case "Ptyp_constr": {
       // | Ptyp_constr of Longident.t loc * core_type list
       //     (** [Ptyp_constr(lident, l)] represents:
@@ -663,7 +621,7 @@ function print_core_type_desc(node: AST, options: Options): Doc[] {
       let r: Doc[] = [];
       if (args[1].length > 1)
         r.push("(");
-      r = r.concat(join([",", line], args[1].map(x => print_core_type(x, options))));
+      r = r.concat(join([",", line], args[1].map(x => args[1].length > 1 ? print_core_type(x, options) : print_core_type_arg(x, options))));
       if (args[1].length > 1)
         r.push(")");
       if (args[1].length > 0)
@@ -747,7 +705,15 @@ function print_core_type(node: AST, options: Options): Doc[] {
   return [
     ...comments(node.ptyp_loc, options),
     ...print_core_type_desc(node.ptyp_desc, options),
-    ...ifnonempty(line, print_attributes(node.ptyp_attributes, 1, options))];
+    ...ifnonempty(line, print_attributes(node.ptyp_attributes, 1, options)),
+    ...trailing_comments(node.ptyp_loc, options)];
+}
+
+// A core type in argument position, e.g. on the left of an arrow, which needs
+// parentheses if it is an arrow (or alias) itself.
+function print_core_type_arg(node: AST, options: Options): Doc[] {
+  const kind = node.ptyp_desc[0];
+  return par_if(kind == "Ptyp_arrow" || kind == "Ptyp_alias", print_core_type(node, options));
 }
 
 function print_label(node: AST, options: Options): Doc {
@@ -788,7 +754,8 @@ function print_pattern_desc(node: AST, options: Options): Doc {
       //     (** Patterns [(P1, ..., Pn)].
       //          Invariant: [n >= 2]
       //       *)
-      return f([join([",", line], args[0].map(x => print_pattern(x, options)))]);
+      return f([join([",", line], args[0].map(x =>
+        par_if(["Ppat_tuple", "Ppat_or", "Ppat_alias"].includes(x.ppat_desc[0]), print_pattern(x, options))))]);
     case "Ppat_construct":
       // | Ppat_construct of Longident.t loc * (string loc list * pattern) option
       //     (** [Ppat_construct(C, args)] represents:
@@ -814,7 +781,7 @@ function print_pattern_desc(node: AST, options: Options): Doc {
           if (cargs.length > 0)
             cargs = ["(type", line, cargs, softline, ")"];
           let r = [print_longident_loc(args[0], options), line,
-          print_pattern(args[1][1], options)];
+          ...print_pattern_arg(args[1][1], options)];
           if (cargs && cargs.length > 0)
             r = r.concat([line, cargs]);
           return f(r);
@@ -828,7 +795,7 @@ function print_pattern_desc(node: AST, options: Options): Doc {
       //           - [`A]   when [pat] is [None],
       //           - [`A P] when [pat] is [Some P]
       //        *)
-      return f(["`", print_label(args[0], options), ...ifnonempty(line, print_pattern(args[1], options))]);
+      return f(["`", print_label(args[0], options), ...(args[1] ? [line, ...print_pattern_arg(args[1], options)] : [])]);
     case "Ppat_record": {
       // | Ppat_record of (Longident.t loc * pattern) list * closed_flag
       //     (** [Ppat_record([(l1, P1) ; ... ; (ln, Pn)], flag)] represents:
@@ -849,7 +816,9 @@ function print_pattern_desc(node: AST, options: Options): Doc {
       return f(["[|", line, join([";", line], args[0].map(x => print_pattern(x, options))), line, "|]"]);
     case "Ppat_or":
       // | Ppat_or of pattern * pattern  (** Pattern [P1 | P2] *)
-      return f([print_pattern(args[0], options), line, "|", line, print_pattern(args[1], options)]);
+      return f([
+        ...par_if(args[0].ppat_desc[0] == "Ppat_alias", print_pattern(args[0], options)), line, "|", line,
+        ...par_if(args[1].ppat_desc[0] == "Ppat_alias", print_pattern(args[1], options))]);
     case "Ppat_constraint":
       // | Ppat_constraint of pattern * core_type  (** Pattern [(P : T)] *)
       return f(["(", print_pattern(args[0], options), line, ":", line, print_core_type(args[1], options), ")"]);
@@ -858,7 +827,7 @@ function print_pattern_desc(node: AST, options: Options): Doc {
       return f(["#", print_longident_loc(args[0], options)]);
     case "Ppat_lazy":
       // | Ppat_lazy of pattern  (** Pattern [lazy P] *)
-      return f(["lazy", line, print_pattern(args[0], options)]);
+      return f(["lazy", line, ...print_pattern_arg(args[0], options)]);
     case "Ppat_unpack": {
       // | Ppat_unpack of string option loc
       //     (** [Ppat_unpack(s)] represents:
@@ -903,8 +872,47 @@ function print_pattern(node: AST, options: Options): Doc {
     ...comments(node.ppat_loc, options),
     f([
       print_pattern_desc(node.ppat_desc, options),
-      ...ifnonempty(line, print_attributes(node.ppat_attributes, 1, options))])
+      ...ifnonempty(line, print_attributes(node.ppat_attributes, 1, options))]),
+    ...trailing_comments(node.ppat_loc, options)
   ]);
+}
+
+function is_neg_pattern_const(p: AST): boolean {
+  if (p.ppat_desc[0] != "Ppat_constant")
+    return false;
+  const c = p.ppat_desc[1].pconst_desc;
+  return (c[0] == "Pconst_integer" || c[0] == "Pconst_float") && (c[1] as string).startsWith("-");
+}
+
+// Patterns that can be an argument of a constructor or function without
+// parentheses.
+function is_simple_pattern(p: AST): boolean {
+  const args = p.ppat_desc.slice(1);
+  switch (p.ppat_desc[0]) {
+    case "Ppat_any":
+    case "Ppat_var":
+    case "Ppat_interval":
+    case "Ppat_record":
+    case "Ppat_array":
+    case "Ppat_constraint":
+    case "Ppat_type":
+    case "Ppat_open":
+    case "Ppat_extension":
+      return true;
+    case "Ppat_constant":
+      return !is_neg_pattern_const(p);
+    case "Ppat_construct":
+      return !args[1] || args[1].length == 0 ||
+        (longident2string(args[0].txt) == "::" && is_closed_list_pattern(p));
+    case "Ppat_variant":
+      return !args[1];
+    default:
+      return false;
+  }
+}
+
+function print_pattern_arg(p: AST, options: Options): Doc[] {
+  return par_if(!is_simple_pattern(p), print_pattern(p, options));
 }
 
 function print_value_constraint(node: AST, options: Options): Doc {
@@ -958,7 +966,31 @@ function print_expression(node: AST, options: Options): Doc[] {
   return [
     ...comments(node.pexp_loc, options),
     print_expression_desc(node.pexp_desc, options),
-    ...ifnonempty(line, print_attributes(node.pexp_attributes, 1, options))];
+    ...ifnonempty(line, print_attributes(node.pexp_attributes, 1, options)),
+    ...trailing_comments(node.pexp_loc, options)];
+}
+
+// Expressions that can be the argument of a field access without parentheses.
+function is_simple_expression(e: AST): boolean {
+  switch (e.pexp_desc[0]) {
+    case "Pexp_ident":
+    case "Pexp_record":
+    case "Pexp_field":
+    case "Pexp_array":
+    case "Pexp_constraint":
+    case "Pexp_coerce":
+    case "Pexp_pack":
+    case "Pexp_extension":
+      return true;
+    case "Pexp_constant":
+      return !is_neg_const(e);
+    case "Pexp_construct":
+      return !e.pexp_desc[2] || is_closed_list_expression(e);
+    case "Pexp_variant":
+      return !e.pexp_desc[2];
+    default:
+      return false;
+  }
 }
 
 function print_function_param_desc(node: AST, options: Options): Doc {
@@ -984,8 +1016,7 @@ function print_function_param_desc(node: AST, options: Options): Doc {
       //     Note: If [E0] is provided, only
       //     {{!Asttypes.arg_label.Optional}[Optional]} is allowed.
       // *)
-      const op_info_arg = op_info_of_pat(args[2]);
-      const is_lower = op_info_arg.precedence < apply_precedence();
+      const is_lower = !is_simple_pattern(args[2]);
       switch (args[0][0]) {
         case "Nolabel": {
           return par_if(is_lower, print_pattern(args[2], options));
@@ -1177,41 +1208,80 @@ function print_extension_constructor(node: AST, options: Options): Doc {
       ...ifnonempty(line, print_attributes(node.pext_attributes, 1, options))])]);
 }
 
-function print_flat_list_elems(e: AST, options: Options): Doc[] {
-  const d0 = print_expression(e.pexp_desc[1][0], options);
-  const e1 = e.pexp_desc[1][1];
-  if (e1.pexp_desc[0] == "Pexp_construct" && e1.pexp_desc[1].txt[1] == "[]")
-    return d0;
-  else if (e1.pexp_desc[0] == "Pexp_construct" && e1.pexp_desc[1].txt[1] == "::")
-    return [...d0, ...print_flat_list_elems(e1.pexp_desc[2], options)];
-  else
-    return [...d0, ...print_expression(e1, options)];
+function is_cons_expression(e: AST): boolean {
+  return e.pexp_desc[0] == "Pexp_construct" && longident2string(e.pexp_desc[1].txt) == "::" &&
+    e.pexp_desc[2]?.pexp_desc[0] == "Pexp_tuple";
 }
 
+function is_nil_expression(e: AST): boolean {
+  return e.pexp_desc[0] == "Pexp_construct" && longident2string(e.pexp_desc[1].txt) == "[]";
+}
+
+// Whether a `::` expression is a list literal [E1; ...; En].
+function is_closed_list_expression(e: AST): boolean {
+  if (!is_cons_expression(e))
+    return false;
+  while (is_cons_expression(e))
+    e = e.pexp_desc[2].pexp_desc[1][1];
+  return is_nil_expression(e);
+}
+
+// [e] is the argument tuple of a `::` expression.
 function print_list(e: AST, options: Options): Doc {
-  const es = print_flat_list_elems(e, options);
-  return f(bracketize([line, join([softline, ";", line], es), line]));
-}
-
-function print_flat_list_pattern_elems(p: AST, options: Options): [Doc[], boolean] {
-  const d0 = print_pattern(p.ppat_desc[1][0], options);
-  const e1 = p.ppat_desc[1][1];
-  if (e1.ppat_desc[0] == "Ppat_construct" && e1.ppat_desc[1].txt[1] == "[]")
-    return [[d0], true];
-  else if (e1.ppat_desc[0] == "Ppat_construct" && e1.ppat_desc[1].txt[1] == "::") {
-    const [x, b] = print_flat_list_pattern_elems(e1.ppat_desc[2][1], options);
-    return [[d0, ...x], b];
+  const elems = [e.pexp_desc[1][0]];
+  let tail = e.pexp_desc[1][1];
+  while (is_cons_expression(tail)) {
+    elems.push(tail.pexp_desc[2].pexp_desc[1][0]);
+    tail = tail.pexp_desc[2].pexp_desc[1][1];
   }
-  else
-    return [[d0, print_pattern(e1, options)], false];
+  const cons_prec = operator_precedence("::");
+  if (is_nil_expression(tail)) {
+    // Elements are parsed at a level above `;`, but the bodies of `let`, `match`,
+    // `fun`, etc. extend over it.
+    const es = elems.map(x => par_if(op_info_of_expr(x).precedence <= operator_precedence(";"), print_expression(x, options)));
+    return f(bracketize([line, join([softline, ";", line], es), line]));
+  }
+  const ds = elems.map(x => par_if(op_info_of_expr(x).precedence <= cons_prec || is_cons_expression(x), print_expression(x, options)));
+  ds.push(par_if(op_info_of_expr(tail).precedence < cons_prec, print_expression(tail, options)));
+  return f(join([line, "::", line], ds));
 }
 
+function is_cons_pattern(p: AST): boolean {
+  return p.ppat_desc[0] == "Ppat_construct" && longident2string(p.ppat_desc[1].txt) == "::";
+}
+
+function is_nil_pattern(p: AST): boolean {
+  return p.ppat_desc[0] == "Ppat_construct" && longident2string(p.ppat_desc[1].txt) == "[]";
+}
+
+// Whether a `::` pattern is a list literal [P1; ...; Pn].
+function is_closed_list_pattern(p: AST): boolean {
+  while (is_cons_pattern(p))
+    p = p.ppat_desc[2][1].ppat_desc[1][1];
+  return is_nil_pattern(p);
+}
+
+// Returns the elements of a `::` pattern and its tail.
+function flatten_list_pattern(p: AST): [AST[], AST] {
+  const elems = [];
+  while (is_cons_pattern(p)) {
+    const [hd, tl] = p.ppat_desc[2][1].ppat_desc[1];
+    elems.push(hd);
+    p = tl;
+  }
+  return [elems, p];
+}
+
+// [p] is the argument tuple of a `::` pattern.
 function print_pattern_list(p: AST, options: Options): Doc {
-  const [ps, b] = print_flat_list_pattern_elems(p, options);
-  if (b)
-    return f(bracketize(ps));
-  else
-    return f(join([softline, "::", softline], ps));
+  const [elems, tail] = flatten_list_pattern(p.ppat_desc[1][1]);
+  elems.unshift(p.ppat_desc[1][0]);
+  if (is_nil_pattern(tail))
+    return f(bracketize([join([";", line], elems.map(x => print_pattern(x, options)))]));
+  const needs_par = (x: AST) => ["Ppat_tuple", "Ppat_or", "Ppat_alias"].includes(x.ppat_desc[0]);
+  const ds = elems.map(x => par_if(needs_par(x) || is_cons_pattern(x), print_pattern(x, options)));
+  ds.push(par_if(needs_par(tail), print_pattern(tail, options)));
+  return f(join([softline, "::", softline], ds));
 }
 
 function print_class_structure(node: AST, options: Options): Doc {
@@ -1225,12 +1295,13 @@ function print_case(node: AST, options: Options): Doc {
   // 	pc_guard: expression option;
   // 	pc_rhs: expression;
   // }
-  let r = [print_pattern(node.pc_lhs, options)];
+  let r: Doc[] = [print_pattern(node.pc_lhs, options)];
   if (node.pc_guard)
-    r = r.concat(["when", line, print_pattern(node.pc_guard, options)]);
+    r = r.concat([line, "when", line, ...print_expression(node.pc_guard, options)]);
   r = r.concat([
     line, "->", line,
-    ...print_expression(node.pc_rhs, options)
+    ...par_if(op_info_of_expr(node.pc_rhs).precedence <= operator_precedence("match"),
+      print_expression(node.pc_rhs, options))
   ]);
   return f(r);
 }
@@ -1467,13 +1538,16 @@ function print_expression_desc(node: AST, options: Options): Doc {
           }
           case Notation.None: {
             return f([
-              ...print_expression(op_expr, options), line,
+              ...par_if(!is_simple_expression(op_expr) && op_expr.pexp_desc[0] != "Pexp_apply",
+                print_expression(op_expr, options)), line,
               join(line, op_args.map(arg => {
                 const op_info_arg = op_info_of_expr(arg[1]);
                 return f([indent([
                   ...print_arg_label(arg[0], options),
                   ...par_if(
-                    op_info_arg.precedence <= op_info.precedence,
+                    op_info_arg.precedence < op_info.precedence ||
+                    (op_info_arg.precedence == op_info.precedence &&
+                      (is_apply_with_args(arg[1]) || is_construct_with_args(arg[1]) || is_neg_const(arg[1]) || is_infix_op(arg[1]))),
                     print_expression(arg[1], options))])]);
               })),
             ]);
@@ -1488,14 +1562,7 @@ function print_expression_desc(node: AST, options: Options): Doc {
     case "Pexp_match": {
       // | Pexp_match of expression * case list
       //     (** [match E0 with P1 -> E1 | ... | Pn -> En] *)
-      const cs = join([line, "| "], args[1].map(arg => {
-        const op_info_arg = op_info_of_expr(arg.pc_rhs);
-        return f([
-          print_pattern(arg.pc_lhs, options),
-          line, "->", line,
-          ...par_if(op_info_arg.precedence <= operator_precedence("match"),
-            print_expression(arg.pc_rhs, options))]);
-      }));
+      const cs = join([line, "| "], args[1].map(arg => print_case(arg, options)));
       return g([
         f(["match", indent([line, ...print_expression(args[0], options), line]), "with"]),
         line, ifBreak("| ", ""), ...cs]);
@@ -1524,11 +1591,10 @@ function print_expression_desc(node: AST, options: Options): Doc {
       //      - [C E]             when [exp] is [Some E],
       //      - [C (E1, ..., En)] when [exp] is [Some (Pexp_tuple[E1;...;En])]
       //   *)
-      const id = print_longident_loc(args[0], options);
-      if (id == "::" && args[1]?.pexp_desc[0] == "Pexp_tuple") {
+      if (is_cons_expression({ pexp_desc: node })) {
         return print_list(args[1], options);
       } else {
-        let r = [id];
+        let r: Doc[] = [print_longident_loc(args[0], options)];
         if (args[1]) {
           const op_info = operator_precedence_info(undefined);
           const op_info_arg = op_info_of_expr(args[1]);
@@ -1570,12 +1636,15 @@ function print_expression_desc(node: AST, options: Options): Doc {
     }
     case "Pexp_field":
       // | Pexp_field of expression * Longident.t loc  (** [E.l] *)
-      return f([...print_expression(args[0], options), ".", softline, print_longident_loc(args[1], options)]);
+      return f([
+        ...par_if(!is_simple_expression(args[0]), print_expression(args[0], options)),
+        ".", softline, print_longident_loc(args[1], options)]);
     case "Pexp_setfield":
       // | Pexp_setfield of expression * Longident.t loc * expression
       //     (** [E1.l <- E2] *)
       return f([
-        ...print_expression(args[0], options), ".", softline, print_longident_loc(args[1], options),
+        ...par_if(!is_simple_expression(args[0]), print_expression(args[0], options)),
+        ".", softline, print_longident_loc(args[1], options),
         line, "<-", line,
         ...print_expression(args[2], options)]);
     case "Pexp_array":
@@ -1760,7 +1829,7 @@ function print_constructor_arguments(node: AST, options: Options): Doc[] {
   switch (constructor) {
     case "Pcstr_tuple":
       // | Pcstr_tuple of core_type list
-      return [join([line, "*", line], args[0].map(x => print_core_type(x, options)))];
+      return [join([line, "*", line], args[0].map(x => print_core_type_arg(x, options)))];
     case "Pcstr_record":
       // | Pcstr_record of label_declaration list
       //     (** Values of type {!constructor_declaration}
@@ -1781,7 +1850,7 @@ function print_constructor_arguments(node: AST, options: Options): Doc[] {
   }
 }
 
-function print_constructor_declaration(node: AST, options: Options): Doc {
+function print_constructor_declaration(node: AST, options: Options): Doc[] {
   // {
   //  pcd_name: string loc;
   //  pcd_vars: string loc list;
@@ -1790,14 +1859,17 @@ function print_constructor_declaration(node: AST, options: Options): Doc {
   //  pcd_loc: Location.t;
   //  pcd_attributes: attributes;  (** [C of ... [\@id1] [\@id2]] *)
   // }
-  let r: Doc = comments(node.pcd_loc, options);
+  let r: Doc[] = comments(node.pcd_loc, options);
   if (node.pcd_args[1].length == 0)
     r.push(node.pcd_name.txt);
   else
     r = r.concat([
       print_string_loc(node.pcd_name, options), line, "of", line,
       ...print_constructor_arguments(node.pcd_args, options)]);
-  return [...r, ...ifnonempty(line, print_attributes(node.pcd_attributes, 1, options))]
+  return [
+    ...r,
+    ...ifnonempty(line, print_attributes(node.pcd_attributes, 1, options)),
+    ...trailing_comments(node.pcd_loc, options)];
 }
 
 function print_label_declaration(node: AST, options: Options): Doc {
@@ -1826,13 +1898,8 @@ function print_type_kind(node: AST, options: Options): Doc {
       return [];
     case "Ptype_variant":
       // | Ptype_variant of constructor_declaration list
-      return g([ifBreak("| ", ""), join([line, "| "], args[0].map((x, i) =>
-        g([
-          print_constructor_declaration(x, options),
-          ...((i + 1 < args[0].length) ?
-            ifnonempty([line], comments(args[0][i + 1].pcd_loc, options)) :
-            gobble_line_comment(x.pcd_loc, options))])
-      ))]);
+      return g([ifBreak("| ", ""), join([line, "| "], args[0].map(x =>
+        g(print_constructor_declaration(x, options))))]);
     case "Ptype_record":
       // | Ptype_record of label_declaration list  (** Invariant: non-empty list *)
       return g([
@@ -1884,7 +1951,7 @@ function print_module_expr(node: AST, options: Options): Doc {
   //  }
   return [
     ...comments(node.pmod_loc, options),
-    print_module_expr_desc(node.pmod_desc, options),
+    print_module_expr_desc(node.pmod_desc, node.pmod_loc, options),
     ...ifnonempty(line, print_attributes(node.pmod_attributes, 1, options))];
 }
 
@@ -1948,7 +2015,7 @@ function print_attribute(node: AST, level: number, options: Options): Doc[] {
       switch (node.attr_name.txt) {
         case "ocaml.doc": {
           const str = get_attr_payload_string(node);
-          return [...cmmnts, "(", "*".repeat(level), indent(str), "*)"];
+          return [...cmmnts, "(**", indent(str), "*)"];
         }
         case "ocaml.text": {
           const str = get_attr_payload_string(node);
@@ -2029,7 +2096,31 @@ function print_type_constraint(node: AST, options: Options): Doc {
   }
 }
 
-function print_structure_item_desc(node: AST, options: Options): Doc {
+function print_toplevel_value_binding(pvb: AST, keyword: string, options: Options): Doc {
+  const attrs = filter_attributes(pvb.pvb_attributes);
+  if (pvb.pvb_expr.pexp_desc[0] == "Pexp_function" && !pvb.pvb_constraint) {
+    // For function definitions we want to hoist the arguments
+    const params = pvb.pvb_expr.pexp_desc[1];
+    const type_cnstrnt_opt = pvb.pvb_expr.pexp_desc[2];
+    const fundef = pvb.pvb_expr.pexp_desc[3];
+    return [keyword, f([indent([
+      line,
+      ...par_if(is_infix_op_pattern(pvb.pvb_pat), print_pattern(pvb.pvb_pat, options)),
+      line,
+      ...join(line, params.map(x => print_function_param(x, options))),
+      ...(params && params.length > 0 ? [line] : []),
+      ...(type_cnstrnt_opt ? [":", line, print_type_constraint(type_cnstrnt_opt, options), line] : []),
+      "="]),
+    f([indent([line, print_function_body(fundef, options)]),
+    ...ifnonempty(line, print_attributes(attrs, 2, options))])])];
+  }
+  return f([
+    keyword,
+    indent([line, print_value_binding(pvb, options)]),
+    ...ifnonempty(line, print_attributes(attrs, 2, options))]);
+}
+
+function print_structure_item_desc(node: AST, item_loc: Location, options: Options): Doc {
   const constructor = node[0];
   const args = node.slice(1);
   switch (constructor) {
@@ -2050,82 +2141,37 @@ function print_structure_item_desc(node: AST, options: Options): Doc {
       // 					- [let rec P1 = E1 and ... and Pn = EN ]
       // 							when [rec] is {{!Asttypes.rec_flag.Recursive}[Recursive]}.
       // 			*)
-      const r: Doc[] = [];
-      let is_instance_or_verify = false;
       const pvb = args[1][0];
-      let attrs = pvb.pvb_attributes;
-
-      if (attrs.length > 0) {
-        if (has_attribute(attrs, "imandra_theorem")) {
-          // Could be a theorem or a lemma; search backwards for the keyword.
-          const cloc = args[1][0].pvb_loc;
-          const src = options.originalText as string;
-          let from = cloc.loc_start.pos_cnum - 1;
-          const whitespace_chars = [" ", "\t", "\n", "\r"];
-          while (from > 0 && whitespace_chars.find(x => x == src[from])) {
-            from--;
-          }
-          from--;
-          while (from > 0 && !whitespace_chars.find(x => x == src[from])) {
-            from--;
-          }
-          if (from >= 0 && src.slice(from + 1, from + 6) == "lemma")
-            r.push("lemma");
-          else
-            r.push("theorem");
-        }
-        else if (has_attribute(attrs, "imandra_instance")) {
-          r.push("instance");
-          is_instance_or_verify = true;
-        }
-        else if (has_attribute(attrs, "imandra_verify")) {
-          r.push("verify");
-          is_instance_or_verify = true;
-        }
-        else
-          r.push("let");
+      const attrs = pvb.pvb_attributes;
+      let keyword = "let";
+      let is_instance_or_verify = false;
+      if (has_attribute(attrs, "imandra_theorem")) {
+        // Could be a theorem or a lemma; the item starts with the keyword.
+        const src = get_source(item_loc, item_loc, options);
+        keyword = /^lemma\b/.test(src) ? "lemma" : "theorem";
       }
-      else
-        r.push("let");
-      if (args[0] instanceof Array && args[0][0] == "Recursive") {
-        r.push(" rec");
+      else if (has_attribute(attrs, "imandra_axiom"))
+        keyword = "axiom";
+      else if (has_attribute(attrs, "imandra_instance")) {
+        keyword = "instance";
+        is_instance_or_verify = true;
       }
-      attrs = filter_attributes(attrs);
+      else if (has_attribute(attrs, "imandra_verify")) {
+        keyword = "verify";
+        is_instance_or_verify = true;
+      }
+      if (args[0] instanceof Array && args[0][0] == "Recursive")
+        keyword += " rec";
       if (is_instance_or_verify) {
         return [f([
-          ...r,
+          keyword,
           indent([
             line, "(", softline,
             ...print_expression(pvb.pvb_expr, options),
             softline, ")"]),
           ...ifnonempty(line, print_attributes(attrs, 2, options))])];
       }
-      else if (args[1].length > 0 && pvb.pvb_expr.pexp_desc[0] == "Pexp_function") {
-        // For function definitions we want to hoist the arguments
-        const params = pvb.pvb_expr.pexp_desc[1];
-        const type_cnstrnt_opt = pvb.pvb_expr.pexp_desc[2];
-        const fundef = pvb.pvb_expr.pexp_desc[3];
-        return [
-          ...r,
-          f([indent([
-            line,
-            ...par_if(is_infix_op_pattern(pvb.pvb_pat), print_pattern(pvb.pvb_pat, options)),
-            line,
-            ...join(line, params.map(x => print_function_param(x, options))),
-            ...(params && params.length > 0 ? [line] : []),
-            ...(type_cnstrnt_opt ? [":", line, print_type_constraint(type_cnstrnt_opt, options), line] : []),
-            "="]),
-          f([indent([line, print_function_body(fundef, options)]),
-          ...ifnonempty(line, print_attributes(attrs, 2, options))])])];
-      }
-      // Generic version
-      return [
-        f([
-          ...r,
-          indent([
-            line, join([line, "and", line], args[1].map(x => print_value_binding(x, options)))]),
-          ...ifnonempty(line, print_attributes(attrs, 2, options))
-        ])];
+      return join(hardline, args[1].map((x, i) => print_toplevel_value_binding(x, i == 0 ? keyword : "and", options)));
     }
     case "Pstr_primitive":
       // | Pstr_primitive of value_description
@@ -2186,22 +2232,40 @@ function print_structure_item_desc(node: AST, options: Options): Doc {
   }
 }
 
-function trim(str: string, ch: string[]) {
-  let start = 0, end = str.length;
+// Attributes that may carry the doc comment of a structure item.
+function item_attributes(node: AST): AST[] {
+  const args = node.slice(1);
+  switch (node[0]) {
+    case "Pstr_value": return args[1][0].pvb_attributes as AST[];
+    case "Pstr_type": return args[1][0].ptype_attributes as AST[];
+    case "Pstr_primitive": return args[0].pval_attributes as AST[];
+    case "Pstr_exception": return args[0].ptyexn_attributes as AST[];
+    case "Pstr_module": return args[0].pmb_attributes as AST[];
+    default: return [];
+  }
+}
 
-  while (start < end && ch.includes(str[start]))
-    ++start;
-
-  while (end > start && ch.includes(str[end - 1]))
-    --end;
-
-  return (start > 0 || end < str.length) ? str.substring(start, end) : str;
+// Doc comments go above the item, where they can't be mistaken for the doc
+// comment of its last constructor or field. A doc comment after the item that is
+// also attached to the next item is left to the next item.
+function print_item_docs(node: AST, item_loc: Location, options: Options): Doc[] {
+  const docs = item_attributes(node).filter(a => a.attr_name.txt == "ocaml.doc");
+  docs.forEach(a => a.iml_hoisted = true);
+  return docs
+    .filter(a => {
+      const pos = a.attr_loc.loc_start.pos_cnum;
+      return !(is_real_loc(a.attr_loc) && is_real_loc(item_loc) &&
+        pos > item_loc.loc_start.pos_cnum && doc_comment_count(pos, options) > 1);
+    })
+    .flatMap(a => ["(**", get_attr_payload_string(a), "*)", hardline]);
 }
 
 function print_structure_item(node: AST, options: Options): Doc {
   return g([
     ...comments(node.pstr_loc, options),
-    print_structure_item_desc(node.pstr_desc, options)]);
+    ...print_item_docs(node.pstr_desc, node.pstr_loc, options),
+    print_structure_item_desc(node.pstr_desc, node.pstr_loc, options),
+    ...remaining_comments(node.pstr_loc, options)]);
 }
 
 function print_structure(node: AST, options: Options): Doc[] {
@@ -2275,7 +2339,7 @@ function print_toplevel_phrase(node: AST, options: Options): Doc {
           }
           default: {
             const loc_start = args[0][0].pstr_loc;
-            const loc_end = args[0][-1].pstr_loc;
+            const loc_end = args[0][args[0].length - 1].pstr_loc;
             return get_source(loc_start, loc_end, options);
           }
         }
@@ -2309,29 +2373,15 @@ function merge_semisemi(phrases: Doc[]): Doc[] {
   return phrases.slice(0, j);
 }
 
-const start_loc = {
-  loc_start: { pos_fname: '', pos_lnum: 1, pos_bol: 0, pos_cnum: 0 },
-  loc_end: { pos_fname: '', pos_lnum: 1, pos_bol: 0, pos_cnum: 0 },
-  loc_ghost: false
-};
-
-function end_loc(n: number) {
-  return {
-    loc_start: { pos_fname: '', pos_lnum: 1, pos_bol: 0, pos_cnum: n },
-    loc_end: { pos_fname: '', pos_lnum: 1, pos_bol: 0, pos_cnum: n },
-    loc_ghost: false
-  }
-}
-
-
 class IMLPrinter implements Printer<Tree> {
   print(path: AstPath<Tree>, options: Options, _print: (path: AstPath<Tree>) => Doc): Doc {
-    options.last_loc = start_loc;
+    init_comments(path.node.top_defs, options);
     const phrases = path.node.top_defs.map(n => print_toplevel_phrase(n, options));
-    const cmmnts = comments(end_loc((options.originalText as string).length), options);
+    const rest = leftover_comments(options);
     const r = [
       ...join([hardline, hardline], merge_semisemi(phrases)),
-      ...ifnonempty([hardline, hardline], cmmnts)
+      ...ifnonempty([hardline, hardline], rest),
+      ...(rest.length > 0 ? [hardline] : [])
     ];
     // console.log(doc_to_string(r));
     return r;

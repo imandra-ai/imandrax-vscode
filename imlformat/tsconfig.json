@@ -24,6 +24,7 @@
 		"imlformat.ts",
     "imlformat.format.ts",
 		"iml-prettier.ts",
+		"iml-comments.ts",
 		"iml2json.bc.js"
 	]
 }
