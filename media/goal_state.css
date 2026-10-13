@@ -218,3 +218,9 @@ h2 {
   border: var(--vscode-editorBracketMatch-border);
   color: var(--vscode-editorBracketHighlight-foreground1);
 }
+
+.goal-debug-progress {
+  color: var(--vscode-descriptionForeground);
+  font-size: 1em;
+  margin-bottom: .35em;
+}
