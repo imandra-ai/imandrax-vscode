@@ -2,7 +2,7 @@
 // (imandrax-api TS client), with no LSP or imandrax-cli involved.
 
 import {
-  commands, ExtensionContext, Hover, languages, MarkdownString, ProgressLocation, QuickPickItemKind, TextDocument, ViewColumn,
+  Command, commands, ExtensionContext, Hover, languages, MarkdownString, ProgressLocation, QuickPickItemKind, TextDocument, Uri, ViewColumn,
   window, workspace,
 } from 'vscode';
 import * as apiKey from './api_key';
@@ -39,13 +39,29 @@ export function register(context: ExtensionContext) {
   }));
 }
 
-async function decomposeViaApi() {
+// The server's (Re-)decompose code lens runs `decompose` with [uri, ['<name>/<hash>']]; point it at
+// decomposeViaApi(name, uri) instead. Other lenses are returned untouched.
+export function rewriteDecomposeLens<L extends { command?: Command }>(lens: L): L {
+  const c = lens.command;
+  const [uri, ids] = (c?.arguments ?? []) as unknown[];
+  if ((c?.command === 'decompose' || c?.command === 'redecompose') && typeof uri === 'string'
+    && Array.isArray(ids) && typeof ids[0] === 'string') {
+    lens.command = {
+      title: `${c.title} (API)`, command: 'imandrax.experimental.decompose_via_api', arguments: [ids[0].split('/')[0], uri],
+    };
+  }
+  return lens;
+}
+
+// From the palette: no args (active editor, name asked for); from the Decompose code lens: (name, uri)
+async function decomposeViaApi(fn?: string, uri?: string) {
   const editor = window.activeTextEditor;
-  if (!editor) { void window.showErrorMessage('Open an IML file first.'); return; }
-  const doc = editor.document;
-  const word = doc.getWordRangeAtPosition(editor.selection.active);
-  const guess = !editor.selection.isEmpty ? doc.getText(editor.selection) : word ? doc.getText(word) : '';
-  const name = await window.showInputBox({ prompt: 'Function to decompose', value: guess });
+  const doc = uri ? await workspace.openTextDocument(Uri.parse(uri)) : editor?.document;
+  if (!doc) { void window.showErrorMessage('Open an IML file first.'); return; }
+  const sel = editor?.document === doc ? editor.selection : undefined;
+  const word = sel && doc.getWordRangeAtPosition(sel.active);
+  const guess = sel && !sel.isEmpty ? doc.getText(sel) : word ? doc.getText(word) : '';
+  const name = fn ?? await window.showInputBox({ prompt: 'Function to decompose', value: guess });
   if (!name) { return; }
   const key = await apiKey.get();
   if (!key) {

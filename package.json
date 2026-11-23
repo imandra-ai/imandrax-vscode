@@ -155,6 +155,12 @@
             "type": "string",
             "default": "",
             "description": "Experimental: the ImandraX API server used by the \"via API\" commands, e.g. a self-hosted server. Empty means Imandra's hosted server."
+          },
+          "imandrax.experimental.decomposeViaApi": {
+            "scope": "window",
+            "type": "boolean",
+            "default": false,
+            "description": "Experimental: make the Decompose code lens use the ImandraX API (and show the regions table / MIR DB browser) instead of the language server."
           }
         }
       },

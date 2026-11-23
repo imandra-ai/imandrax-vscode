@@ -9,6 +9,7 @@ import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-langua
 
 export * as configuration from './configuration';
 import { getExtensionConfig } from '../config';
+import { rewriteDecomposeLens } from '../api_decomp';
 
 const MAX_RESTARTS = 10;
 
@@ -73,6 +74,14 @@ export class ImandraXLanguageClient {
       },
       synchronize: {
         fileEvents: workspace.createFileSystemWatcher("**/*.iml")
+      },
+      middleware: {
+        // Read at call time, so toggling the setting applies on the next lens refresh
+        provideCodeLenses: async (document, token, next) => {
+          const lenses = await next(document, token);
+          return workspace.getConfiguration("imandrax").get<boolean>("experimental.decomposeViaApi")
+            ? lenses?.map(rewriteDecomposeLens) : lenses;
+        }
       },
       traceOutputChannel
     };
