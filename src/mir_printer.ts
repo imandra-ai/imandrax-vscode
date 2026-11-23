@@ -1,6 +1,6 @@
 // Readable IML for MIR declarations from the imandrax-api client.
 // Only types are imported from 'imandrax-api': the client itself is loaded lazily elsewhere.
-import type { AppliedSymbol, Declaration, FunctionDefinition, Term, Type, TypeDefinition, Uid } from 'imandrax-api/dist/mir';
+import type { AppliedSymbol, DB, Declaration, FunctionDefinition, Term, Type, TypeDefinition, Uid } from 'imandrax-api/dist/mir';
 import { Associativity, Notation, operator_info, strip_scope, type OperatorInfo } from './goal-state/imandrax_operators';
 
 const noHashes = (s: string) => s.replace(/\/[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])/g, '');
@@ -21,8 +21,11 @@ const opName = (name: string): string => {
 };
 
 interface Frame { scrut: Term; ctor: Uid; names: Map<number, string> }
+interface Lambda { def: FunctionDefinition; args: readonly Term[] }
+const MAX_LAMBDA_DEPTH = 8;
 
-export function printDeclaration(decl: Declaration): { text: string; fullIds: ReadonlyMap<string, readonly string[]> } {
+// With `db`, lifted `$lambda` functions are inlined as `fun ... -> ...` at their use sites.
+export function printDeclaration(decl: Declaration, db?: DB): { text: string; fullIds: ReadonlyMap<string, readonly string[]> } {
   const ids = new Map<string, Set<string>>();
   const reg = (text: string, u: Uid): string => {
     let s = ids.get(text);
@@ -40,6 +43,9 @@ export function printDeclaration(decl: Declaration): { text: string; fullIds: Re
     return n;
   };
   const frames: Frame[] = [];
+  // Printed text of lambda parameters substituted by their (captured) arguments, by full var name.
+  let env = new Map<string, string>();
+  let depth = 0;
   const sameTerm = (a: Term, b: Term) =>
     a.kind === 'var' && b.kind === 'var' ? a.var.id.equals(b.var.id) : a.toString() === b.toString();
 
@@ -81,7 +87,26 @@ export function printDeclaration(decl: Declaration): { text: string; fullIds: Re
     }
     return t.kind === 'construct' && t.ctor.id.shortName === '[]' && t.arguments.length === 0 ? out : undefined;
   };
+  // A lifted lambda applied to `args` (none for a bare symbol), if its definition is known.
+  const lambda = (t: Term): Lambda | undefined => {
+    const [f, args] = t.kind === 'apply' ? [t.function, t.arguments] : [t, []];
+    if (f.kind !== 'symbol' || !f.symbol.id.shortName.startsWith('$lambda') || depth >= MAX_LAMBDA_DEPTH) return undefined;
+    const def = db?.findFunction(f.symbol.id);
+    return def?.kind.kind === 'defined' ? { def, args } : undefined;
+  };
+  // `fun`, `if` and `match` extend as far right as possible.
+  const openEnded = (t: Term): boolean => {
+    const l = lambda(t);
+    if (!l) return t.kind === 'if' || t.kind === 'case';
+    const n = l.def.arguments.length;
+    return l.args.length < n || (l.args.length === n && openEnded(l.def.body));
+  };
   const prec = (t: Term): number => {
+    const l = lambda(t);
+    if (l) {
+      const n = l.def.arguments.length;
+      return l.args.length < n ? 3 : l.args.length === n ? prec(l.def.body) : 17;
+    }
     switch (t.kind) {
       case 'constant': return /^-|\//.test(t.value.toString()) ? 16 : ATOM;
       case 'apply': return t.arguments.length === 0 ? prec(t.function) : applyOp(t)?.precedence ?? 17;
@@ -99,19 +124,21 @@ export function printDeclaration(decl: Declaration): { text: string; fullIds: Re
   // `req`: minimum precedence the context accepts without parentheses.
   // `tail`: nothing follows in the enclosing construct, so open-ended if/match need no parentheses.
   const term = (t: Term, req: number, tail: boolean, ind: string): string => {
-    const paren = prec(t) < req && !(tail && (t.kind === 'if' || t.kind === 'case'));
+    const paren = prec(t) < req && !(tail && openEnded(t));
     const s = raw(t, paren || tail, ind);
     return paren ? `(${s})` : s;
   };
 
   const raw = (t: Term, tail: boolean, ind: string): string => {
     const sub = (x: Term, req = 0, tl = false) => term(x, req, tl, ind);
+    const l = lambda(t);
+    if (l) return inline(l, tail, ind);
     switch (t.kind) {
       case 'constant': {
         const v = t.value;
         return v.kind === 'uid' ? nm(v.uid) : v.toString();
       }
-      case 'var': return nm(t.var.id);
+      case 'var': return env.get(t.var.id.fullName) ?? nm(t.var.id);
       case 'symbol': return opName(nm(t.symbol.id));
       case 'apply': {
         if (t.arguments.length === 0) return raw(t.function, tail, ind);
@@ -197,6 +224,27 @@ export function printDeclaration(decl: Declaration): { text: string; fullIds: Re
         const flat = xs.join('; ');
         return flat.length <= 60 && !flat.includes('\n') ? flat : xs.join(`;\n${ind}`);
       }
+    }
+  };
+
+  // Substitute the first min(m, n) params by the printed args, bind the rest with `fun`, apply to extra args.
+  // ponytail: textual substitution, so an argument naming a var shadowed by a later binder would be captured.
+  const inline = ({ def, args }: Lambda, tail: boolean, ind: string): string => {
+    const ps = def.arguments;
+    const k = Math.min(args.length, ps.length);
+    const texts = args.map((a) => term(a, 17 + EPS, false, ind));
+    const saved = env;
+    env = new Map(env);
+    ps.forEach((p, i) => (i < k ? env.set(p.id.fullName, texts[i]) : env.delete(p.id.fullName)));
+    for (const p of ps) used.add(p.id.shortName);
+    depth++;
+    try {
+      if (k < ps.length) return `fun ${ps.slice(k).map((p) => nm(p.id)).join(' ')} -> ${term(def.body, 0, tail, ind)}`;
+      if (args.length === k) return raw(def.body, tail, ind);
+      return [term(def.body, 17, false, ind), ...texts.slice(k)].join(' ');
+    } finally {
+      depth--;
+      env = saved;
     }
   };
 

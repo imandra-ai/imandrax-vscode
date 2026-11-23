@@ -122,7 +122,7 @@ async function decomposeViaApi() {
   picker.onDidAccept(async () => {
     const decl = picker.selectedItems[0]?.decl;
     if (!decl) { return; }
-    const { text: content, fullIds } = printDeclaration(decl);
+    const { text: content, fullIds } = printDeclaration(decl, db);
     const text = await workspace.openTextDocument({ language: 'imandrax', content });
     fullIdsByDoc.set(text, fullIds);
     await window.showTextDocument(text, { viewColumn: ViewColumn.Beside, preview: true, preserveFocus: true });
