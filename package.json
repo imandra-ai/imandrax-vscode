@@ -149,6 +149,12 @@
             "type": "integer",
             "default": 1048576,
             "description": "Controls the minimum size of a decomposition before asking for confirmation when opening a visualization."
+          },
+          "imandrax.experimental.apiUrl": {
+            "scope": "window",
+            "type": "string",
+            "default": "",
+            "description": "Experimental: the ImandraX API server used by the \"via API\" commands, e.g. a self-hosted server. Empty means Imandra's hosted server."
           }
         }
       },
@@ -191,6 +197,10 @@
       {
         "command": "imandrax.check_all",
         "title": "ImandraX: Check all proof obligations in current file"
+      },
+      {
+        "command": "imandrax.experimental.decompose_via_api",
+        "title": "ImandraX (experimental): Decompose function via API"
       },
       {
         "command": "imandrax.browse",
@@ -356,6 +366,7 @@
     "@vscode/codicons": "^0.0.44",
     "@vscode/debugadapter": "^1.68.0",
     "@vscode/vsce": "^3.7.1",
+    "imandrax-api": "file:../imandrax-api-ts-client/src/ts",
     "node-fetch": "^3.3.2",
     "ovsx": "^0.10.8",
     "prettier": "^3.7.4",
