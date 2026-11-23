@@ -8,8 +8,9 @@ import { ConfigurationChangeEvent, ExtensionContext, ExtensionMode, Uri, window,
 import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-languageclient/node';
 
 export * as configuration from './configuration';
-import { getExtensionConfig } from '../config';
+import { getExtensionConfig, taskBackend } from '../config';
 import { rewriteDecomposeLens } from '../api_decomp';
+import { rewriteCheckLens } from '../api_check';
 
 const MAX_RESTARTS = 10;
 
@@ -79,8 +80,8 @@ export class ImandraXLanguageClient {
         // Read at call time, so toggling the setting applies on the next lens refresh
         provideCodeLenses: async (document, token, next) => {
           const lenses = await next(document, token);
-          return workspace.getConfiguration("imandrax").get<boolean>("experimental.decomposeViaApi")
-            ? lenses?.map(rewriteDecomposeLens) : lenses;
+          return taskBackend() === "api"
+            ? lenses?.map(l => rewriteCheckLens(rewriteDecomposeLens(l))) : lenses;
         }
       },
       traceOutputChannel
@@ -155,7 +156,8 @@ export class ImandraXLanguageClient {
       if (event && (
         event.affectsConfiguration("imandrax.lsp.binary") ||
         event.affectsConfiguration("imandrax.lsp.arguments") ||
-        event.affectsConfiguration("imandrax.lsp.environment"))) {
+        event.affectsConfiguration("imandrax.lsp.environment") ||
+        event.affectsConfiguration("imandrax.experimental.taskBackend"))) { // changes the server's --check-on-* args
         await this.restart({ extensionUri: extensionUri });
       }
 

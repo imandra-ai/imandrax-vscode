@@ -7,6 +7,7 @@ import * as listeners from './listeners';
 import { GoalStateEditorProvider } from './goal-state/editor_provider';
 import * as config from './config';
 import * as proofDebugger from './goal-state/debugger/register';
+import * as apiCheck from './api_check';
 import * as apiDecomp from './api_decomp';
 
 import {
@@ -31,6 +32,7 @@ export async function activate(context: ExtensionContext) {
   const languageClientConfig = getClientConfig();
 
   apiDecomp.register(context); // works without imandrax-cli
+  apiCheck.register(context);
 
   if (imandraxLanguageClient.configuration.isFoundPath(languageClientConfig)) {
     const languageClientWrapper_ = new imandraxLanguageClient.ImandraXLanguageClient(getClientConfig);

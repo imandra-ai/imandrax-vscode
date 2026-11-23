@@ -156,11 +156,19 @@
             "default": "",
             "description": "Experimental: the ImandraX API server used by the \"via API\" commands, e.g. a self-hosted server. Empty means Imandra's hosted server."
           },
-          "imandrax.experimental.decomposeViaApi": {
+          "imandrax.experimental.taskBackend": {
             "scope": "window",
-            "type": "boolean",
-            "default": false,
-            "description": "Experimental: make the Decompose code lens use the ImandraX API (and show the regions table / MIR DB browser) instead of the language server."
+            "type": "string",
+            "enum": [
+              "lsp",
+              "api"
+            ],
+            "enumDescriptions": [
+              "The language server runs proof obligations and decompositions (checking on open and save).",
+              "Experimental: the ImandraX API runs them. The language server only type-checks; saving checks the file via the API, the Check and Decompose code lenses run just their task via the API, and results show as diagnostics (Decompose: regions table / MIR DB browser). Local [@@@import]s are not sent."
+            ],
+            "default": "lsp",
+            "description": "Where proof obligations and decompositions run."
           }
         }
       },
@@ -207,6 +215,10 @@
       {
         "command": "imandrax.experimental.decompose_via_api",
         "title": "ImandraX (experimental): Decompose function via API"
+      },
+      {
+        "command": "imandrax.experimental.check_via_api",
+        "title": "ImandraX (experimental): Check proof obligations in current file via API"
       },
       {
         "command": "imandrax.browse",

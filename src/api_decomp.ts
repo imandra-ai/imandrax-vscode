@@ -15,7 +15,15 @@ const esc = (s: string) =>
 // Declarations print with short names; hovering a name in their tab shows its full ids (with hashes)
 const fullIdsByDoc = new WeakMap<TextDocument, ReadonlyMap<string, readonly string[]>>();
 
-const errorText = (e: unknown) => `ImandraX API: ${e instanceof Error ? e.message : String(e)}`;
+export const errorText = (e: unknown) => `ImandraX API: ${e instanceof Error ? e.message : String(e)}`;
+
+export async function connect(signal?: AbortSignal) {
+  const key = await apiKey.get();
+  if (!key) { throw new Error('no API key: set IMANDRA_API_KEY or write ~/.config/imandrax/api_key'); }
+  const { Client } = await import('imandrax-api'); // only loaded when a command runs
+  const url = workspace.getConfiguration('imandrax').get<string>('experimental.apiUrl');
+  return Client.connect({ url: url === '' ? undefined : url, apiKey: key, signal }); // '' = hosted server
+}
 
 // Prints the client's JsValue (bigint, Rational, Uid, Constructed, arrays, maps)
 function show(v: unknown): string {
@@ -63,16 +71,6 @@ async function decomposeViaApi(fn?: string, uri?: string) {
   const guess = sel && !sel.isEmpty ? doc.getText(sel) : word ? doc.getText(word) : '';
   const name = fn ?? await window.showInputBox({ prompt: 'Function to decompose', value: guess });
   if (!name) { return; }
-  const key = await apiKey.get();
-  if (!key) {
-    void window.showErrorMessage('No ImandraX API key: set IMANDRA_API_KEY or write ~/.config/imandrax/api_key.');
-    return;
-  }
-  const connect = async (signal?: AbortSignal) => {
-    const { Client } = await import('imandrax-api'); // only loaded when the command runs
-    const url = workspace.getConfiguration('imandrax').get<string>('experimental.apiUrl');
-    return Client.connect({ url: url === '' ? undefined : url, apiKey: key, signal }); // '' = hosted server
-  };
 
   const task = await window.withProgress(
     { location: ProgressLocation.Notification, title: `Decomposing ${name} via the ImandraX API`, cancellable: true },
@@ -85,8 +83,9 @@ async function decomposeViaApi(fn?: string, uri?: string) {
         try {
           progress.report({ message: 'loading file' });
           // ponytail: sends this file's text only, so `[@@@import]`s of local files won't resolve
-          // Loading the file also runs its `[@@decomp ...]` attributes, with their options (~assuming, ~prune, ...)
-          const ev = await client.evalSrc(doc.getText(), { signal, timeoutMs: 300_000 });
+          // Loading the file also runs its `[@@decomp ...]` attributes, with their options (~assuming, ~prune, ...);
+          // from the lens, only `fn`'s tasks run
+          const ev = await client.evalSrc(doc.getText(), { taskFilter: fn === undefined ? undefined : [fn], signal, timeoutMs: 300_000 });
           // evalSrc reports success even with errors, and a decompose after that hangs, so stop here
           if (ev.errors.length) { void window.showErrorMessage(`ImandraX: ${ev.errors[0].toString()}`); return; }
 
