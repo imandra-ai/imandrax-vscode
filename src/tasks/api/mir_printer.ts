@@ -1,7 +1,7 @@
 // Readable IML for MIR declarations from the imandrax-api client.
 // Only types are imported from 'imandrax-api': the client itself is loaded lazily elsewhere.
 import type { AppliedSymbol, DB, Declaration, FunctionDefinition, Term, Type, TypeDefinition, Uid } from 'imandrax-api/dist/mir';
-import { Associativity, Notation, operator_info, strip_scope, type OperatorInfo } from './goal-state/imandrax_operators';
+import { Associativity, Notation, operator_info, strip_scope, type OperatorInfo } from '../../goal-state/imandrax_operators';
 
 const noHashes = (s: string) => s.replace(/\/[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])/g, '');
 

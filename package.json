@@ -154,7 +154,7 @@
             "scope": "window",
             "type": "string",
             "default": "",
-            "description": "Experimental: the ImandraX API server used by the \"via API\" commands, e.g. a self-hosted server. Empty means Imandra's hosted server."
+            "description": "Experimental: the ImandraX API server used when `imandrax.experimental.taskBackend` is `api`, e.g. a self-hosted server. Empty means Imandra's hosted server."
           },
           "imandrax.experimental.taskBackend": {
             "scope": "window",
@@ -165,7 +165,7 @@
             ],
             "enumDescriptions": [
               "The language server runs proof obligations and decompositions (checking on open and save).",
-              "Experimental: the ImandraX API runs them. The language server only type-checks; saving checks the file via the API, the Check and Decompose code lenses run just their task via the API, and results show as diagnostics (Decompose: regions table / MIR DB browser). Local [@@@import]s are not sent."
+              "Experimental: the ImandraX API runs them. The language server only type-checks and offers the code lenses; checking on open/save follows --check-on-open/--check-on-save in imandrax.lsp.arguments, results show as diagnostics, and Decompose shows a regions table and a MIR DB browser. Local [@@@import]s are not sent; goal state is not available."
             ],
             "default": "lsp",
             "description": "Where proof obligations and decompositions run."
@@ -213,12 +213,16 @@
         "title": "ImandraX: Check all proof obligations in current file"
       },
       {
-        "command": "imandrax.experimental.decompose_via_api",
-        "title": "ImandraX (experimental): Decompose function via API"
+        "command": "imandrax.task.check",
+        "title": "ImandraX: Check proof obligation at cursor (whole file if none)"
       },
       {
-        "command": "imandrax.experimental.check_via_api",
-        "title": "ImandraX (experimental): Check proof obligations in current file via API"
+        "command": "imandrax.task.decompose",
+        "title": "ImandraX: Decompose function at cursor"
+      },
+      {
+        "command": "imandrax.task.cancel",
+        "title": "ImandraX: Cancel running task at cursor"
       },
       {
         "command": "imandrax.browse",
@@ -292,6 +296,11 @@
       }
     ],
     "menus": {
+      "commandPalette": [
+        { "command": "imandrax.task.check", "when": "editorLangId == imandrax" },
+        { "command": "imandrax.task.decompose", "when": "editorLangId == imandrax" },
+        { "command": "imandrax.task.cancel", "when": "editorLangId == imandrax" }
+      ],
       "webview/context": [
         {
           "command": "editor.action.clipboardCopyAction",

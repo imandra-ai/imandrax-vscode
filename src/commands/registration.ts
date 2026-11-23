@@ -1,11 +1,12 @@
 import * as implementations from './implementations';
 
-import { commands, ExtensionContext, languages, TextDocumentShowOptions, Uri, ViewColumn, window, workspace, FileType, FileSystemError, CodeLens } from 'vscode';
+import { commands, ExtensionContext, languages, TextDocumentShowOptions, Uri, ViewColumn, window, workspace, FileType, FileSystemError } from 'vscode';
 import { LanguageClient } from 'vscode-languageclient/node';
 import { ImandraXLanguageClient } from '../imandrax_language_client/imandrax_language_client';
 import { GoalStateEditorProvider } from '../goal-state/editor_provider';
 import { FileChangeType } from 'vscode-languageclient';
 import { register as goal_state_register } from '../goal-state/commands';
+import { closestLens } from '../tasks/tasks';
 
 export let getClient: (() => LanguageClient);
 
@@ -27,10 +28,6 @@ export function register(context: ExtensionContext, imandraxLanguageClient: Iman
     }]);
   };
   context.subscriptions.push(commands.registerCommand(restart_cmd, restart_handler));
-
-  const check_all_cmd = "imandrax.check_all";
-  const check_all_handler = async () => { await implementations.checkAll(getClient); };
-  context.subscriptions.push(commands.registerCommand(check_all_cmd, check_all_handler));
 
   const browse_cmd = "imandrax.browse";
   const browse_handler = (uri: string) => { implementations.browse(uri); };
@@ -130,32 +127,9 @@ export function register(context: ExtensionContext, imandraxLanguageClient: Iman
   context.subscriptions.push(commands.registerCommand(execute_closest_cmd,
     async () => {
       const editor = window.activeTextEditor;
-      let position = editor?.selection.active;
-      if (editor && position) {
-        const lenses = await commands.executeCommand<CodeLens[]>(
-          'vscode.executeCodeLensProvider',
-          editor.document.uri
-        );
-
-        const lens = lenses.reduce((closest, x) => {
-          if (x.isResolved && x.command &&
-            // (x.command.command == "check" || x.command?.command == "recheck") &&
-            // Always execute the first command
-            position
-          ) {
-            if (x.range.start.line <= position.line &&
-              (!closest || x.range.start.line > closest?.range.start.line))
-              return x;
-            else
-              return closest;
-          } else
-            return closest;
-        }, undefined as (CodeLens | undefined))
-
-        if (lens?.command) {
-          await commands.executeCommand(lens.command.command, ...(lens.command.arguments ?? []));
-          position = undefined;
-        }
+      const lens = editor && await closestLens(editor);
+      if (lens?.command) {
+        await commands.executeCommand(lens.command.command, ...(lens.command.arguments ?? []));
       }
     }));
 

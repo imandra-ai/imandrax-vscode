@@ -5,12 +5,10 @@ import * as configuration from './configuration';
 import * as test_output_channel from './test_output_channel';
 
 import { ConfigurationChangeEvent, ExtensionContext, ExtensionMode, Uri, window, workspace, FileChangeType, OutputChannel } from 'vscode';
-import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-languageclient/node';
+import { Executable, LanguageClient, LanguageClientOptions, Middleware } from 'vscode-languageclient/node';
 
 export * as configuration from './configuration';
-import { getExtensionConfig, taskBackend } from '../config';
-import { rewriteDecomposeLens } from '../api_decomp';
-import { rewriteCheckLens } from '../api_check';
+import { getExtensionConfig } from '../config';
 
 const MAX_RESTARTS = 10;
 
@@ -40,7 +38,8 @@ export class ImandraXLanguageClient {
     return this.vfsProvider_;
   }
 
-  constructor(getConfig: () => configuration.ImandraXLanguageClientConfiguration) {
+  // `middleware`: the Tasks service's code lens rewriting
+  constructor(getConfig: () => configuration.ImandraXLanguageClientConfiguration, private readonly middleware: Middleware) {
     this.getConfig = getConfig;
     this.vfsProvider_ = new vfsProvider.VFSProvider(() => { return this.getClient(); })
   }
@@ -76,14 +75,7 @@ export class ImandraXLanguageClient {
       synchronize: {
         fileEvents: workspace.createFileSystemWatcher("**/*.iml")
       },
-      middleware: {
-        // Read at call time, so toggling the setting applies on the next lens refresh
-        provideCodeLenses: async (document, token, next) => {
-          const lenses = await next(document, token);
-          return taskBackend() === "api"
-            ? lenses?.map(l => rewriteCheckLens(rewriteDecomposeLens(l))) : lenses;
-        }
-      },
+      middleware: this.middleware,
       traceOutputChannel
     };
 
@@ -157,7 +149,7 @@ export class ImandraXLanguageClient {
         event.affectsConfiguration("imandrax.lsp.binary") ||
         event.affectsConfiguration("imandrax.lsp.arguments") ||
         event.affectsConfiguration("imandrax.lsp.environment") ||
-        event.affectsConfiguration("imandrax.experimental.taskBackend"))) { // changes the server's --check-on-* args
+        event.affectsConfiguration("imandrax.experimental.taskBackend"))) { // the new backend changes the server's arguments
         await this.restart({ extensionUri: extensionUri });
       }
 

@@ -192,16 +192,6 @@ ${body}
   panel.webview.html = html;
 }
 
-export async function checkAll(getClient: () => LanguageClient) {
-  if (!getClient()) {
-    return undefined;
-  }
-  const file_uri = window.activeTextEditor?.document.uri;
-  if (getClient() && getClient().isRunning() && file_uri?.scheme === "file") {
-    await getClient().sendRequest("workspace/executeCommand", { "command": "check-all", "arguments": [file_uri.toString()] });
-  }
-}
-
 export function browse(uri: string): Thenable<boolean> | undefined {
   const config = getExtensionConfig();
   if (config.useSimpleBrowser) {

@@ -7,8 +7,7 @@ import * as listeners from './listeners';
 import { GoalStateEditorProvider } from './goal-state/editor_provider';
 import * as config from './config';
 import * as proofDebugger from './goal-state/debugger/register';
-import * as apiCheck from './api_check';
-import * as apiDecomp from './api_decomp';
+import { Tasks } from './tasks/tasks';
 
 import {
   env,
@@ -20,54 +19,53 @@ import {
   OutputChannel
 } from "vscode";
 
-import {
-  LanguageClient,
-} from "vscode-languageclient/node";
-
 
 export async function activate(context: ExtensionContext) {
+  let languageClientWrapper_: imandraxLanguageClient.ImandraXLanguageClient | undefined;
+  const getClient = () => languageClientWrapper_?.getClient();
+  // Where proof checks and decompositions run; the API backend works without imandrax-cli
+  const tasks = new Tasks(getClient);
+  context.subscriptions.push(tasks);
+
   const getClientConfig = () => {
     return imandraxLanguageClient.configuration.get(context);
   };
   const languageClientConfig = getClientConfig();
 
-  apiDecomp.register(context); // works without imandrax-cli
-  apiCheck.register(context);
+  decorations.initialize(context);
+
+  const listenersInstance = new listeners.Listeners(context, getClient, tasks);
+  listenersInstance.register();
+  if (context.extensionMode === ExtensionMode.Test || context.extensionMode === undefined) {
+    (global as any).testListeners = listenersInstance;
+  }
 
   if (imandraxLanguageClient.configuration.isFoundPath(languageClientConfig)) {
-    const languageClientWrapper_ = new imandraxLanguageClient.ImandraXLanguageClient(getClientConfig);
-    const getClient: () => LanguageClient = () => { return languageClientWrapper_.getClient(); };
+    const wrapper = new imandraxLanguageClient.ImandraXLanguageClient(getClientConfig, tasks.middleware);
+    languageClientWrapper_ = wrapper;
 
     formatter.register();
 
-    commands.registration.register(context, languageClientWrapper_);
+    commands.registration.register(context, wrapper);
 
     proofDebugger.register(context);
 
-    decorations.initialize(context);
-
-    const listenersInstance = new listeners.Listeners(context, getClient);
-    listenersInstance.register();
-    if (context.extensionMode === ExtensionMode.Test || context.extensionMode === undefined) {
-      (global as any).testListeners = listenersInstance;
-    }
-
     workspace.onDidChangeConfiguration(async event => {
       config.update();
-      await languageClientWrapper_.update_configuration(context.extensionUri, event);
+      await wrapper.update_configuration(context.extensionUri, event);
       void GoalStateEditorProvider.activeDocument?.refresh();
     });
 
     if (context.extensionMode != ExtensionMode.Production) {
       const trace_channel : OutputChannel = window.createOutputChannel("ImandraX Trace")
       context.subscriptions.push(trace_channel);
-      await languageClientWrapper_.start(context, trace_channel);
+      await wrapper.start(context, trace_channel);
     }
     else
-      await languageClientWrapper_.start(context);
+      await wrapper.start(context);
 
     if (context.extensionMode === ExtensionMode.Test || context.extensionMode === undefined) {
-      (global as any).testLanguageClientWrapper = languageClientWrapper_;
+      (global as any).testLanguageClientWrapper = wrapper;
     }
   }
   else if (languageClientConfig.binPathAvailability.status === "missingPath") {
