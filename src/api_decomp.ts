@@ -1,16 +1,19 @@
 // Experimental: region decomposition and MIR DB browsing over the ImandraX HTTP API
 // (imandrax-api TS client), with no LSP or imandrax-cli involved.
 
-import { commands, ExtensionContext, ProgressLocation, ViewColumn, window, workspace } from 'vscode';
+import {
+  commands, ExtensionContext, Hover, languages, MarkdownString, ProgressLocation, QuickPickItemKind, TextDocument, ViewColumn,
+  window, workspace,
+} from 'vscode';
 import * as apiKey from './api_key';
 import { getExtensionConfig } from './config';
+import { printDeclaration } from './mir_printer';
 
 const esc = (s: string) =>
   s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
-// ponytail: drops the content hash from printed uids (`f/3d0Zi...` -> `f`) for readability;
-// follow the `toggle_full_ids` setting if full ids are ever needed here
-const noHashes = (s: string) => s.replace(/\/[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])/g, '');
+// Declarations print with short names; hovering a name in their tab shows its full ids (with hashes)
+const fullIdsByDoc = new WeakMap<TextDocument, ReadonlyMap<string, readonly string[]>>();
 
 const errorText = (e: unknown) => `ImandraX API: ${e instanceof Error ? e.message : String(e)}`;
 
@@ -27,6 +30,13 @@ function show(v: unknown): string {
 
 export function register(context: ExtensionContext) {
   context.subscriptions.push(commands.registerCommand('imandrax.experimental.decompose_via_api', decomposeViaApi));
+  context.subscriptions.push(languages.registerHoverProvider({ scheme: 'untitled', language: 'imandrax' }, {
+    provideHover(doc, pos) {
+      const range = doc.getWordRangeAtPosition(pos, /[^\s()[\];,]+/);
+      const ids = range && fullIdsByDoc.get(doc)?.get(doc.getText(range));
+      return ids && new Hover(new MarkdownString().appendCodeblock(ids.join('\n'), 'text'), range);
+    },
+  }));
 }
 
 async function decomposeViaApi() {
@@ -95,16 +105,26 @@ async function decomposeViaApi() {
   const items = [...db.decls.values()]
     .map(decl => ({ label: decl.id.shortName, description: decl.kind, decl }))
     .sort((a, b) => a.label.localeCompare(b.label));
-  const picker = window.createQuickPick<typeof items[number]>();
+  // ponytail: MIR decls carry no source location, so "this file" = names the file's text defines;
+  // a top-level parse (imlformat's iml2json) would be exact if local `let`s ever mislead this
+  const defined = new Set([...doc.getText().matchAll(
+    /\b(?:let(?:\s+rec)?|and|type|theorem|lemma|axiom|rule|instance|verify)\s+([A-Za-z_][\w']*)/g)].map(m => m[1]));
+  const separator = (label: string) => ({ label, kind: QuickPickItemKind.Separator, decl: undefined });
+  const picker = window.createQuickPick<{ label: string; decl: typeof items[number]['decl'] | undefined }>();
   picker.title = `MIR DB of the decomposition of ${name}: ${items.length} declarations`;
   picker.placeholder = 'Search declarations; Enter opens one to the side';
-  picker.items = items;
+  picker.items = [
+    separator('This file'), ...items.filter(i => defined.has(i.label)),
+    separator('Prelude and others'), ...items.filter(i => !defined.has(i.label)),
+  ];
   picker.matchOnDescription = true;
   picker.ignoreFocusOut = true;
   picker.onDidAccept(async () => {
     const decl = picker.selectedItems[0]?.decl;
     if (!decl) { return; }
-    const text = await workspace.openTextDocument({ language: 'imandrax', content: noHashes(decl.toString()) });
+    const { text: content, fullIds } = printDeclaration(decl);
+    const text = await workspace.openTextDocument({ language: 'imandrax', content });
+    fullIdsByDoc.set(text, fullIds);
     await window.showTextDocument(text, { viewColumn: ViewColumn.Beside, preview: true, preserveFocus: true });
   });
   picker.onDidHide(() => picker.dispose());
