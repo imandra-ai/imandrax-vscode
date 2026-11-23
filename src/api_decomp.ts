@@ -85,12 +85,15 @@ async function decomposeViaApi(fn?: string, uri?: string) {
         try {
           progress.report({ message: 'loading file' });
           // ponytail: sends this file's text only, so `[@@@import]`s of local files won't resolve
-          const ev = await client.evalSrc(doc.getText(), { signal });
+          // Loading the file also runs its `[@@decomp ...]` attributes, with their options (~assuming, ~prune, ...)
+          const ev = await client.evalSrc(doc.getText(), { signal, timeoutMs: 300_000 });
           // evalSrc reports success even with errors, and a decompose after that hangs, so stop here
           if (ev.errors.length) { void window.showErrorMessage(`ImandraX: ${ev.errors[0].toString()}`); return; }
 
+          // A function without the attribute (e.g. picked from the palette) gets a plain decomposition
           progress.report({ message: 'decomposing' });
-          const res = await client.decompose(name, { prune: true, stringResults: true, signal, timeoutMs: 300_000 });
+          const res = ev.decompResults.find(r => r.decomposition?.id.shortName === name)
+            ?? await client.decompose(name, { prune: true, stringResults: true, signal, timeoutMs: 300_000 });
           if (!res.decomposition) {
             void window.showErrorMessage(`Decomposition failed: ${res.errors.map(String).join('\n')}`);
             return;
