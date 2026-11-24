@@ -150,8 +150,7 @@ export class ImandraXLanguageClient {
       if (event && (
         event.affectsConfiguration("imandrax.lsp.binary") ||
         event.affectsConfiguration("imandrax.lsp.arguments") ||
-        event.affectsConfiguration("imandrax.lsp.environment") ||
-        event.affectsConfiguration("imandrax.experimental.taskBackend"))) { // the new backend changes the server's arguments
+        event.affectsConfiguration("imandrax.lsp.environment"))) {
         await this.restart({ extensionUri: extensionUri });
       }
 

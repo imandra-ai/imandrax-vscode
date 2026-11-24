@@ -3,17 +3,17 @@ import {
 } from 'vscode';
 import { ApiSession, errorText } from '../client';
 import { MirDbDocuments } from './documents';
-import { DeclNode, GroupNode, groups, MessageNode, Node, ReportNode, Run, TaskNode } from './nodes';
+import type { DecompositionTask } from 'imandrax-api/dist/tasks';
+import { DeclNode, GroupNode, groups, MessageNode, Node, ReportNode, TaskNode } from './nodes';
 import { REVEAL_COMMAND } from './reveal';
 
 const VIEW_ID = 'imandrax.mirDb';
 const MAX_TASKS = 10;
 
-// The view "ImandraX MIR DB": recent API tasks (newest first), each with what its MIR DB holds beyond
-// the file's own declarations. A task's DB is fetched when its node is first expanded and kept on the
+// The view "ImandraX MIR DB": recent API decompositions (newest first), each with what its MIR DB holds
+// beyond the file's own declarations. A task's DB is fetched when its node is first expanded and kept on the
 // node until the node leaves the list. A declaration opens as readable IML (or MIR, or raw JSON) in a read-only document
-// (MirDbDocuments); each PO (or the decomposition) opens as a report: verdict, goal, counterexample,
-// proof and the prover's steps.
+// (MirDbDocuments); the decomposition opens as a report: its regions count, statistics and the prover's steps.
 export class MirDbView implements TreeDataProvider<Node>, Disposable {
   private nodes: TaskNode[] = [];
   private readonly changed = new EventEmitter<Node | undefined>();
@@ -33,25 +33,19 @@ export class MirDbView implements TreeDataProvider<Node>, Disposable {
   // `session`: fetches the tasks' DBs and reports
   constructor(private readonly session: ApiSession) { }
 
-  // `label` like "decompose fee"; `source`: the file's text, for "This file". The DB is the last task's:
-  // ponytail: a file's later POs see a superset of the earlier ones' DBs, so one fetch covers a whole check
-  add(label: string, runs: readonly Run[], source: string): string | undefined {
-    const tasks = runs.map(r => r.task);
-    const task = tasks.at(-1);
-    if (!task) { return; }
+  // `label` like "decompose fee"; `source`: the file's text, for "This file". Returns the task's id
+  add(label: string, task: DecompositionTask, source: string): string {
     const id = task.id.toString();
-    const old = this.nodes.find(n => n.ids.has(id)); // content-addressed: the same work again keeps its DB
-    const node = old?.label === label && tasks.every(t => old.ids.has(t.id.toString())) ? old : new TaskNode(label, runs, source, this.session);
+    const old = this.nodes.find(n => n.taskId === id); // content-addressed: the same work again keeps its DB
+    const node = old?.label === label ? old : new TaskNode(label, task, source, this.session);
     node.time = new Date();
     this.nodes = [node, ...this.nodes.filter(n => n !== node)].slice(0, MAX_TASKS);
     this.changed.fire(undefined);
     return id;
   }
 
-  has(taskId: string) { return this.nodes.some(n => n.ids.has(taskId)); }
-
   async reveal(taskId: string) {
-    const node = this.nodes.find(n => n.ids.has(taskId));
+    const node = this.nodes.find(n => n.taskId === taskId);
     if (!node) {
       void window.showInformationMessage('That task is no longer in the ImandraX MIR DB view; run it again.');
       return;
@@ -65,7 +59,7 @@ export class MirDbView implements TreeDataProvider<Node>, Disposable {
     item.id = nodeId(n);
     if (n instanceof TaskNode) {
       item.description = n.time.toLocaleTimeString();
-      item.tooltip = [...n.ids].join('\n');
+      item.tooltip = n.taskId;
       item.iconPath = new ThemeIcon('database');
     } else if (n instanceof GroupNode) {
       item.description = String(n.count);
@@ -88,10 +82,10 @@ export class MirDbView implements TreeDataProvider<Node>, Disposable {
     if (n.children) { return n.children; }
     try {
       const index = await window.withProgress({ location: { viewId: VIEW_ID }, title: 'Loading MIR DB' }, () => n.load());
-      n.children = [...n.reports, ...groups(n, index)];
+      n.children = [n.report, ...groups(n, index)];
       return n.children;
     } catch (e) {
-      return [...n.reports, new MessageNode(n, `Could not load the MIR DB (click to retry): ${errorText(e)}`)];
+      return [n.report, new MessageNode(n, `Could not load the MIR DB (click to retry): ${errorText(e)}`)];
     }
   }
 
@@ -100,4 +94,4 @@ export class MirDbView implements TreeDataProvider<Node>, Disposable {
 
 // Unique in the tree: the same declaration can show in several groups
 const nodeId = (n: Node): string => (n instanceof TaskNode ? n.id
-  : `${nodeId(n.parent)}/${n instanceof DeclNode ? n.uid.fullName : n instanceof ReportNode ? `${n.label} ${n.taskId}` : n.label}`);
+  : `${nodeId(n.parent)}/${n instanceof DeclNode ? n.uid.fullName : n.label}`);

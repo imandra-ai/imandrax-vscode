@@ -1,14 +1,10 @@
 // Readable text for task results and proof reports from the imandrax-api client, for read-only IML documents.
 // Only types are imported from 'imandrax-api': the client itself is loaded lazily elsewhere.
-import type { ProofObligationResult } from 'imandrax-api';
 import type { Model, Sequent, Term } from 'imandrax-api/dist/mir';
-import type { ProofTerm } from 'imandrax-api/dist/proof';
 import type { AtomicEvent, Expansion, Report, RichText } from 'imandrax-api/dist/report';
-import type { DecompositionTaskResult, ProofObligation, ProofObligationTaskResult } from 'imandrax-api/dist/tasks';
+import type { DecompositionTaskResult } from 'imandrax-api/dist/tasks';
 import type { MirRenderer } from './mir_format';
 import { noHashes } from './mir_printer';
-
-const MAX_PROOF_LINES = 80;
 
 export const secs = (s: number) => (s < 1 ? `${(s * 1000).toFixed(1)} ms` : `${s.toFixed(2)} s`);
 // An IML comment; nested comment brackets in `s` would end it early
@@ -106,61 +102,15 @@ export function reportLines(report: Report, mir: MirRenderer): string[] {
   return out;
 }
 
-// The proof tree: each step's rule and conclusion
-export function proofLines(p: ProofTerm, mir: MirRenderer): string[] {
-  const out: string[] = [];
-  const go = (q: ProofTerm, pad: string, premise = '') => {
-    if (out.length > MAX_PROOF_LINES) { return; }
-    out.push(`${pad}${premise}${q.kind === 'rule' ? q.rule : q.kind}: ${sequentText(q.conclusion, mir)}`);
-    if (q.kind === 'subst') { go(q.premise, `${pad}  `); }
-    if (q.kind === 'deduction') { for (const pr of q.premises) { for (const x of pr.proofs) { go(x, `${pad}  `, pr.name ? `${pr.name}: ` : ''); } } }
-  };
-  go(p, '');
-  return out.length > MAX_PROOF_LINES ? [...out.slice(0, MAX_PROOF_LINES), '…'] : out;
-}
-
-const OTHER: Record<string, string> = { unknown: 'unknown', err: 'error', verifiedUpto: 'verified up to bound', testOk: 'test passed' };
-
-// A check's PO verdict, as its diagnostic tells it
-export function outcome(r: ProofObligationResult): string {
-  if (r.proved) { return 'proved'; }
-  if (r.found) { return (r.model ? r.model.kind === 'counterExample' : r.errors.length > 0) ? 'refuted' : 'instance found'; }
-  return OTHER[r.outcome ?? ''] ?? 'no result';
-}
-
-const statsText = (s: ProofObligationTaskResult['statistics']) =>
+const statsText = (s: DecompositionTaskResult['statistics']) =>
   [secs(s.timeS), ...(s.tactic ?? []).map(t => `${t.name} ${t.value}`)].join(', ');
 
-// A PO's verdict and goal, its counterexample or instance, the proof and the report
 // A section's text, or a note in its place: one unexpected shape loses that section, not the document
 const section = (mir: MirRenderer, title: string, f: () => string) => {
   try { return f(); } catch (e) { return mir.note(`${title}: could not print (${e instanceof Error ? e.message : String(e)})`); }
 };
 const reportSection = (report: Report, mir: MirRenderer) =>
   section(mir, 'Report', () => mir.note(`Report\n${reportLines(report, mir).join('\n') || '(no events)'}`));
-
-export function poDocument(r: ProofObligationResult, po: ProofObligation, res: ProofObligationTaskResult, report: Report, mir: MirRenderer): string {
-  const parts = [
-    section(mir, 'Verdict', () => {
-      const why = r.message ?? r.errors.map(String).join('\n');
-      return mir.note([`${r.origin.fromSym}: ${outcome(r)}`, ...(why ? [noHashes(why)] : []),
-        `${po.description}; tactic ${noHashes(String(po.tactic))}; ${statsText(res.statistics)}`].join('\n'));
-    }),
-    section(mir, 'Goal', () => {
-      const vars = po.goal.variables.map(v => v.id.shortName).join(' ');
-      return mir.join([mir.note(`Goal${vars ? ` over ${vars}` : ''}`), mir.term(po.goal.body, true)], '\n');
-    }),
-  ];
-  const model = r.model;
-  if (model) { parts.push(mir.join([mir.note(model.kind === 'instance' ? 'Instance' : 'Counterexample'), mir.text(model.src.trim())], '\n')); }
-  else if (res.model) { const m = res.model; parts.push(section(mir, 'Model', () => mir.note(`Model\n${modelLines(m, mir).join('\n')}`))); }
-  const subgoals = res.subgoals ?? [];
-  if (subgoals.length) { parts.push(section(mir, 'Remaining subgoals', () => mir.note(`Remaining subgoals\n${subgoals.map(g => sequentText(g, mir)).join('\n')}`))); }
-  const proof = res.proof;
-  if (proof) { parts.push(section(mir, 'Proof', () => mir.note(`Proof\n${proofLines(proof, mir).join('\n')}`))); }
-  parts.push(reportSection(report, mir));
-  return mir.document(parts);
-}
 
 export function decompDocument(res: DecompositionTaskResult, report: Report, mir: MirRenderer): string {
   const head = section(mir, 'Decomposition', () => {
@@ -169,12 +119,4 @@ export function decompDocument(res: DecompositionTaskResult, report: Report, mir
       ...(res.error ? [noHashes(String(res.error))] : []), statsText(res.statistics)].join('\n'));
   });
   return mir.document([head, reportSection(report, mir)]);
-}
-
-// How a termination PO went, with the measure the SMT solver expanded (the default one has no name in the DB)
-export function terminationText(r: ProofObligationResult, po: ProofObligation, report: Report, mir: MirRenderer): string {
-  const smt = report.events.flatMap(e => (e.kind !== 'exitSpan' && e.event.kind === 'provedBySmt' ? [e.event] : []));
-  const measures = [...new Set(smt.flatMap(e => measureExpansions(e.proof.expansions, mir)))];
-  return [`termination PO ${outcome(r)} by ${noHashes(String(po.tactic))}${smt.length ? `, ${smt.length} SMT call(s)` : ''}`,
-    ...measures.map(m => `measure: ${m}`)].join('\n');
 }

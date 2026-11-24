@@ -19,7 +19,7 @@ export class Listeners {
       window.showInformationMessage(file_progress_text);
     }));
 
-    // Shown once the active file has task stats (req_file_progress), so not without a server in lsp mode
+    // Shown once the active file has task stats (req_file_progress), so not without a server
     this.file_progress_sbi = window.createStatusBarItem(StatusBarAlignment.Right, 0);
     this.file_progress_sbi.command = fileProgressCmdId;
     context.subscriptions.push(this.file_progress_sbi);
@@ -57,7 +57,7 @@ export class Listeners {
     const stats = await this.tasks.fileProgress(doc);
     if (stats === undefined) { return; }
     if (stats === null) { this.file_progress_sbi.hide(); return; }
-    const { started, finished, successful, failed, total, running } = stats;
+    const { started, finished, successful, failed, total } = stats;
     if (total === 0) {
       this.file_progress_sbi.text = "0/0";
       this.file_progress_sbi.backgroundColor = undefined;
@@ -72,10 +72,6 @@ export class Listeners {
         this.file_progress_sbi.backgroundColor = undefined;
       }
       file_progress_text = `${started} started, ${finished} finished, ${successful} successful, ${failed} failed, ${total} total tasks.`;
-    }
-    if (running) { // tasks the extension runs itself (API backend)
-      this.file_progress_sbi.text = `$(sync~spin) ${this.file_progress_sbi.text}`;
-      file_progress_text = `Tasks running. ${file_progress_text}`;
     }
     this.file_progress_sbi.show();
   }
@@ -122,9 +118,5 @@ export class Listeners {
   public register() {
     languages.onDidChangeDiagnostics(async (e: DiagnosticChangeEvent) => { await this.diagnostic_listener(e); });
     window.onDidChangeActiveTextEditor(async (e: TextEditor | undefined) => { await this.active_editor_listener(e); });
-    this.tasks.onDidChangeProgress(async uri => {
-      const doc = window.activeTextEditor?.document;
-      if (doc?.uri.toString() === uri.toString()) { await this.req_file_progress(doc); }
-    });
   }
 }

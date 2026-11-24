@@ -67,17 +67,8 @@ export function getExtensionConfig(): Config {
     return update();
 }
 
-// Where proof/decomposition tasks run: the language server, or (experimental) the ImandraX HTTP API.
-// Read at call time by every feature that runs tasks.
+// Where decompositions run: the language server, or (experimental) the ImandraX HTTP API.
+// Checks always run on the language server.
 export function taskBackend(): "lsp" | "api" {
   return workspace.getConfiguration("imandrax").get("experimental.taskBackend") === "lsp" ? "lsp" : "api"; // default: api
-}
-
-// Whether a file's tasks are checked when it is opened / saved: `--check-on-open` / `--check-on-save`
-// (`=BOOL` or ` BOOL`) in imandrax.lsp.arguments, else imandrax-cli's default, which is off for both.
-// In "api" mode the extension does these checks itself.
-export function checkOn(event: "open" | "save"): boolean {
-  const args = workspace.getConfiguration("imandrax").get<string[]>("lsp.arguments") ?? [];
-  const i = args.findIndex(a => new RegExp(`^--check-on-${event}(=|$)`).test(a));
-  return i >= 0 && (args[i].split("=")[1] ?? args[i + 1]) === "true";
 }

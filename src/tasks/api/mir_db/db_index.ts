@@ -69,8 +69,7 @@ export class DbIndex {
   renderer(f: MirFormat) { return new MirRenderer(f, this.db, d => this.print(d)); }
 
   // The declaration (in `mir`'s format), then the rules from or about it, its termination measure and its users
-  // `termination`: how its termination PO went, if this task has it
-  document(uid: Uid, mir: MirRenderer, termination?: string): Printed {
+  document(uid: Uid, mir: MirRenderer): Printed {
     const ids = new Map<string, Set<string>>();
     const reg = (p: Printed) => {
       for (const [k, vs] of p.fullIds) { vs.forEach(v => at(ids, k, () => new Set()).add(v)); }
@@ -82,10 +81,9 @@ export class DbIndex {
 
     const measure = this.db.admission.get(uid) ?? (decl?.kind === 'function' ? decl.function.hints.admission : undefined);
     const rec = decl?.kind === 'function' && decl.function.clique !== undefined && [...decl.function.clique].some(u => u.equals(uid));
-    const how = [measure && `[@@measure] ${measureText(measure) || 'default'}`, termination].filter(Boolean);
-    if (how.length || rec) {
+    if (measure || rec) {
       // ponytail: without [@@measure] the DB has no admission; the default measure only shows in the PO's SMT proof
-      parts.push(mir.note(`Termination: ${how.join('\n') || 'no [@@measure], and its termination PO is not in this task (check the file to see it)'}`));
+      parts.push(mir.note(`Termination: ${measure ? `[@@measure] ${measureText(measure) || 'default'}` : 'no [@@measure] (the default measure)'}`));
     }
 
     // The same rule shows in several of the DB's tables (e.g. rwRules and thmAsRw)

@@ -6,9 +6,9 @@ interface FileProgressResponse {
   task_stats: { finished: string; successful: string; failed: string; started: string; total: string } | null;
 }
 
-// The language server runs the tasks: lens commands are replayed to it as they came, the whole file
-// is its `check-all`, and it checks on open/save itself (`--check-on-open` / `--check-on-save`).
-// Like the server's own lenses, nothing happens while the server is down.
+// The language server runs checks (in both modes) and decompositions (in lsp mode): lens commands are
+// replayed to it as they came, the whole file is its `check-all`, and it checks on open/save itself
+// (`--check-on-open` / `--check-on-save`). Like the server's own lenses, nothing happens while the server is down.
 export class LspTaskBackend implements TaskBackend {
   constructor(private readonly getClient: () => LanguageClient | undefined) { }
 
@@ -22,15 +22,11 @@ export class LspTaskBackend implements TaskBackend {
     void window.showInformationMessage('ImandraX: put the cursor below a Decompose code lens.');
   }
 
-  // Only the server's own Cancel lenses: a Cancel lens left from the API backend carries its check/decompose
+  // Only the server's own Cancel lenses: a Cancel lens left from the API backend carries its decompose
   async cancel(_uri: Uri, target?: TaskTarget) {
     if (target?.lens?.command === 'cancel') { return this.replay(target.lens); }
     void window.showInformationMessage('ImandraX: no running task at the cursor.');
   }
-
-  autoCheck() { /* the server does it */ }
-
-  isRunning() { return false; }
 
   async fileProgress(doc: TextDocument): Promise<FileProgress | null | undefined> {
     const client = this.getClient();

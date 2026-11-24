@@ -4,7 +4,7 @@ import {
   ExtensionMode,
 } from "vscode";
 
-import { getExtensionConfig, taskBackend } from "../config";
+import { getExtensionConfig } from "../config";
 
 import {
   env
@@ -75,13 +75,7 @@ function getPlatformConfiguration(): PlatformConfiguration {
 export function get(context : ExtensionContext): ImandraXLanguageClientConfiguration | FoundPathConfig {
   const config = getExtensionConfig();
   const binary = config.lsp.binary;
-  const args = config.lsp.arguments;
-  // With the API running the tasks the server only type-checks and offers the lenses. Existing
-  // `--check-on-*=X` / `--check-on-* X` are dropped, as Cmdliner may reject a repeated option.
-  const checkOpt = /^--check-on-(open|save)(=|$)/;
-  const serverArgs = taskBackend() === "lsp" ? args : [
-    ...args.filter((a, i) => !checkOpt.test(a) && !(i > 0 && /^--check-on-(open|save)$/.test(args[i - 1]))),
-    "--check-on-open=false", "--check-on-save=false"];
+  const serverArgs = config.lsp.arguments;
   const serverEnv = config.lsp.environment;
 
   const systemEnv = process.env;

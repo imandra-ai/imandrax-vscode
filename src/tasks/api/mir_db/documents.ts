@@ -16,8 +16,8 @@ async function pickFormat(current: MirFormat): Promise<MirFormat | undefined> {
   return (await window.showQuickPick(items, { title: 'MIR DB format' }))?.format;
 }
 
-// The MIR DB view's read-only documents: a declaration, with its rules, termination measure and users, or a PO's
-// or decomposition's report. Their MIR shows in the format in their URI: readable IML (hovering a name there shows
+// The MIR DB view's read-only documents: a declaration, with its rules, termination measure and users, or a
+// decomposition's report. Their MIR shows in the format in their URI: readable IML (hovering a name there shows
 // its full ids, with hashes), the client's textual MIR or its raw structure as JSON
 export class MirDbDocuments implements Disposable {
   // Open documents, by URI
@@ -98,7 +98,7 @@ export class MirDbDocuments implements Disposable {
     try {
       const index = await node.task.load();
       const mir = index.renderer(plain.format);
-      const { text, fullIds } = index.document(node.uid, mir, await node.task.termination(node.uid, mir));
+      const { text, fullIds } = index.document(node.uid, mir);
       entry.fullIds = fullIds;
       return text;
     } catch (e) {
