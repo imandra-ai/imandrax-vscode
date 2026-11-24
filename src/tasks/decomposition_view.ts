@@ -1,6 +1,9 @@
 import { commands, Uri, ViewColumn, Webview, window } from 'vscode';
 import { getExtensionConfig } from '../config';
 
+export const esc = (s: string) =>
+  s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+
 // A decomposition as the language server sends it (`$imandrax/visualize-decomp`)
 export interface Decomp {
   source: string; // Function name
@@ -23,7 +26,7 @@ export class DecompositionView {
     if (total_regions > config.largeDecompConfirmation
       && !await ask(`very large (${total_regions} regions)`, 'imandrax.largeDecompConfirmation')) { return; }
     const sources = decomps.map(d => d.source);
-    const body = decomps.map(d => `<h1>Decomposition of <span class="code">${d.source}</span></h1>${d.decomp}`).join('');
+    const body = decomps.map(d => `<h1>Decomposition of <span class="code">${esc(d.source)}</span></h1>${d.decomp}`).join('');
     const panel = window.createWebviewPanel('imandrax-decomp', `Decomposition of ${sources.join(', ')}`, ViewColumn.One, {
       enableScripts: true, localResourceRoots: [Uri.joinPath(this.extensionUri, 'assets')], enableCommandUris: true,
     });

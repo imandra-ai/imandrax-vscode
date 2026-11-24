@@ -3,7 +3,8 @@ import {
 } from 'vscode';
 import type { ProofObligationResult } from 'imandrax-api';
 import type { TaskTarget } from '../backend';
-import { MirDbView, REVEAL_COMMAND } from './mir_db/view';
+import { REVEAL_COMMAND } from './mir_db/reveal';
+import type { MirDbView } from './mir_db/view';
 
 // Proof obligation results as diagnostics shaped like the server's (Hint = proved/instance, which get the
 // good gutter icon), each with a "Browse MIR DB" quick fix while its task is in the MIR DB view

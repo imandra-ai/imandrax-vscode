@@ -4,9 +4,8 @@ import {
 import { ApiSession, errorText } from '../client';
 import { MirDbDocuments } from './documents';
 import { DeclNode, GroupNode, groups, MessageNode, Node, ReportNode, Run, TaskNode } from './nodes';
+import { REVEAL_COMMAND } from './reveal';
 
-// [taskId]: reveals and expands the node of the task (regions webview link, code action, notification)
-export const REVEAL_COMMAND = 'imandrax.mirDb.reveal';
 const VIEW_ID = 'imandrax.mirDb';
 const MAX_TASKS = 10;
 

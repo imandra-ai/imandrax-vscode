@@ -1,8 +1,5 @@
-import type { Decomp } from '../decomposition_view';
-import { REVEAL_COMMAND } from './mir_db/view';
-
-const esc = (s: string) =>
-  s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+import { Decomp, esc } from '../decomposition_view';
+import { REVEAL_COMMAND } from './mir_db/reveal';
 
 // Prints the client's JsValue (bigint, Rational, Uid, Constructed, arrays, maps)
 function show(v: unknown): string {
@@ -69,5 +66,5 @@ export function regionsDecomp(name: string, regions: readonly {
 <details><summary>${regions.length} regions as a table</summary>
 <table><tr><th>#</th><th>Constraints</th><th>Invariant</th><th>Sample input</th><th>Sample output</th></tr>
 ${rows}</table></details>`;
-  return { source: esc(name), decomp, num_regions: regions.length };
+  return { source: name, decomp, num_regions: regions.length };
 }

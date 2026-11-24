@@ -83,6 +83,7 @@ export class ApiTaskBackend implements TaskBackend {
     this.runs.forEach(abort => abort.abort());
     this.diagnostics.dispose();
     this.mirDb.dispose();
+    this.session.dispose();
   }
 
   // `quiet`: an open/save check
