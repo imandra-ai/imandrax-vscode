@@ -50,7 +50,12 @@ export class MirDbDocuments implements Disposable {
       throw e;
     }
     const language = languageOf(format);
-    if (doc.languageId !== language) { doc = await languages.setTextDocumentLanguage(doc, language); }
+    if (doc.languageId !== language) {
+      // Changing the language closes (onDidCloseTextDocument) and reopens the document: keep its entry
+      const entry = this.docs.get(key) ?? { node: n };
+      doc = await languages.setTextDocumentLanguage(doc, language);
+      this.docs.set(key, entry);
+    }
     await window.showTextDocument(doc, { viewColumn, preview, preserveFocus: true });
   }
 
