@@ -39,8 +39,6 @@ async function _set_workspace_config(workspaceDir: string) {
   console.log("Updating workspace config");
   const wscfg = vscode.workspace.getConfiguration("imandrax");
   // await wscfg.update("lsp.binary", ".../imandrax-cli");
-  // these tests exercise the language server running the tasks
-  await wscfg.update("experimental.taskBackend", "lsp");
   await wscfg.update("lsp.arguments", [
     "lsp",
     "--check-on-save=false",
@@ -67,6 +65,8 @@ suite('Commands Test Suite', () => {
   let imandraxLanguageClient_: ImandraXLanguageClient | undefined;
   suiteSetup(async () => {
     console.log("suite setup")
+    // these tests exercise the language server running the tasks; set before activation, so no restart (no workspace: user settings)
+    await vscode.workspace.getConfiguration("imandrax").update("experimental.taskBackend", "lsp", vscode.ConfigurationTarget.Global);
     const ext = vscode.extensions.getExtension('imandra.imandrax');
     console.log("activate ext");
     await ext!.activate();
