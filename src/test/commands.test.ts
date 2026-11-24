@@ -65,6 +65,8 @@ suite('Commands Test Suite', () => {
   let imandraxLanguageClient_: ImandraXLanguageClient | undefined;
   suiteSetup(async () => {
     console.log("suite setup")
+    // these tests exercise the language server running the tasks; set before activation, so no restart (no workspace: user settings)
+    await vscode.workspace.getConfiguration("imandrax").update("experimental.taskBackend", "lsp", vscode.ConfigurationTarget.Global);
     const ext = vscode.extensions.getExtension('imandra.imandrax');
     console.log("activate ext");
     await ext!.activate();

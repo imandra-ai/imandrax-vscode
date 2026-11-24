@@ -149,6 +149,42 @@
             "type": "integer",
             "default": 1048576,
             "description": "Controls the minimum size of a decomposition before asking for confirmation when opening a visualization."
+          },
+          "imandrax.experimental.apiUrl": {
+            "scope": "window",
+            "type": "string",
+            "default": "",
+            "description": "Experimental: the ImandraX API server used when `imandrax.experimental.taskBackend` is `api`, e.g. a self-hosted server. Empty means Imandra's hosted server."
+          },
+          "imandrax.experimental.mirDbFormat": {
+            "scope": "window",
+            "type": "string",
+            "enum": [
+              "iml",
+              "mir",
+              "json"
+            ],
+            "enumDescriptions": [
+              "Readable IML (hover a name for its full ids).",
+              "The API client's textual MIR, with full ids.",
+              "The raw MIR structure, as JSON."
+            ],
+            "default": "iml",
+            "description": "Experimental: how the ImandraX MIR DB view's documents show declarations, rules and the terms of reports."
+          },
+          "imandrax.experimental.taskBackend": {
+            "scope": "window",
+            "type": "string",
+            "enum": [
+              "lsp",
+              "api"
+            ],
+            "enumDescriptions": [
+              "The language server runs proof obligations and decompositions (checking on open and save).",
+              "Experimental: the ImandraX API runs decompositions: Decompose shows a regions table, and the decomposition's MIR DB shows in the ImandraX MIR DB view. Local [@@@import]s are not sent. Proof obligations run on the language server, as with `lsp`."
+            ],
+            "default": "api",
+            "description": "Where decompositions run. Proof obligations always run on the language server."
           }
         }
       },
@@ -191,6 +227,33 @@
       {
         "command": "imandrax.check_all",
         "title": "ImandraX: Check all proof obligations in current file"
+      },
+      {
+        "command": "imandrax.task.check",
+        "title": "ImandraX: Check proof obligation at cursor (whole file if none)"
+      },
+      {
+        "command": "imandrax.task.decompose",
+        "title": "ImandraX: Decompose function at cursor"
+      },
+      {
+        "command": "imandrax.task.cancel",
+        "title": "ImandraX: Cancel running task at cursor"
+      },
+      {
+        "command": "imandrax.mirDb.clear",
+        "title": "ImandraX: Clear MIR DB",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "imandrax.mirDb.format",
+        "title": "ImandraX: MIR DB format…",
+        "icon": "$(symbol-namespace)"
+      },
+      {
+        "command": "imandrax.mirDb.switchFormat",
+        "title": "ImandraX: Show in another MIR DB format…",
+        "icon": "$(arrow-swap)"
       },
       {
         "command": "imandrax.browse",
@@ -263,7 +326,63 @@
         ]
       }
     ],
+    "views": {
+      "explorer": [
+        {
+          "id": "imandrax.mirDb",
+          "name": "ImandraX MIR DB",
+          "when": "imandrax.apiBackend"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "imandrax.mirDb",
+        "contents": "The MIR DB (declarations, rules, termination measures) of recent ImandraX decompositions. It fills when they run (with [imandrax.experimental.taskBackend](command:workbench.action.openSettings?%5B%22imandrax.experimental.taskBackend%22%5D) set to \"api\")."
+      }
+    ],
     "menus": {
+      "view/title": [
+        {
+          "command": "imandrax.mirDb.format",
+          "when": "view == imandrax.mirDb",
+          "group": "navigation"
+        },
+        {
+          "command": "imandrax.mirDb.clear",
+          "when": "view == imandrax.mirDb",
+          "group": "navigation"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "imandrax.mirDb.switchFormat",
+          "when": "resourceScheme == imandrax-mirdb",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "imandrax.task.check",
+          "when": "editorLangId == imandrax"
+        },
+        {
+          "command": "imandrax.task.decompose",
+          "when": "editorLangId == imandrax"
+        },
+        {
+          "command": "imandrax.task.cancel",
+          "when": "editorLangId == imandrax"
+        },
+        {
+          "command": "imandrax.mirDb.clear",
+          "when": "false"
+        },
+        {
+          "command": "imandrax.mirDb.switchFormat",
+          "when": "resourceScheme == imandrax-mirdb"
+        }
+      ],
       "webview/context": [
         {
           "command": "editor.action.clipboardCopyAction",
@@ -356,6 +475,7 @@
     "@vscode/codicons": "^0.0.44",
     "@vscode/debugadapter": "^1.68.0",
     "@vscode/vsce": "^3.7.1",
+    "imandrax-api": "file:vendor/imandrax-api-0.21.0.tgz",
     "node-fetch": "^3.3.2",
     "ovsx": "^0.10.8",
     "prettier": "^3.7.4",

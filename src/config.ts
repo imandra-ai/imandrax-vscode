@@ -66,3 +66,9 @@ export function getExtensionConfig(): Config {
   else
     return update();
 }
+
+// Where decompositions run: the language server, or (experimental) the ImandraX HTTP API.
+// Checks always run on the language server.
+export function taskBackend(): "lsp" | "api" {
+  return workspace.getConfiguration("imandrax").get("experimental.taskBackend") === "lsp" ? "lsp" : "api"; // default: api
+}

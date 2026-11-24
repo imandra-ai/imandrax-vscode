@@ -1,6 +1,6 @@
 import * as Path from 'path';
 
-import { commands, env, Range, TerminalOptions, Uri, ViewColumn, window, workspace } from 'vscode';
+import { commands, env, Range, TerminalOptions, Uri, window, workspace } from 'vscode';
 import { LanguageClient } from 'vscode-languageclient/node';
 import { getExtensionConfig } from '../config';
 
@@ -77,129 +77,6 @@ export function copy_model(params: Models) {
     str += "\n" + m.replaceAll("\n\n", "\n");
   });
   env.clipboard.writeText(str);
-}
-
-interface Decomp {
-  source: string, // Function name
-  decomp: string, // HTML-encoded regions for voronoi
-  num_regions: number // Number of regions
-}
-
-function num_bytes_to_string(num: number): string {
-  const units = ["Bytes", "KB", "MB", "GB", "TB"];
-  let n = num;
-  let i = 0
-  for (; i < units.length; i++) {
-    if (n > 1024)
-      n /= 1024;
-    else
-      break;
-  }
-  return `${n.toFixed(0)} ${units[i]}`;
-}
-
-export async function visualize_decomp(extensionUri: Uri, params: { decomps: Decomp[] }) {
-  const config = getExtensionConfig();
-
-  const decomps = params.decomps;
-
-  let body = "";
-  const sources: string[] = [];
-
-  let total_regions = 0;
-  let total_bytes = 0;
-  for (const d of decomps) {
-    if ("num_regions" in d)
-      total_regions += d.num_regions;
-    total_bytes += d.decomp.length;
-  }
-
-  let do_display = true;
-
-  if (total_bytes > config.largeDecompConfirmationBytes) {
-    const q = await window.showWarningMessage(
-      `This decomposition is not displayed in the editor because it is very large (${num_bytes_to_string(total_bytes)}).`,
-      {},
-      { title: "Open Anyway" },
-      { title: "Cancel", isCloseAffordance: true },
-      { title: "Configure Limit" });
-
-    do_display = q?.title == "Open Anyway";
-
-    if (q?.title == "Configure Limit")
-      commands.executeCommand("workbench.action.openSettings", "imandrax.largeDecompConfirmationBytes");
-  }
-
-  if (do_display && total_regions > config.largeDecompConfirmation) {
-    const q = await window.showWarningMessage(
-      `This decomposition is not displayed in the editor because it is very large (${total_regions} regions).`,
-      {},
-      { title: "Open Anyway" },
-      { title: "Cancel", isCloseAffordance: true },
-      { title: "Configure Limit" });
-
-    do_display = q?.title == "Open Anyway";
-
-    if (q?.title == "Configure Limit")
-      commands.executeCommand("workbench.action.openSettings", "imandrax.largeDecompConfirmation");
-  }
-
-  if (!do_display)
-    return;
-
-  for (const d of decomps) {
-    const source = d.source;
-    body += `<h1>Decomposition of <span class="code">${source}</span></h1>`;
-    body += d.decomp;
-    sources.push(source);
-  }
-
-  const sources_str = sources.join(", ");
-
-  const panel = window.createWebviewPanel("imandrax-decomp", `Decomposition of ${sources_str}`, ViewColumn.One, {
-    enableScripts: true, localResourceRoots: [
-      Uri.joinPath(extensionUri, "assets")
-    ],
-    enableCommandUris: true
-  });
-
-  const pwv = panel.webview;
-  const assets_path = Uri.joinPath(extensionUri, "assets");
-  const voronoi_uri = pwv.asWebviewUri(Uri.joinPath(assets_path, "voronoi.js")).toString();
-  const imandrax_hydrate_uri = pwv.asWebviewUri(Uri.joinPath(assets_path, "imandrax-hydrate.js")).toString();
-  const style1_uri = pwv.asWebviewUri(Uri.joinPath(assets_path, "decomp-style.css")).toString();
-  const style2_uri = pwv.asWebviewUri(Uri.joinPath(assets_path, "styles.b466ce6f.css")).toString();
-  const style3_uri = pwv.asWebviewUri(Uri.joinPath(assets_path, "style.min.98373da4.css")).toString();
-
-  const html = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <link rel="stylesheet" href="${style2_uri}">
-  <link rel="stylesheet" href="${style3_uri}">
-  <link rel="stylesheet" href="${style1_uri}">
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
-	<script src="${voronoi_uri}"></script>
-	<script src="${imandrax_hydrate_uri}"></script>
-</head>
-<body style="background-color: transparent;">
-${body}
-</body>
-</html>`;
-
-  // console.log(`DECOMP HTML: ${html}`);
-
-  panel.webview.html = html;
-}
-
-export async function checkAll(getClient: () => LanguageClient) {
-  if (!getClient()) {
-    return undefined;
-  }
-  const file_uri = window.activeTextEditor?.document.uri;
-  if (getClient() && getClient().isRunning() && file_uri?.scheme === "file") {
-    await getClient().sendRequest("workspace/executeCommand", { "command": "check-all", "arguments": [file_uri.toString()] });
-  }
 }
 
 export function browse(uri: string): Thenable<boolean> | undefined {

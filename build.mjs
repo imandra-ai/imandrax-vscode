@@ -22,6 +22,7 @@ const config = {
   metafile: true,
   sourcemap: sourcemap ? "linked" : false,
   minify: minify,
+  keepNames: true, // the MIR DB view's JSON format tags raw MIR values with their class names
 };
 
 if (watch) {

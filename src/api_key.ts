@@ -7,7 +7,7 @@ const API_KEY_FILE = 'api_key';
 const readOptionalFile = async (file: Uri) => {
   try {
     const res = await workspace.fs.readFile(file);
-    return Buffer.from(res.buffer).toString();
+    return Buffer.from(res).toString(); // not res.buffer: that may be a larger shared pool
   } catch {
     return null;
   }

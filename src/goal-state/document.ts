@@ -22,6 +22,7 @@ import { LanguageClient } from 'vscode-languageclient/node';
 
 import { getExtensionConfig } from "../config";
 import { getClient } from '../commands/registration';
+import { isTaskLens } from '../tasks/tasks';
 import { Disposable } from './dispose';
 import * as IX from "./imandrax_types"
 import * as GSC from "./state-converter";
@@ -265,7 +266,7 @@ export class GoalStateDocument extends Disposable implements CustomDocument {
           const po_rng = sourcelocation2range(po.location);
           const lenses = codeLenses.filter(x =>
             x.isResolved && x.command
-            && (x.command.command == "check" || x.command?.command == "recheck" || x.command?.command == "cancel" || x.command?.command == "decompose")
+            && isTaskLens(x)
             && x.range.contains(po_rng));
 
           await Promise.all(lenses.map(lens => {

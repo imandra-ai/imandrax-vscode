@@ -5,10 +5,11 @@ import * as configuration from './configuration';
 import * as test_output_channel from './test_output_channel';
 
 import { ConfigurationChangeEvent, ExtensionContext, ExtensionMode, Uri, window, workspace, FileChangeType, OutputChannel } from 'vscode';
-import { Executable, LanguageClient, LanguageClientOptions } from 'vscode-languageclient/node';
+import { Executable, LanguageClient, LanguageClientOptions, Middleware } from 'vscode-languageclient/node';
 
 export * as configuration from './configuration';
 import { getExtensionConfig } from '../config';
+import { Decomp, DecompositionView } from '../tasks/decomposition_view';
 
 const MAX_RESTARTS = 10;
 
@@ -38,7 +39,8 @@ export class ImandraXLanguageClient {
     return this.vfsProvider_;
   }
 
-  constructor(getConfig: () => configuration.ImandraXLanguageClientConfiguration) {
+  // `middleware`: the Tasks service's code lens rewriting
+  constructor(getConfig: () => configuration.ImandraXLanguageClientConfiguration, private readonly middleware: Middleware) {
     this.getConfig = getConfig;
     this.vfsProvider_ = new vfsProvider.VFSProvider(() => { return this.getClient(); })
   }
@@ -74,6 +76,7 @@ export class ImandraXLanguageClient {
       synchronize: {
         fileEvents: workspace.createFileSystemWatcher("**/*.iml")
       },
+      middleware: this.middleware,
       traceOutputChannel
     };
 
@@ -95,8 +98,9 @@ export class ImandraXLanguageClient {
         (params) => { commands.interact_model(params); });
       this.client.onRequest("$imandrax/copy-model",
         (params) => { commands.copy_model(params); });
+      const decompositions = new DecompositionView(extensionUri);
       this.client.onRequest("$imandrax/visualize-decomp",
-        async (params) => { await commands.visualize_decomp(extensionUri, params); });
+        async (params: { decomps: Decomp[] }) => { await decompositions.show(params.decomps); });
       this.client.onNotification("$imandrax/vfs-file-changed",
         (params) => {
           const uri = Uri.parse(params.uri);
