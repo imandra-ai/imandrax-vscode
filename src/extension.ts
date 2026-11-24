@@ -24,7 +24,7 @@ export async function activate(context: ExtensionContext) {
   let languageClientWrapper_: imandraxLanguageClient.ImandraXLanguageClient | undefined;
   const getClient = () => languageClientWrapper_?.getClient();
   // Where proof checks and decompositions run; the API backend works without imandrax-cli
-  const tasks = new Tasks(getClient);
+  const tasks = new Tasks(getClient, context.extensionUri);
   context.subscriptions.push(tasks);
 
   const getClientConfig = () => {

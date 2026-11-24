@@ -9,6 +9,7 @@ import { Executable, LanguageClient, LanguageClientOptions, Middleware } from 'v
 
 export * as configuration from './configuration';
 import { getExtensionConfig } from '../config';
+import { Decomp, DecompositionView } from '../tasks/decomposition_view';
 
 const MAX_RESTARTS = 10;
 
@@ -97,8 +98,9 @@ export class ImandraXLanguageClient {
         (params) => { commands.interact_model(params); });
       this.client.onRequest("$imandrax/copy-model",
         (params) => { commands.copy_model(params); });
+      const decompositions = new DecompositionView(extensionUri);
       this.client.onRequest("$imandrax/visualize-decomp",
-        async (params) => { await commands.visualize_decomp(extensionUri, params); });
+        async (params: { decomps: Decomp[] }) => { await decompositions.show(params.decomps); });
       this.client.onNotification("$imandrax/vfs-file-changed",
         (params) => {
           const uri = Uri.parse(params.uri);

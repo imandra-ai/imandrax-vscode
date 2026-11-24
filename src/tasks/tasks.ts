@@ -3,6 +3,7 @@ import type { LanguageClient, Middleware } from 'vscode-languageclient/node';
 import { taskBackend } from '../config';
 import { ApiTaskBackend } from './api/api_backend';
 import { TaskBackend, TaskKind, TaskTarget } from './backend';
+import { DecompositionView } from './decomposition_view';
 import { LspTaskBackend } from './lsp_backend';
 
 type TaskCommand = TaskKind | 'cancel';
@@ -27,7 +28,7 @@ export class Tasks implements Disposable {
   readonly onDidChangeProgress = this.progressChanged.event;
   private readonly subscriptions: Disposable[];
 
-  constructor(private readonly getClient: () => LanguageClient | undefined) {
+  constructor(private readonly getClient: () => LanguageClient | undefined, private readonly extensionUri: Uri) {
     this.backend = this.createBackend();
     const register = (c: TaskCommand) => commands.registerCommand(commandId(c),
       (uri?: string, target?: TaskTarget) => this.run(c, uri, target));
@@ -65,7 +66,7 @@ export class Tasks implements Disposable {
 
   private createBackend(): TaskBackend {
     void commands.executeCommand('setContext', 'imandrax.apiBackend', this.mode === 'api'); // shows the MIR DB view
-    return this.mode === 'api' ? new ApiTaskBackend(uri => this.changed(uri)) : new LspTaskBackend(this.getClient);
+    return this.mode === 'api' ? new ApiTaskBackend(uri => this.changed(uri), new DecompositionView(this.extensionUri)) : new LspTaskBackend(this.getClient);
   }
 
   private swapBackend() {

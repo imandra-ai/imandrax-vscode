@@ -1,45 +1,28 @@
-import {
-  CodeAction, CodeActionKind, Diagnostic, DiagnosticSeverity, languages, Progress, ProgressLocation, ProgressOptions, Range, TextDocument, Uri, window,
-  workspace,
-} from 'vscode';
-import type { ProofObligationResult } from 'imandrax-api';
+import { Progress, ProgressLocation, ProgressOptions, TextDocument, Uri, window, workspace } from 'vscode';
 import { checkOn } from '../../config';
 import { FileProgress, TaskBackend, TaskKind, TaskTarget } from '../backend';
-import { connect, errorText, TIMEOUT_MS } from './client';
-import { MirDbView, REVEAL_COMMAND } from './mir_db';
-import { showRegions } from './regions_view';
+import { DecompositionView } from '../decomposition_view';
+import { ApiSession, errorText, TIMEOUT_MS } from './client';
+import { MirDbView } from './mir_db/view';
+import { PoDiagnostics } from './po_diagnostics';
+import { regionsDecomp } from './regions_printer';
 
 // The ImandraX HTTP API runs the tasks; the language server only type-checks and offers the lenses.
-// Proof obligation results become diagnostics shaped like the server's (Hint = proved/instance, which
-// get the good gutter icon); decompositions show a regions table. Both tasks' MIR DBs can be browsed in
-// the view "ImandraX MIR DB": from a diagnostic's code action, the regions table, or the notification.
+// Proof obligation results show as diagnostics (PoDiagnostics), decompositions in the Voronoi viewer
+// (DecompositionView). Both tasks' MIR DBs can be browsed in the view "ImandraX MIR DB": from a
+// diagnostic's code action, the decomposition's panel, or the notification.
 // ponytail: sends the file's text only, so `[@@@import]`s of local files won't resolve
 export class ApiTaskBackend implements TaskBackend {
-  private readonly diagnostics = languages.createDiagnosticCollection('ImandraX API');
-  // The diagnostics set, by URI: code actions get copies of them (without `taskId`), matched back here
-  private readonly shown = new Map<string, readonly PoDiagnostic[]>();
-  private readonly mirDb = new MirDbView();
-  private readonly browse = languages.registerCodeActionsProvider({ language: 'imandrax' }, {
-    provideCodeActions: (doc, _range, context) => {
-      const shown = this.shown.get(doc.uri.toString()) ?? [];
-      return context.diagnostics.flatMap(d => {
-        const po = shown.find(p => p.range.isEqual(d.range) && p.message === d.message && p.source === d.source && p.code === d.code);
-        if (!po || !this.mirDb.has(po.taskId)) { return []; }
-        const title = `Browse MIR DB (${po.code as string})`;
-        const action = new CodeAction(title, CodeActionKind.QuickFix);
-        action.command = { title, command: REVEAL_COMMAND, arguments: [po.taskId] };
-        action.diagnostics = [d];
-        return [action];
-      });
-    },
-  });
+  private readonly session = new ApiSession();
+  private readonly mirDb = new MirDbView(this.session);
+  private readonly diagnostics = new PoDiagnostics(this.mirDb);
   // Running tasks by `${uri} ${kind} ${sym}` (sym '' = the whole file); a new run of the same key cancels the old one
   private readonly runs = new Map<string, AbortController>();
   // Open/save checks waiting for a burst of events to end, by URI
   private readonly pending = new Map<string, ReturnType<typeof setTimeout>>();
 
   // `changed(uri)`: the file's running tasks changed (lenses, status bar)
-  constructor(private readonly changed: (uri: Uri) => void) { }
+  constructor(private readonly changed: (uri: Uri) => void, private readonly decompositions: DecompositionView) { }
 
   async check(uri: Uri, target?: TaskTarget) {
     const doc = await open(uri);
@@ -63,29 +46,11 @@ export class ApiTaskBackend implements TaskBackend {
     if (!doc) { return; }
     const name = target?.sym ?? await this.askFunction(doc);
     if (!name) { return; }
-    const res = await this.run(doc, 'decompose', name,
-      { location: ProgressLocation.Notification, title: `Decomposing ${name}`, cancellable: true },
-      async (signal, progress) => {
-        const client = await connect(signal);
-        try {
-          progress.report({ message: 'loading file' });
-          // Loading the file also runs its `[@@decomp ...]` attributes with their options (~assuming, ~prune, ...);
-          // from a lens only that function's tasks run
-          const ev = await client.evalSrc(doc.getText(), { taskFilter: target ? [name] : undefined, signal, timeoutMs: TIMEOUT_MS });
-          // evalSrc reports success even with errors, and a decompose after that hangs, so stop here
-          if (ev.errors.length) { void window.showErrorMessage(`ImandraX: ${ev.errors[0].toString()}`); return; }
-          // A function without the attribute (e.g. picked from the palette) gets a plain decomposition
-          progress.report({ message: 'decomposing' });
-          return ev.decompResults.find(r => r.decomposition?.id.shortName === name)
-            ?? await client.decompose(name, { prune: true, stringResults: true, signal, timeoutMs: TIMEOUT_MS });
-        } finally {
-          await client.close().catch(() => undefined);
-        }
-      });
+    const res = await this.decomposition(doc, name, target);
     if (!res) { return; }
     if (!res.decomposition) { void window.showErrorMessage(`Decomposition failed: ${res.errors.map(String).join('\n')}`); return; }
     const taskId = res.task && this.mirDb.add(`decompose ${name}`, [{ task: res.task }], doc.getText());
-    showRegions(name, res.decomposition.regions, taskId);
+    void this.decompositions.show([regionsDecomp(name, res.decomposition.regions, taskId)]);
     if (taskId) {
       void window.showInformationMessage(`Decomposed ${name}.`, 'Browse MIR DB')
         .then(b => b && this.mirDb.reveal(taskId));
@@ -107,21 +72,63 @@ export class ApiTaskBackend implements TaskBackend {
     return this.runs.has(runKey(uri, kind, sym)) || (kind === 'check' && this.runs.has(runKey(uri, 'check')));
   }
 
-  // From the results shown: successful = proved/instance found (Hint), failed = refuted or error
   fileProgress(doc: TextDocument): Promise<FileProgress> {
-    const ds = this.diagnostics.get(doc.uri) ?? [];
-    const successful = ds.filter(d => d.severity === DiagnosticSeverity.Hint).length;
-    const failed = ds.filter(d => d.severity === DiagnosticSeverity.Error).length;
+    const { total, successful, failed } = this.diagnostics.counts(doc.uri);
     const running = [...this.runs.keys()].some(k => k.startsWith(`${doc.uri.toString()} `));
-    return Promise.resolve({ started: ds.length, finished: ds.length, successful, failed, total: ds.length, running });
+    return Promise.resolve({ started: total, finished: total, successful, failed, total, running });
   }
 
   dispose() {
     this.pending.forEach(timer => clearTimeout(timer));
     this.runs.forEach(abort => abort.abort());
     this.diagnostics.dispose();
-    this.browse.dispose();
     this.mirDb.dispose();
+  }
+
+  // `quiet`: an open/save check
+  private async checkPOs(doc: TextDocument, target?: TaskTarget, quiet = false) {
+    const results = await this.poResults(doc, target, quiet);
+    if (!results) { return; }
+    this.diagnostics.show(doc, results, target);
+    this.mirDb.add(`check ${target?.sym ?? doc.uri.path.split('/').pop()}`, results, doc.getText());
+  }
+
+  // The file's PO results, or only the target's (the task filter matches full symbols, anonymous
+  // `_verify_<line>_<col>` ones included); undefined if the file has errors, after showing them
+  private poResults(doc: TextDocument, target: TaskTarget | undefined, quiet: boolean) {
+    return this.run(doc, 'check', target?.sym, { location: ProgressLocation.Window, title: 'ImandraX: checking' },
+      signal => this.session.use(signal, async client => {
+        const ev = await client.evalSrc(doc.getText(),
+          { taskFilter: target ? [target.sym] : undefined, signal, timeoutMs: TIMEOUT_MS });
+        // evalSrc reports success even with errors
+        if (ev.errors.length) {
+          if (quiet) {
+            window.setStatusBarMessage('ImandraX: not checked, the file has errors', 5000);
+          } else {
+            void window.showErrorMessage(`ImandraX: ${ev.errors[0].toString()}`);
+          }
+          return;
+        }
+        return ev.poResults;
+      }));
+  }
+
+  // The decomposition of `name`; undefined if the file has errors, after showing them
+  private decomposition(doc: TextDocument, name: string, target?: TaskTarget) {
+    return this.run(doc, 'decompose', name,
+      { location: ProgressLocation.Notification, title: `Decomposing ${name}`, cancellable: true },
+      (signal, progress) => this.session.use(signal, async client => {
+        progress.report({ message: 'loading file' });
+        // Loading the file also runs its `[@@decomp ...]` attributes with their options (~assuming, ~prune, ...);
+        // from a lens only that function's tasks run
+        const ev = await client.evalSrc(doc.getText(), { taskFilter: target ? [name] : undefined, signal, timeoutMs: TIMEOUT_MS });
+        // evalSrc reports success even with errors, and a decompose after that hangs, so stop here
+        if (ev.errors.length) { void window.showErrorMessage(`ImandraX: ${ev.errors[0].toString()}`); return; }
+        // A function without the attribute (e.g. picked from the palette) gets a plain decomposition
+        progress.report({ message: 'decomposing' });
+        return ev.decompResults.find(r => r.decomposition?.id.shortName === name)
+          ?? await client.decompose(name, { prune: true, stringResults: true, signal, timeoutMs: TIMEOUT_MS });
+      }));
   }
 
   // Runs `work` with a progress indicator as the file's `kind` task on `sym`; undefined when it failed
@@ -147,62 +154,12 @@ export class ApiTaskBackend implements TaskBackend {
     }
   }
 
-  // The file's POs, or only the target's (the task filter matches full symbols, anonymous
-  // `_verify_<line>_<col>` ones included); `quiet`: an open/save check
-  private async checkPOs(doc: TextDocument, target?: TaskTarget, quiet = false) {
-    const results = await this.run(doc, 'check', target?.sym, { location: ProgressLocation.Window, title: 'ImandraX: checking' },
-      async signal => {
-        const client = await connect(signal);
-        try {
-          const ev = await client.evalSrc(doc.getText(),
-            { taskFilter: target ? [target.sym] : undefined, signal, timeoutMs: TIMEOUT_MS });
-          // evalSrc reports success even with errors
-          if (ev.errors.length) {
-            if (quiet) {
-              window.setStatusBarMessage('ImandraX: not checked, the file has errors', 5000);
-            } else {
-              void window.showErrorMessage(`ImandraX: ${ev.errors[0].toString()}`);
-            }
-            return;
-          }
-          return ev.poResults;
-        } finally {
-          await client.close().catch(() => undefined);
-        }
-      });
-    if (!results) { return; }
-    this.showResults(doc, results, target);
-    this.mirDb.add(`check ${target?.sym ?? doc.uri.path.split('/').pop()}`, results, doc.getText());
-  }
-
-  // Replaces the file's diagnostics, or with a target only those of the POs that ran
-  private showResults(doc: TextDocument, results: readonly ProofObligationResult[], target?: TaskTarget) {
-    const ran = new Set(results.map(r => r.origin.fromSym));
-    const kept = target ? (this.shown.get(doc.uri.toString()) ?? []).filter(d => !ran.has(d.code as string)) : [];
-    const all = [...kept, ...results.map(r => {
-      const [severity, message] = verdict(r);
-      const d = new PoDiagnostic(placeOf(doc, r, target), message, severity, r.task.id.toString());
-      d.source = 'ImandraX'; // decorated in the gutter like the server's
-      d.code = r.origin.fromSym; // which PO, for the partial replace above
-      return d;
-    })];
-    this.shown.set(doc.uri.toString(), all);
-    this.diagnostics.set(doc.uri, all);
-  }
-
   private async askFunction(doc: TextDocument) {
     const editor = window.activeTextEditor;
     const sel = editor?.document === doc ? editor.selection : undefined;
     const word = sel && doc.getWordRangeAtPosition(sel.active);
     const guess = sel && !sel.isEmpty ? doc.getText(sel) : word ? doc.getText(word) : '';
     return window.showInputBox({ prompt: 'Function to decompose', value: guess });
-  }
-}
-
-// A PO result, with its task for the "Browse MIR DB" code action
-class PoDiagnostic extends Diagnostic {
-  constructor(range: Range, message: string, severity: DiagnosticSeverity, readonly taskId: string) {
-    super(range, message, severity);
   }
 }
 
@@ -213,33 +170,3 @@ const open = (uri: Uri) => Promise.resolve(workspace.openTextDocument(uri)).catc
   void window.showErrorMessage(`ImandraX: ${e instanceof Error ? e.message : String(e)}`);
   return undefined;
 });
-
-const otherLabels: Record<string, string> = { unknown: 'Unknown', err: 'Error', verifiedUpto: 'Verified up to bound', testOk: 'Test passed' };
-
-// Like the server: proved and instances are Hints, counterexamples Errors, anything else a Warning
-function verdict(r: ProofObligationResult): [DiagnosticSeverity, string] {
-  if (r.proved) { return [DiagnosticSeverity.Hint, 'Proved']; }
-  // A found model is a counterexample to a `verify`/theorem (reported with an error) or an instance
-  if (r.found && (r.model ? r.model.kind === 'counterExample' : r.errors.length > 0)) {
-    return [DiagnosticSeverity.Error, `Refuted, counterexample:\n${r.model?.src.trim() ?? '(not sent)'}`];
-  }
-  if (r.found) { return [DiagnosticSeverity.Hint, `Instance found:\n${r.model?.src.trim() ?? '(not sent)'}`]; }
-  const label = otherLabels[r.outcome ?? ''] ?? 'No result';
-  const why = r.message ?? r.errors.map(String).join('\n');
-  return [DiagnosticSeverity.Warning, why ? `${label}: ${why}` : label];
-}
-
-// The PO's error location if it has one (refuted, unknown, ...), else the clicked lens if it is this PO's,
-// else the line defining its symbol: anonymous `verify`/`instance` symbols are `_verify_<line>_<col>`
-function placeOf(doc: TextDocument, r: ProofObligationResult, target?: TaskTarget): Range {
-  const loc = r.errors.flatMap(e => e.message.locations)[0];
-  if (loc) { return new Range(loc.start.line - 1, loc.start.column - 1, loc.stop.line - 1, loc.stop.column); }
-  const from = r.origin.fromSym;
-  if (target?.lens && target.sym === from) { return target.lens.range; }
-  const anon = /^_(?:verify|instance)_(\d+)_\d+$/.exec(from);
-  // ponytail: first textual definition of the name; a local `let` of the same name earlier would win
-  const name = from.split('.').pop()!.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const at = doc.getText().search(new RegExp(`\\b(?:let|rec|and|theorem|lemma|axiom|rule)\\s+${name}(?![\\w'])`));
-  const line = anon ? +anon[1] - 1 : doc.positionAt(Math.max(at, 0)).line;
-  return doc.lineAt(Math.min(line, doc.lineCount - 1)).range;
-}
