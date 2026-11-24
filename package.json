@@ -328,7 +328,11 @@
     ],
     "views": {
       "explorer": [
-        { "id": "imandrax.mirDb", "name": "ImandraX MIR DB", "when": "imandrax.apiBackend" }
+        {
+          "id": "imandrax.mirDb",
+          "name": "ImandraX MIR DB",
+          "when": "imandrax.apiBackend"
+        }
       ]
     },
     "viewsWelcome": [
@@ -339,18 +343,45 @@
     ],
     "menus": {
       "view/title": [
-        { "command": "imandrax.mirDb.format", "when": "view == imandrax.mirDb", "group": "navigation" },
-        { "command": "imandrax.mirDb.clear", "when": "view == imandrax.mirDb", "group": "navigation" }
+        {
+          "command": "imandrax.mirDb.format",
+          "when": "view == imandrax.mirDb",
+          "group": "navigation"
+        },
+        {
+          "command": "imandrax.mirDb.clear",
+          "when": "view == imandrax.mirDb",
+          "group": "navigation"
+        }
       ],
       "editor/title": [
-        { "command": "imandrax.mirDb.switchFormat", "when": "resourceScheme == imandrax-mirdb", "group": "navigation" }
+        {
+          "command": "imandrax.mirDb.switchFormat",
+          "when": "resourceScheme == imandrax-mirdb",
+          "group": "navigation"
+        }
       ],
       "commandPalette": [
-        { "command": "imandrax.task.check", "when": "editorLangId == imandrax" },
-        { "command": "imandrax.task.decompose", "when": "editorLangId == imandrax" },
-        { "command": "imandrax.task.cancel", "when": "editorLangId == imandrax" },
-        { "command": "imandrax.mirDb.clear", "when": "false" },
-        { "command": "imandrax.mirDb.switchFormat", "when": "resourceScheme == imandrax-mirdb" }
+        {
+          "command": "imandrax.task.check",
+          "when": "editorLangId == imandrax"
+        },
+        {
+          "command": "imandrax.task.decompose",
+          "when": "editorLangId == imandrax"
+        },
+        {
+          "command": "imandrax.task.cancel",
+          "when": "editorLangId == imandrax"
+        },
+        {
+          "command": "imandrax.mirDb.clear",
+          "when": "false"
+        },
+        {
+          "command": "imandrax.mirDb.switchFormat",
+          "when": "resourceScheme == imandrax-mirdb"
+        }
       ],
       "webview/context": [
         {
@@ -444,7 +475,7 @@
     "@vscode/codicons": "^0.0.44",
     "@vscode/debugadapter": "^1.68.0",
     "@vscode/vsce": "^3.7.1",
-    "imandrax-api": "file:../imandrax-api-ts-client/src/ts",
+    "imandrax-api": "file:vendor/imandrax-api-0.21.0.tgz",
     "node-fetch": "^3.3.2",
     "ovsx": "^0.10.8",
     "prettier": "^3.7.4",
