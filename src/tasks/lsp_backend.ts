@@ -14,7 +14,7 @@ export class LspTaskBackend implements TaskBackend {
 
   async check(uri: Uri, target?: TaskTarget) {
     if (target?.lens) { return this.replay(target.lens); }
-    if (uri.scheme === 'file') { await this.execute('check-all', [uri.toString()]); } // not e.g. untitled MIR DB tabs
+    if (uri.scheme === 'file') { await this.execute('check-all', [uri.toString()]); } // not e.g. MIR DB documents
   }
 
   async decompose(_uri: Uri, target?: TaskTarget) {

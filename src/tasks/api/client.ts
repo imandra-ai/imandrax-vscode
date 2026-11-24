@@ -1,6 +1,8 @@
 import { workspace } from 'vscode';
 import * as apiKey from '../../api_key';
 
+export const TIMEOUT_MS = 300_000;
+
 export const errorText = (e: unknown) => `ImandraX API: ${e instanceof Error ? e.message : String(e)}`;
 
 // A new session on the server of `imandrax.experimental.apiUrl` ('' = Imandra's hosted server)

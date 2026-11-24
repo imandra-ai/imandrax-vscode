@@ -165,7 +165,7 @@
             ],
             "enumDescriptions": [
               "The language server runs proof obligations and decompositions (checking on open and save).",
-              "Experimental: the ImandraX API runs them. The language server only type-checks and offers the code lenses; checking on open/save follows --check-on-open/--check-on-save in imandrax.lsp.arguments, results show as diagnostics, and Decompose shows a regions table and a MIR DB browser. Local [@@@import]s are not sent; goal state is not available."
+              "Experimental: the ImandraX API runs them. The language server only type-checks and offers the code lenses; checking on open/save follows --check-on-open/--check-on-save in imandrax.lsp.arguments, results show as diagnostics, and Decompose shows a regions table; the MIR DB of checks and decompositions shows in the ImandraX MIR DB view. Local [@@@import]s are not sent; goal state is not available."
             ],
             "default": "lsp",
             "description": "Where proof obligations and decompositions run."
@@ -223,6 +223,11 @@
       {
         "command": "imandrax.task.cancel",
         "title": "ImandraX: Cancel running task at cursor"
+      },
+      {
+        "command": "imandrax.mirDb.clear",
+        "title": "ImandraX: Clear MIR DB",
+        "icon": "$(clear-all)"
       },
       {
         "command": "imandrax.browse",
@@ -295,11 +300,26 @@
         ]
       }
     ],
+    "views": {
+      "explorer": [
+        { "id": "imandrax.mirDb", "name": "ImandraX MIR DB", "when": "imandrax.apiBackend" }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "imandrax.mirDb",
+        "contents": "The MIR DB (declarations, rules, termination measures) of recent ImandraX checks and decompositions. It fills when they run (with [imandrax.experimental.taskBackend](command:workbench.action.openSettings?%5B%22imandrax.experimental.taskBackend%22%5D) set to \"api\")."
+      }
+    ],
     "menus": {
+      "view/title": [
+        { "command": "imandrax.mirDb.clear", "when": "view == imandrax.mirDb", "group": "navigation" }
+      ],
       "commandPalette": [
         { "command": "imandrax.task.check", "when": "editorLangId == imandrax" },
         { "command": "imandrax.task.decompose", "when": "editorLangId == imandrax" },
-        { "command": "imandrax.task.cancel", "when": "editorLangId == imandrax" }
+        { "command": "imandrax.task.cancel", "when": "editorLangId == imandrax" },
+        { "command": "imandrax.mirDb.clear", "when": "false" }
       ],
       "webview/context": [
         {

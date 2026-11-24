@@ -1,23 +1,38 @@
 import {
-  Diagnostic, DiagnosticSeverity, languages, Progress, ProgressLocation, ProgressOptions, Range, TextDocument, Uri, window,
+  CodeAction, CodeActionKind, Diagnostic, DiagnosticSeverity, languages, Progress, ProgressLocation, ProgressOptions, Range, TextDocument, Uri, window,
   workspace,
 } from 'vscode';
 import type { ProofObligationResult } from 'imandrax-api';
 import { checkOn } from '../../config';
 import { FileProgress, TaskBackend, TaskKind, TaskTarget } from '../backend';
-import { connect, errorText } from './client';
-import { MirDbBrowser } from './mir_db';
+import { connect, errorText, TIMEOUT_MS } from './client';
+import { MirDbView, REVEAL_COMMAND } from './mir_db';
 import { showRegions } from './regions_view';
-
-const TIMEOUT_MS = 300_000;
 
 // The ImandraX HTTP API runs the tasks; the language server only type-checks and offers the lenses.
 // Proof obligation results become diagnostics shaped like the server's (Hint = proved/instance, which
-// get the good gutter icon); decompositions show a regions table and offer the MIR DB browser.
+// get the good gutter icon); decompositions show a regions table. Both tasks' MIR DBs can be browsed in
+// the view "ImandraX MIR DB": from a diagnostic's code action, the regions table, or the notification.
 // ponytail: sends the file's text only, so `[@@@import]`s of local files won't resolve
 export class ApiTaskBackend implements TaskBackend {
   private readonly diagnostics = languages.createDiagnosticCollection('ImandraX API');
-  private readonly mirDb = new MirDbBrowser();
+  // The diagnostics set, by URI: code actions get copies of them (without `taskId`), matched back here
+  private readonly shown = new Map<string, readonly PoDiagnostic[]>();
+  private readonly mirDb = new MirDbView();
+  private readonly browse = languages.registerCodeActionsProvider({ language: 'imandrax' }, {
+    provideCodeActions: (doc, _range, context) => {
+      const shown = this.shown.get(doc.uri.toString()) ?? [];
+      return context.diagnostics.flatMap(d => {
+        const po = shown.find(p => p.range.isEqual(d.range) && p.message === d.message && p.source === d.source && p.code === d.code);
+        if (!po || !this.mirDb.has(po.taskId)) { return []; }
+        const title = `Browse MIR DB (${po.code as string})`;
+        const action = new CodeAction(title, CodeActionKind.QuickFix);
+        action.command = { title, command: REVEAL_COMMAND, arguments: [po.taskId] };
+        action.diagnostics = [d];
+        return [action];
+      });
+    },
+  });
   // Running tasks by `${uri} ${kind} ${sym}` (sym '' = the whole file); a new run of the same key cancels the old one
   private readonly runs = new Map<string, AbortController>();
   // Open/save checks waiting for a burst of events to end, by URI
@@ -69,8 +84,12 @@ export class ApiTaskBackend implements TaskBackend {
       });
     if (!res) { return; }
     if (!res.decomposition) { void window.showErrorMessage(`Decomposition failed: ${res.errors.map(String).join('\n')}`); return; }
-    showRegions(name, res.decomposition.regions);
-    if (res.task) { await this.mirDb.offer(name, doc, res.task); }
+    const taskId = res.task && this.mirDb.add(`decompose ${name}`, [{ task: res.task }], doc.getText());
+    showRegions(name, res.decomposition.regions, taskId);
+    if (taskId) {
+      void window.showInformationMessage(`Decomposed ${name}.`, 'Browse MIR DB')
+        .then(b => b && this.mirDb.reveal(taskId));
+    }
   }
 
   // The target's task (of its kind, if known), and a whole-file check, as its check lenses show Cancel too
@@ -101,6 +120,7 @@ export class ApiTaskBackend implements TaskBackend {
     this.pending.forEach(timer => clearTimeout(timer));
     this.runs.forEach(abort => abort.abort());
     this.diagnostics.dispose();
+    this.browse.dispose();
     this.mirDb.dispose();
   }
 
@@ -150,20 +170,24 @@ export class ApiTaskBackend implements TaskBackend {
           await client.close().catch(() => undefined);
         }
       });
-    if (results) { this.showResults(doc, results, target); }
+    if (!results) { return; }
+    this.showResults(doc, results, target);
+    this.mirDb.add(`check ${target?.sym ?? doc.uri.path.split('/').pop()}`, results, doc.getText());
   }
 
   // Replaces the file's diagnostics, or with a target only those of the POs that ran
   private showResults(doc: TextDocument, results: readonly ProofObligationResult[], target?: TaskTarget) {
     const ran = new Set(results.map(r => r.origin.fromSym));
-    const kept = target ? (this.diagnostics.get(doc.uri) ?? []).filter(d => !ran.has(d.code as string)) : [];
-    this.diagnostics.set(doc.uri, [...kept, ...results.map(r => {
+    const kept = target ? (this.shown.get(doc.uri.toString()) ?? []).filter(d => !ran.has(d.code as string)) : [];
+    const all = [...kept, ...results.map(r => {
       const [severity, message] = verdict(r);
-      const d = new Diagnostic(placeOf(doc, r, target), message, severity);
+      const d = new PoDiagnostic(placeOf(doc, r, target), message, severity, r.task.id.toString());
       d.source = 'ImandraX'; // decorated in the gutter like the server's
       d.code = r.origin.fromSym; // which PO, for the partial replace above
       return d;
-    })]);
+    })];
+    this.shown.set(doc.uri.toString(), all);
+    this.diagnostics.set(doc.uri, all);
   }
 
   private async askFunction(doc: TextDocument) {
@@ -172,6 +196,13 @@ export class ApiTaskBackend implements TaskBackend {
     const word = sel && doc.getWordRangeAtPosition(sel.active);
     const guess = sel && !sel.isEmpty ? doc.getText(sel) : word ? doc.getText(word) : '';
     return window.showInputBox({ prompt: 'Function to decompose', value: guess });
+  }
+}
+
+// A PO result, with its task for the "Browse MIR DB" code action
+class PoDiagnostic extends Diagnostic {
+  constructor(range: Range, message: string, severity: DiagnosticSeverity, readonly taskId: string) {
+    super(range, message, severity);
   }
 }
 

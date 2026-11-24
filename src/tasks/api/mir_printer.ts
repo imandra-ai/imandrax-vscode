@@ -3,7 +3,7 @@
 import type { AppliedSymbol, DB, Declaration, FunctionDefinition, Term, Type, TypeDefinition, Uid } from 'imandrax-api/dist/mir';
 import { Associativity, Notation, operator_info, strip_scope, type OperatorInfo } from '../../goal-state/imandrax_operators';
 
-const noHashes = (s: string) => s.replace(/\/[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])/g, '');
+export const noHashes = (s: string) => s.replace(/\/[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])/g, '');
 
 const ATOM = 100;
 const EPS = 0.01;
@@ -24,8 +24,13 @@ interface Frame { scrut: Term; ctor: Uid; names: Map<number, string> }
 interface Lambda { def: FunctionDefinition; args: readonly Term[] }
 const MAX_LAMBDA_DEPTH = 8;
 
+interface Printed { text: string; fullIds: ReadonlyMap<string, readonly string[]> }
+
 // With `db`, lifted `$lambda` functions are inlined as `fun ... -> ...` at their use sites.
-export function printDeclaration(decl: Declaration, db?: DB): { text: string; fullIds: ReadonlyMap<string, readonly string[]> } {
+export const printDeclaration = (decl: Declaration, db?: DB): Printed => print(decl, undefined, db);
+export const printTerm = (t: Term, db?: DB): string => print(undefined, t, db).text;
+
+function print(decl: Declaration | undefined, top: Term | undefined, db?: DB): Printed {
   const ids = new Map<string, Set<string>>();
   const reg = (text: string, u: Uid): string => {
     let s = ids.get(text);
@@ -283,9 +288,13 @@ export function printDeclaration(decl: Declaration, db?: DB): { text: string; fu
     return head;
   };
 
-  let text: string;
+  let text = '';
   try {
-    switch (decl.kind) {
+    if (top) {
+      for (const s of top) if (s.kind === 'var') used.add(s.var.id.shortName);
+      text = term(top, 0, true, '');
+    }
+    switch (decl?.kind) {
       case 'type': text = typeDef(decl.type); break;
       case 'function': {
         const f = decl.function;
@@ -310,7 +319,7 @@ export function printDeclaration(decl: Declaration, db?: DB): { text: string; fu
     }
   } catch {
     // ponytail: any unexpected term shape falls back to the client's own printer.
-    text = noHashes(decl.toString());
+    text = noHashes(String(decl ?? top));
   }
   return { text, fullIds: new Map([...ids].map(([k, v]) => [k, [...v]])) };
 }

@@ -74,6 +74,12 @@ This started around 11:00 and was still happening at 16:35, so for at least 5.5 
 - Does the server cancel a task when the request is dropped or the session ends?
 - Is there a per-user (or global) decomposition queue that a stuck task can block?
 
+## 5. Default termination measures are not in the MIR DB
+
+For a recursive function admitted without `[@@measure]` (e.g. `let rec sum xs = match xs with [] -> 0 | x :: tl -> x + sum tl`), the task's MIR DB has no admission entry: `db.admission` is empty and the definition's `hints.admission` is unset. The measure that was used shows up only inside the termination PO's proof, as a `measure#0` expansion in the SMT step. Functions with an explicit `[@@measure]` do get an admission entry (e.g. `ack` gives `measured: m n`).
+
+**Ask:** record the admission (the measure or the structural-recursion argument) in the DB for every admitted function, so clients can show why a function terminates without re-running its termination PO.
+
 ## Limitation (not a bug): local imports
 
 The server can't see the user's workspace, so `[@@@import "other.iml"]` doesn't resolve. A client has to `evalSrc` each dependency first, in import order. `imandrax-cli show-imports` could provide that order.

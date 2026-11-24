@@ -64,6 +64,7 @@ export class Tasks implements Disposable {
   }
 
   private createBackend(): TaskBackend {
+    void commands.executeCommand('setContext', 'imandrax.apiBackend', this.mode === 'api'); // shows the MIR DB view
     return this.mode === 'api' ? new ApiTaskBackend(uri => this.changed(uri)) : new LspTaskBackend(this.getClient);
   }
 
