@@ -39,6 +39,8 @@ async function _set_workspace_config(workspaceDir: string) {
   console.log("Updating workspace config");
   const wscfg = vscode.workspace.getConfiguration("imandrax");
   // await wscfg.update("lsp.binary", ".../imandrax-cli");
+  // these tests exercise the language server running the tasks
+  await wscfg.update("experimental.taskBackend", "lsp");
   await wscfg.update("lsp.arguments", [
     "lsp",
     "--check-on-save=false",

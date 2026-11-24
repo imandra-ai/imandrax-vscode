@@ -70,7 +70,7 @@ export function getExtensionConfig(): Config {
 // Where proof/decomposition tasks run: the language server, or (experimental) the ImandraX HTTP API.
 // Read at call time by every feature that runs tasks.
 export function taskBackend(): "lsp" | "api" {
-  return workspace.getConfiguration("imandrax").get("experimental.taskBackend") === "api" ? "api" : "lsp";
+  return workspace.getConfiguration("imandrax").get("experimental.taskBackend") === "lsp" ? "lsp" : "api"; // default: api
 }
 
 // Whether a file's tasks are checked when it is opened / saved: `--check-on-open` / `--check-on-save`

@@ -167,7 +167,7 @@
               "The language server runs proof obligations and decompositions (checking on open and save).",
               "Experimental: the ImandraX API runs them. The language server only type-checks and offers the code lenses; checking on open/save follows --check-on-open/--check-on-save in imandrax.lsp.arguments, results show as diagnostics, and Decompose shows a regions table; the MIR DB of checks and decompositions shows in the ImandraX MIR DB view. Local [@@@import]s are not sent; goal state is not available."
             ],
-            "default": "lsp",
+            "default": "api",
             "description": "Where proof obligations and decompositions run."
           }
         }
