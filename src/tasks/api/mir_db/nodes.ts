@@ -1,7 +1,7 @@
 import type { Declaration, Uid } from 'imandrax-api/dist/mir';
-import type { DecompositionTask, DecompositionTaskResult } from 'imandrax-api/dist/tasks';
+import type { DecompositionTaskResult } from 'imandrax-api/dist/tasks';
 import type { Report } from 'imandrax-api/dist/report';
-import { ApiSession } from '../client';
+import { ApiSession, DecompTask } from '../client';
 import { MirFormat, MirRenderer } from '../mir_format';
 import { decompDocument } from '../report_printer';
 import { at, byName, DbIndex, headText, measureText } from './db_index';
@@ -13,7 +13,7 @@ export type Node = TaskNode | GroupNode | DeclNode | ReportNode | MessageNode;
 export class TaskNode {
   private static count = 0;
   readonly id = `mirdb-task-${TaskNode.count++}`;
-  readonly taskId: string;
+  readonly taskId: string; // as decomposed: the decomposition's panel links to it
   // Names the file's text defines: MIR decls carry no source location.
   // ponytail: a top-level parse (imlformat's iml2json) would be exact if local `let`s ever mislead this
   readonly defined: ReadonlySet<string>;
@@ -23,16 +23,16 @@ export class TaskNode {
   ready?: DbIndex; // once loaded, for printing the report
   private index?: Promise<DbIndex>;
 
-  constructor(readonly label: string, private readonly task: DecompositionTask, source: string, readonly session: ApiSession) {
-    this.taskId = task.id.toString();
-    this.report = new ReportNode(this, task);
-    this.defined = new Set([...source.matchAll(
+  constructor(readonly label: string, readonly source: DecompTask, readonly session: ApiSession) {
+    this.taskId = source.task.id.toString();
+    this.report = new ReportNode(this);
+    this.defined = new Set([...source.request.src.matchAll(
       /\b(?:let(?:\s+rec)?|and|type|theorem|lemma|axiom|rule|instance|verify)\s+([A-Za-z_][\w']*)/g)].map(m => m[1]));
   }
 
   // A failed or timed out fetch is not kept, so expanding again (or Retry) refetches
   load(): Promise<DbIndex> {
-    this.index ??= this.session.fetch(this.task, 'the MIR DB', async () => (this.ready = new DbIndex(await this.task.db())));
+    this.index ??= this.session.fetch(this.source, 'the MIR DB', async task => (this.ready = new DbIndex(await task.db())));
     this.index.catch(() => { this.index = undefined; });
     return this.index;
   }
@@ -43,7 +43,7 @@ export class ReportNode {
   readonly label = 'Decomposition';
   readonly description = 'report';
   private fetched?: Promise<{ res: DecompositionTaskResult; report: Report }>;
-  constructor(readonly task: TaskNode, private readonly decomposition: DecompositionTask) { }
+  constructor(readonly task: TaskNode) { }
   get parent() { return this.task; }
 
   async document(f: MirFormat): Promise<string> {
@@ -53,8 +53,8 @@ export class ReportNode {
 
   // A failed or timed out fetch is not kept
   private fetch() {
-    this.fetched ??= this.task.session.fetch(this.decomposition, 'the report', async () => {
-      const res = await this.decomposition.result();
+    this.fetched ??= this.task.session.fetch(this.task.source, 'the report', async task => {
+      const res = await task.result();
       return { res, report: await res.report() };
     });
     this.fetched.catch(() => { this.fetched = undefined; });

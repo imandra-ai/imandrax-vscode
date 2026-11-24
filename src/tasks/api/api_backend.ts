@@ -1,7 +1,7 @@
 import { Progress, ProgressLocation, TextDocument, Uri, window, workspace } from 'vscode';
 import { TaskBackend, TaskTarget } from '../backend';
 import { DecompositionView } from '../decomposition_view';
-import { ApiSession, errorText, TIMEOUT_MS } from './client';
+import { ApiSession, DecompRequest, errorText } from './client';
 import { MirDbView } from './mir_db/view';
 import { regionsDecomp } from './regions_printer';
 
@@ -23,10 +23,15 @@ export class ApiTaskBackend implements TaskBackend {
     if (!doc) { return; }
     const name = target?.sym ?? await this.askFunction(doc);
     if (!name) { return; }
-    const res = await this.decomposition(doc, name, target);
-    if (!res) { return; }
-    if (!res.decomposition) { void window.showErrorMessage(`Decomposition failed: ${res.errors.map(String).join('\n')}`); return; }
-    const taskId = res.task && this.mirDb.add(`decompose ${name}`, res.task, doc.getText());
+    const out = await this.decomposition(doc, name, target);
+    if (!out) { return; }
+    const { res, source } = out;
+    if (!res.decomposition) {
+      source?.end();
+      void window.showErrorMessage(`Decomposition failed: ${res.errors.map(String).join('\n')}`);
+      return;
+    }
+    const taskId = source && this.mirDb.add(`decompose ${name}`, source);
     void this.decompositions.show([regionsDecomp(name, res.decomposition.regions, taskId)]);
     if (taskId) {
       void window.showInformationMessage(`Decomposed ${name}.`, 'Browse MIR DB')
@@ -50,20 +55,11 @@ export class ApiTaskBackend implements TaskBackend {
     this.session.dispose();
   }
 
-  // The decomposition of `name`; undefined if the file has errors, after showing them
+  // The decomposition of `name`; undefined if the file has errors, after showing them. From a lens only that
+  // function's tasks run
   private decomposition(doc: TextDocument, name: string, target?: TaskTarget) {
-    return this.run(doc, name, (signal, progress) => this.session.use(signal, async client => {
-      progress.report({ message: 'loading file' });
-      // Loading the file also runs its `[@@decomp ...]` attributes with their options (~assuming, ~prune, ...);
-      // from a lens only that function's tasks run
-      const ev = await client.evalSrc(doc.getText(), { taskFilter: target ? [name] : undefined, signal, timeoutMs: TIMEOUT_MS });
-      // evalSrc reports success even with errors, and a decompose after that hangs, so stop here
-      if (ev.errors.length) { void window.showErrorMessage(`ImandraX: ${ev.errors[0].toString()}`); return; }
-      // A function without the attribute (e.g. picked from the palette) gets a plain decomposition
-      progress.report({ message: 'decomposing' });
-      return ev.decompResults.find(r => r.decomposition?.id.shortName === name)
-        ?? await client.decompose(name, { prune: true, stringResults: true, signal, timeoutMs: TIMEOUT_MS });
-    }));
+    const request = new DecompRequest(doc.getText(), name, target ? [name] : undefined);
+    return this.run(doc, name, (signal, progress) => this.session.decompose(request, signal, progress));
   }
 
   // Runs `work` with a cancellable progress notification as the file's decomposition of `name`; undefined

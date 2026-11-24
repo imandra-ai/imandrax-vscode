@@ -1,9 +1,8 @@
 import {
   commands, Disposable, EventEmitter, ThemeIcon, TreeDataProvider, TreeItem, TreeItemCollapsibleState, TreeView, Uri, window,
 } from 'vscode';
-import { ApiSession, errorText } from '../client';
+import { ApiSession, DecompTask, errorText } from '../client';
 import { MirDbDocuments } from './documents';
-import type { DecompositionTask } from 'imandrax-api/dist/tasks';
 import { DeclNode, GroupNode, groups, MessageNode, Node, ReportNode, TaskNode } from './nodes';
 import { REVEAL_COMMAND } from './reveal';
 
@@ -25,7 +24,7 @@ export class MirDbView implements TreeDataProvider<Node>, Disposable {
     commands.registerCommand(REVEAL_COMMAND, (id: string) => this.reveal(id)),
     commands.registerCommand('imandrax.mirDb.open', (n: DeclNode | ReportNode) => this.documents.open(n)),
     commands.registerCommand('imandrax.mirDb.retry', (n: TaskNode) => this.changed.fire(n)),
-    commands.registerCommand('imandrax.mirDb.clear', () => { this.nodes = []; this.changed.fire(undefined); }),
+    commands.registerCommand('imandrax.mirDb.clear', () => { this.list([]); }),
     commands.registerCommand('imandrax.mirDb.format', () => this.documents.chooseFormat()),
     commands.registerCommand('imandrax.mirDb.switchFormat', (uri?: Uri) => this.documents.switchFormat(uri)),
   ];
@@ -33,14 +32,15 @@ export class MirDbView implements TreeDataProvider<Node>, Disposable {
   // `session`: fetches the tasks' DBs and reports
   constructor(private readonly session: ApiSession) { }
 
-  // `label` like "decompose fee"; `source`: the file's text, for "This file". Returns the task's id
-  add(label: string, task: DecompositionTask, source: string): string {
-    const id = task.id.toString();
+  // `label` like "decompose fee". Returns the task's id
+  add(label: string, source: DecompTask): string {
+    const id = source.task.id.toString();
     const old = this.nodes.find(n => n.taskId === id); // content-addressed: the same work again keeps its DB
-    const node = old?.label === label ? old : new TaskNode(label, task, source, this.session);
+    const reused = old?.label === label;
+    const node = reused ? old : new TaskNode(label, source, this.session);
+    if (reused) { source.end(); } else { source.onReplaced = () => { this.changed.fire(node); }; } // the old node keeps its session
     node.time = new Date();
-    this.nodes = [node, ...this.nodes.filter(n => n !== node)].slice(0, MAX_TASKS);
-    this.changed.fire(undefined);
+    this.list([node, ...this.nodes.filter(n => n !== node)].slice(0, MAX_TASKS));
     return id;
   }
 
@@ -58,8 +58,10 @@ export class MirDbView implements TreeDataProvider<Node>, Disposable {
       ? TreeItemCollapsibleState.Collapsed : TreeItemCollapsibleState.None);
     item.id = nodeId(n);
     if (n instanceof TaskNode) {
-      item.description = n.time.toLocaleTimeString();
-      item.tooltip = n.taskId;
+      // Decomposed again (the server no longer had it) as another task
+      const now = n.source.task.id.toString();
+      item.description = n.time.toLocaleTimeString() + (now === n.taskId ? '' : ' (decomposed again: another task)');
+      item.tooltip = now === n.taskId ? n.taskId : `${n.taskId}, decomposed again as ${now}`;
       item.iconPath = new ThemeIcon('database');
     } else if (n instanceof GroupNode) {
       item.description = String(n.count);
@@ -89,7 +91,17 @@ export class MirDbView implements TreeDataProvider<Node>, Disposable {
     }
   }
 
-  dispose() { for (const d of this.subscriptions) { d.dispose(); } }
+  dispose() {
+    for (const n of this.nodes) { n.source.end(); }
+    for (const d of this.subscriptions) { d.dispose(); }
+  }
+
+  // The tasks listed: those no longer listed end their sessions
+  private list(nodes: TaskNode[]) {
+    for (const n of this.nodes) { if (!nodes.includes(n)) { n.source.end(); } }
+    this.nodes = nodes;
+    this.changed.fire(undefined);
+  }
 }
 
 // Unique in the tree: the same declaration can show in several groups

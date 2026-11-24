@@ -80,6 +80,10 @@ For a recursive function admitted without `[@@measure]` (e.g. `let rec sum xs = 
 
 **Ask:** record the admission (the measure or the structural-recursion argument) in the DB for every admitted function, so clients can show why a function terminates without re-running its termination PO.
 
+## 6. Reopening a live session by id sometimes fails (dev)
+
+`Client.connect({ sessionId })` from a new client, for a session another client still holds open, failed with `InvalidSession` in 4 of 12 tries on dev (2026-11-24). The client that created the session never failed (`keepSessionAlive`, 12 of 12). Reopening by session id is what hongyu suggested for fetching task results later, so it should be reliable. The extension works around it by keeping the original client and re-running the decomposition when its session is gone.
+
 ## Limitation (not a bug): local imports
 
 The server can't see the user's workspace, so `[@@@import "other.iml"]` doesn't resolve. A client has to `evalSrc` each dependency first, in import order. `imandrax-cli show-imports` could provide that order.
