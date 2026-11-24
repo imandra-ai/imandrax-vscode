@@ -323,3 +323,112 @@ function print(decl: Declaration | undefined, top: Term | undefined, db?: DB): P
   }
   return { text, fullIds: new Map([...ids].map(([k, v]) => [k, [...v]])) };
 }
+
+// ---- the client's textual MIR, laid out ----
+// The same tokens as the client's toString(), with line breaks only where toString() has a space: a
+// match's arms and an else-if chain's branches one per line, other terms wrapped past WIDTH columns.
+
+// A Wadler-style document: text, concatenation, `nest` (indent breaks by 2), `group` (flat if it fits),
+// a soft break (a space when flat) or a hard one
+type Doc = string | Doc[] | { nest: Doc } | { group: Doc } | { br: 'soft' | 'hard' };
+const WIDTH = 100;
+const soft: Doc = { br: 'soft' }, hard: Doc = { br: 'hard' };
+const nest = (...d: Doc[]): Doc => ({ nest: d });
+const group = (...d: Doc[]): Doc => ({ group: d });
+const sepBy = (xs: Doc[], sep: Doc): Doc[] => xs.flatMap((x, i) => (i ? [sep, x] : [x]));
+
+function render(doc: Doc): string {
+  const widths = new WeakMap<object, number>();
+  // The flat width; Infinity with a hard break
+  const width = (d: Doc): number => {
+    if (typeof d === 'string') return d.length;
+    let w = widths.get(d);
+    if (w === undefined) {
+      w = Array.isArray(d) ? d.reduce((s, x) => s + width(x), 0)
+        : 'br' in d ? (d.br === 'hard' ? Infinity : 1) : width('nest' in d ? d.nest : d.group);
+      widths.set(d, w);
+    }
+    return w;
+  };
+  let out = '', col = 0;
+  const go = (d: Doc, ind: number, flat: boolean): void => {
+    if (typeof d === 'string') {
+      out += d;
+      const nl = d.lastIndexOf('\n');
+      col = nl < 0 ? col + d.length : d.length - nl - 1;
+    } else if (Array.isArray(d)) for (const x of d) go(x, ind, flat);
+    else if ('br' in d) {
+      if (flat) { out += ' '; col++; } else { out += `\n${' '.repeat(ind)}`; col = ind; }
+    } else if ('nest' in d) go(d.nest, ind + 2, flat);
+    else go(d.group, ind, flat || col + width(d.group) <= WIDTH);
+  };
+  go(doc, 0, false);
+  return out;
+}
+
+const mirTerm = (t: Term): Doc => {
+  const sub = mirTerm;
+  switch (t.kind) {
+    case 'apply':
+      return t.arguments.length === 0 ? sub(t.function) : group('(', sub(t.function), nest(t.arguments.map((a) => [soft, sub(a)])), ')');
+    case 'if': {
+      // An else-if chain's branches on one level, one per line
+      const arms: Doc[] = [];
+      let x: Term = t;
+      while (x.kind === 'if') {
+        arms.push(group(arms.length ? 'else if ' : 'if ', nest(sub(x.condition)), ' then', nest(soft, sub(x.thenBranch))));
+        x = x.elseBranch;
+      }
+      arms.push(['else ', sub(x)]);
+      return arms.length > 2 ? sepBy(arms, hard) : group(sepBy(arms, soft));
+    }
+    case 'case': {
+      const arms = t.cases.map((c) => group('| ', c.ctor.id.shortName, ' ->', nest(soft, sub(c.rhs))));
+      if (t.default !== undefined) arms.push(group('| _ ->', nest(soft, sub(t.default))));
+      return ['match ', nest(sub(t.scrutinee)), ' with', nest(arms.map((a) => [hard, a]))];
+    }
+    case 'construct': {
+      const [name, args, labels] = [t.ctor.id.shortName, t.arguments, t.labels];
+      if (args.length === 0) return name;
+      if (labels !== undefined) {
+        const fields = labels.slice(0, args.length).map((l, i): Doc => [l.fullName, ' = ', sub(args[i])]);
+        return group(name, ' {', nest(sepBy(fields, [';', soft])), '}');
+      }
+      if (args.length === 1) return group(name, nest(soft, sub(args[0])));
+      return group(name, ' (', nest(sepBy(args.map(sub), [',', soft])), ')');
+    }
+    case 'destruct': return group('Destruct(', t.ctor.id.shortName, ', ', String(t.index), ',', nest(soft, sub(t.term)), ')');
+    case 'isA': return group('Is_a(', t.ctor.id.shortName, ',', nest(soft, sub(t.term)), ')');
+    case 'tuple': return group('(', nest(sepBy(t.elements.map(sub), [',', soft])), ')');
+    case 'field': return [sub(t.term), '.', t.field.id.shortName];
+    case 'tupleField': return [sub(t.term), '.', String(t.index)];
+    case 'record': {
+      const rows = t.rows.map((r): Doc => [r.field.id.shortName, ' = ', sub(r.value)]);
+      return group('{', nest(t.rest === undefined ? [] : [sub(t.rest), ' with', soft], sepBy(rows, [';', soft])), '}');
+    }
+    case 'sequence': return group(sepBy([...t.prefix, t.last].map(sub), [';', soft]));
+    default: return t.toString();
+  }
+};
+
+const mirDefinition = (kw: string, f: FunctionDefinition): Doc =>
+  group(kw, ' ', f.name.fullName, ...f.arguments.map((a) => ` ${a.id.shortName}`), ' =', nest(soft, mirTerm(f.body)));
+
+const mirType = (d: TypeDefinition): Doc => {
+  const head = `type ${d.parameters.map((p) => `${p.fullName} `).join('')}${d.name.fullName}`;
+  const k = d.kind;
+  if (k.kind === 'algebraic') return group(head, ' =', nest(soft, sepBy(k.constructors.map((c) => c.toString()), [soft, '| '])));
+  if (k.kind === 'record') return group(head, ' = {', nest(sepBy(k.fields.map((f) => f.toString()), [';', soft])), '}');
+  return head;
+};
+
+export const printMirTerm = (t: Term): string => render(mirTerm(t));
+export function printMirDeclaration(d: Declaration): string {
+  switch (d.kind) {
+    case 'type': return render(mirType(d.type));
+    case 'function': return render(mirDefinition('let', d.function));
+    case 'theorem': return render(mirDefinition('theorem', d.function));
+    case 'ruleSpec': return render(mirDefinition('rule_spec', d.function));
+    case 'verify': return render(mirDefinition('verify', d.function));
+  }
+}

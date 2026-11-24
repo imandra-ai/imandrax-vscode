@@ -1,5 +1,5 @@
 import type { Admission, DB, Declaration, PatternHead, Uid } from 'imandrax-api/dist/mir';
-import { comment } from '../report_printer';
+import { MirFormat, MirRenderer } from '../mir_format';
 import { noHashes, printDeclaration } from '../mir_printer';
 
 type Printed = ReturnType<typeof printDeclaration>;
@@ -65,9 +65,12 @@ export class DbIndex {
     return [...out.values()];
   }
 
-  // The declaration's IML, then the rules from or about it, its termination measure and its users
+  // Renders this DB's MIR in format `f`, sharing the IML cache
+  renderer(f: MirFormat) { return new MirRenderer(f, this.db, d => this.print(d)); }
+
+  // The declaration (in `mir`'s format), then the rules from or about it, its termination measure and its users
   // `termination`: how its termination PO went, if this task has it
-  document(uid: Uid, termination?: string): Printed {
+  document(uid: Uid, mir: MirRenderer, termination?: string): Printed {
     const ids = new Map<string, Set<string>>();
     const reg = (p: Printed) => {
       for (const [k, vs] of p.fullIds) { vs.forEach(v => at(ids, k, () => new Set()).add(v)); }
@@ -75,14 +78,14 @@ export class DbIndex {
     };
     const name = (u: Uid) => reg({ text: u.shortName, fullIds: new Map([[u.shortName, [u.fullName]]]) });
     const decl = this.db.findDeclaration(uid);
-    const parts = [decl ? reg(this.print(decl)) : `(* ${name(uid)} is not a declaration of this DB *)`];
+    const parts = [decl ? reg(mir.decl(decl)) : mir.note(`${name(uid)} is not a declaration of this DB`)];
 
     const measure = this.db.admission.get(uid) ?? (decl?.kind === 'function' ? decl.function.hints.admission : undefined);
     const rec = decl?.kind === 'function' && decl.function.clique !== undefined && [...decl.function.clique].some(u => u.equals(uid));
     const how = [measure && `[@@measure] ${measureText(measure) || 'default'}`, termination].filter(Boolean);
     if (how.length || rec) {
       // ponytail: without [@@measure] the DB has no admission; the default measure only shows in the PO's SMT proof
-      parts.push(comment(`Termination: ${how.join('\n') || 'no [@@measure], and its termination PO is not in this task (check the file to see it)'}`));
+      parts.push(mir.note(`Termination: ${how.join('\n') || 'no [@@measure], and its termination PO is not in this task (check the file to see it)'}`));
     }
 
     // The same rule shows in several of the DB's tables (e.g. rwRules and thmAsRw)
@@ -90,21 +93,21 @@ export class DbIndex {
       .filter(r => r.source.equals(uid) || (r.head?.kind === 'symbol' && r.head.uid.equals(uid)))
       .map(r => [`${r.kind} ${r.source.fullName} ${headText(r.head)}`, r])).values()];
     const own = rules.filter(r => r.source.equals(uid));
-    if (own.length) { parts.push(`(* As rules: ${own.map(ruleText).join('; ')} *)`); }
+    if (own.length) { parts.push(mir.note(`As rules: ${own.map(ruleText).join('; ')}`)); }
     const bySource = new Map<string, Rule[]>();
     for (const r of rules.filter(x => !x.source.equals(uid))) { at(bySource, r.source.fullName, () => []).push(r); }
     if (bySource.size) {
-      parts.push(`(* Rules about ${name(uid)} *)`);
+      parts.push(mir.note(`Rules about ${name(uid)}`));
       for (const rs of bySource.values()) {
         const src = this.db.findDeclaration(rs[0].source);
-        parts.push(`(* ${rs.map(ruleText).join('; ')}, from ${name(rs[0].source)} *)${src ? `\n${reg(this.print(src))}` : ''}`);
+        parts.push(mir.join([mir.note(`${rs.map(ruleText).join('; ')}, from ${name(rs[0].source)}`), ...(src ? [reg(mir.decl(src))] : [])], '\n'));
       }
     }
 
     const users = this.usedBy(uid).sort(byName);
     const rows = Array.from({ length: Math.ceil(users.length / 6) }, (_, i) => users.slice(i * 6, i * 6 + 6).map(name).join(', '));
-    parts.push(users.length ? `(* Used by (${users.length}):\n   ${rows.join(',\n   ')} *)` : '(* Used by: nothing in this DB *)');
-    return { text: `${parts.join('\n\n')}\n`, fullIds: new Map([...ids].map(([k, v]) => [k, [...v]])) };
+    parts.push(mir.note(users.length ? `Used by (${users.length}):\n${rows.join(',\n')}` : 'Used by: nothing in this DB'));
+    return { text: mir.document(parts), fullIds: new Map([...ids].map(([k, v]) => [k, [...v]])) };
   }
 
   private print(d: Declaration): Printed {

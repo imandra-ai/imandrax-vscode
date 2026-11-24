@@ -3,7 +3,8 @@ import type { Declaration, Uid } from 'imandrax-api/dist/mir';
 import type { DecompositionTask, ProofObligation, ProofObligationTask, TaskResult } from 'imandrax-api/dist/tasks';
 import type { Report } from 'imandrax-api/dist/report';
 import { ApiSession, errorText } from '../client';
-import { comment, decompDocument, outcome, poDocument, terminationText } from '../report_printer';
+import { MirFormat, MirRenderer } from '../mir_format';
+import { decompDocument, outcome, poDocument, terminationText } from '../report_printer';
 import { at, byName, DbIndex, headText, measureText } from './db_index';
 
 // The MIR DB view's nodes: a task (with its reports and, once its DB is loaded, groups of declarations),
@@ -51,10 +52,10 @@ export class TaskNode {
 
   // How `uid` was admitted, from its termination PO if this check ran it: a PO named like it whose goal is
   // `terminates` of exactly this function (not a shadowed or library one of the same name)
-  async termination(uid: Uid): Promise<string | undefined> {
+  async termination(uid: Uid, mir: MirRenderer): Promise<string | undefined> {
     try {
       for (const n of this.reportNodes().filter(r => r.fromSym === uid.shortName)) {
-        const text = await n.termination(uid);
+        const text = await n.termination(uid, mir);
         if (text) { return text; }
       }
     } catch (e) {
@@ -78,20 +79,20 @@ export class ReportNode {
   get description() { return 'origin' in this.run ? outcome(this.run) : 'report'; }
   get taskId() { return this.run.task.id.toString(); }
 
-  async document(): Promise<string> {
+  async document(f: MirFormat): Promise<string> {
     const { po, res, report } = await this.fetch();
-    const db = this.task.ready?.db;
-    if ('origin' in this.run && po && res.kind === 'checkPo') { return poDocument(this.run, po, res, report, db); }
-    return res.kind === 'decomp' ? decompDocument(res, report, db) : comment(`Unexpected ${res.kind} result`);
+    const mir = this.task.ready?.renderer(f) ?? new MirRenderer(f);
+    if ('origin' in this.run && po && res.kind === 'checkPo') { return poDocument(this.run, po, res, report, mir); }
+    return res.kind === 'decomp' ? decompDocument(res, report, mir) : mir.document([mir.note(`Unexpected ${res.kind} result`)]);
   }
 
   // How it went, if it is the termination PO of `uid`
-  async termination(uid: Uid): Promise<string | undefined> {
+  async termination(uid: Uid, mir: MirRenderer): Promise<string | undefined> {
     const { po, report } = await this.fetch();
     const goal = po?.goal.body;
     const about = goal?.kind === 'apply' && goal.function.kind === 'symbol' && goal.function.symbol.id.shortName === 'terminates'
       && goal.arguments.some(a => a.kind === 'symbol' && a.symbol.id.equals(uid));
-    return 'origin' in this.run && po && about ? terminationText(this.run, po, report, this.task.ready?.db) : undefined;
+    return 'origin' in this.run && po && about ? terminationText(this.run, po, report, mir) : undefined;
   }
 
   // A failed or timed out fetch is not kept

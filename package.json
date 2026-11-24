@@ -156,6 +156,22 @@
             "default": "",
             "description": "Experimental: the ImandraX API server used when `imandrax.experimental.taskBackend` is `api`, e.g. a self-hosted server. Empty means Imandra's hosted server."
           },
+          "imandrax.experimental.mirDbFormat": {
+            "scope": "window",
+            "type": "string",
+            "enum": [
+              "iml",
+              "mir",
+              "json"
+            ],
+            "enumDescriptions": [
+              "Readable IML (hover a name for its full ids).",
+              "The API client's textual MIR, with full ids.",
+              "The raw MIR structure, as JSON."
+            ],
+            "default": "iml",
+            "description": "Experimental: how the ImandraX MIR DB view's documents show declarations, rules and the terms of reports."
+          },
           "imandrax.experimental.taskBackend": {
             "scope": "window",
             "type": "string",
@@ -228,6 +244,16 @@
         "command": "imandrax.mirDb.clear",
         "title": "ImandraX: Clear MIR DB",
         "icon": "$(clear-all)"
+      },
+      {
+        "command": "imandrax.mirDb.format",
+        "title": "ImandraX: MIR DB format…",
+        "icon": "$(symbol-namespace)"
+      },
+      {
+        "command": "imandrax.mirDb.switchFormat",
+        "title": "ImandraX: Show in another MIR DB format…",
+        "icon": "$(arrow-swap)"
       },
       {
         "command": "imandrax.browse",
@@ -313,13 +339,18 @@
     ],
     "menus": {
       "view/title": [
+        { "command": "imandrax.mirDb.format", "when": "view == imandrax.mirDb", "group": "navigation" },
         { "command": "imandrax.mirDb.clear", "when": "view == imandrax.mirDb", "group": "navigation" }
+      ],
+      "editor/title": [
+        { "command": "imandrax.mirDb.switchFormat", "when": "resourceScheme == imandrax-mirdb", "group": "navigation" }
       ],
       "commandPalette": [
         { "command": "imandrax.task.check", "when": "editorLangId == imandrax" },
         { "command": "imandrax.task.decompose", "when": "editorLangId == imandrax" },
         { "command": "imandrax.task.cancel", "when": "editorLangId == imandrax" },
-        { "command": "imandrax.mirDb.clear", "when": "false" }
+        { "command": "imandrax.mirDb.clear", "when": "false" },
+        { "command": "imandrax.mirDb.switchFormat", "when": "resourceScheme == imandrax-mirdb" }
       ],
       "webview/context": [
         {

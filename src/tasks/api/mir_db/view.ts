@@ -1,5 +1,5 @@
 import {
-  commands, Disposable, EventEmitter, ThemeIcon, TreeDataProvider, TreeItem, TreeItemCollapsibleState, TreeView, window,
+  commands, Disposable, EventEmitter, ThemeIcon, TreeDataProvider, TreeItem, TreeItemCollapsibleState, TreeView, Uri, window,
 } from 'vscode';
 import { ApiSession, errorText } from '../client';
 import { MirDbDocuments } from './documents';
@@ -11,7 +11,7 @@ const MAX_TASKS = 10;
 
 // The view "ImandraX MIR DB": recent API tasks (newest first), each with what its MIR DB holds beyond
 // the file's own declarations. A task's DB is fetched when its node is first expanded and kept on the
-// node until the node leaves the list. A declaration opens as readable IML in a read-only document
+// node until the node leaves the list. A declaration opens as readable IML (or MIR, or raw JSON) in a read-only document
 // (MirDbDocuments); each PO (or the decomposition) opens as a report: verdict, goal, counterexample,
 // proof and the prover's steps.
 export class MirDbView implements TreeDataProvider<Node>, Disposable {
@@ -26,6 +26,8 @@ export class MirDbView implements TreeDataProvider<Node>, Disposable {
     commands.registerCommand('imandrax.mirDb.open', (n: DeclNode | ReportNode) => this.documents.open(n)),
     commands.registerCommand('imandrax.mirDb.retry', (n: TaskNode) => this.changed.fire(n)),
     commands.registerCommand('imandrax.mirDb.clear', () => { this.nodes = []; this.changed.fire(undefined); }),
+    commands.registerCommand('imandrax.mirDb.format', () => this.documents.chooseFormat()),
+    commands.registerCommand('imandrax.mirDb.switchFormat', (uri?: Uri) => this.documents.switchFormat(uri)),
   ];
 
   // `session`: fetches the tasks' DBs and reports
